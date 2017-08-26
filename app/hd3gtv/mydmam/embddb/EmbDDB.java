@@ -19,12 +19,10 @@ package hd3gtv.mydmam.embddb;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
-import java.security.Security;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.cli.CLIDefinition;
@@ -38,10 +36,6 @@ import hd3gtv.tools.ApplicationArgs;
 public class EmbDDB {
 	
 	private static Logger log = Logger.getLogger(EmbDDB.class);
-	
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
 	
 	private static String getMasterPasswordKey() throws GeneralSecurityException {
 		String master_password_key = Configuration.global.getValue("embddb", "master_password_key", "");

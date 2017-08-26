@@ -26,11 +26,19 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.log4j.Logger;
+import org.bouncycastle.crypto.BufferedBlockCipher;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.DataLengthException;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.modes.CBCBlockCipher;
+import org.bouncycastle.crypto.paddings.BlockCipherPadding;
+import org.bouncycastle.crypto.paddings.PKCS7Padding;
+import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersWithIV;
 
 import hd3gtv.tools.Hexview;
 
@@ -46,8 +54,8 @@ public final class Protocol {
 	 */
 	public static final byte[] APP_SOCKET_HEADER_TAG = "EMBDBMYD".getBytes(UTF8);
 	
-	private IvParameterSpec salt;
-	private SecretKey skeySpec;
+	private KeyParameter keyParam;
+	private CipherParameters params;
 	
 	private SocketHandlerReader handler_reader;
 	private SocketHandlerWriter handler_writer;
@@ -64,11 +72,11 @@ public final class Protocol {
 		handler_writer = new SocketHandlerWriter();
 		handler_writer_closer = new SocketHandlerWriterCloser();
 		
-		MessageDigest md = MessageDigest.getInstance("SHA-256", "BC");
+		MessageDigest md = MessageDigest.getInstance("SHA-256");
 		byte[] key = md.digest(master_password_key.getBytes("UTF-8"));
 		
-		skeySpec = new SecretKeySpec(key, "AES");
-		salt = new IvParameterSpec(key, 0, 16);
+		keyParam = new KeyParameter(key);
+		params = new ParametersWithIV(keyParam, key, 0, 16);
 	}
 	
 	public int getDefaultTCPPort() {
@@ -92,14 +100,22 @@ public final class Protocol {
 	}
 	
 	public byte[] encrypt(byte[] cleared_datas, int pos, int len) throws GeneralSecurityException {
-		return encryptDecrypt(cleared_datas, pos, len, Cipher.ENCRYPT_MODE);
+		try {
+			return encryptDecrypt(cleared_datas, pos, len, Cipher.ENCRYPT_MODE);
+		} catch (DataLengthException | IllegalStateException | InvalidCipherTextException e) {
+			throw new GeneralSecurityException(e);
+		}
 	}
 	
 	public byte[] decrypt(byte[] crypted_datas, int pos, int len) throws GeneralSecurityException {
-		return encryptDecrypt(crypted_datas, pos, len, Cipher.DECRYPT_MODE);
+		try {
+			return encryptDecrypt(crypted_datas, pos, len, Cipher.DECRYPT_MODE);
+		} catch (DataLengthException | IllegalStateException | InvalidCipherTextException e) {
+			throw new GeneralSecurityException(e);
+		}
 	}
 	
-	private byte[] encryptDecrypt(byte[] datas, int pos, int len, int mode) throws GeneralSecurityException {
+	private byte[] encryptDecrypt(byte[] datas, int pos, int len, int mode) throws GeneralSecurityException, DataLengthException, IllegalStateException, InvalidCipherTextException {
 		if (log.isTraceEnabled()) {
 			if (mode == Cipher.ENCRYPT_MODE) {
 				log.trace("Raw data input (no crypted)" + Hexview.LINESEPARATOR + Hexview.tracelog(datas, pos, len));
@@ -108,9 +124,17 @@ public final class Protocol {
 			}
 		}
 		
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-		cipher.init(mode, skeySpec, salt);
-		byte[] result = cipher.doFinal(datas, pos, len);
+		BlockCipherPadding padding = new PKCS7Padding();
+		BufferedBlockCipher cipher2 = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), padding);
+		cipher2.reset();
+		cipher2.init(mode == Cipher.ENCRYPT_MODE, params);
+		
+		byte[] buf = new byte[cipher2.getOutputSize(len)];
+		int len2 = cipher2.processBytes(datas, pos, len, buf, 0);
+		len2 += cipher2.doFinal(buf, len2);
+		
+		byte[] result = new byte[len2];
+		System.arraycopy(buf, 0, result, 0, len2);
 		
 		if (log.isTraceEnabled()) {
 			if (mode == Cipher.ENCRYPT_MODE) {

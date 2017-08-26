@@ -307,9 +307,6 @@ public class PoolManager {
 			pressure_measurement_sended.getActualStats(true).toTable(list, "Sended");
 			list.print();
 		});
-		
-		// TODO console start/stop netdiscover
-		
 	}
 	
 	/**
@@ -425,7 +422,7 @@ public class PoolManager {
 		
 		log.info("Start local server on " + logresult);
 		
-		// TODO manage white/black range addr list for node discover
+		// T O D O manage white/black range addr list for node discover
 		
 		Runtime.getRuntime().addShutdownHook(shutdown_hook);
 	}
