@@ -67,8 +67,11 @@ public class EmbDDB {
 			result.poolmanager.connectToBootstrapPotentialNodes("Loaded from configuration");
 		}
 		
-		if (Configuration.global.getValueBoolean("embddb", "disable_broadcast_discover") == false) {
-			result.poolmanager.startNetDiscover();
+		if (Configuration.global.getValueBoolean("embddb", "disable_multicast_discover") == false) {
+			List<InetSocketAddress> multicast_groups = Configuration.global.getClusterConfiguration("embddb", "multicast_groups", null, result.protocol.getDefaultUDPMulticastPort()).stream().map(item -> {
+				return item.getSocketAddress();
+			}).collect(Collectors.toList());
+			result.poolmanager.startNetDiscover(multicast_groups);
 		}
 		
 		return result;
@@ -115,7 +118,10 @@ public class EmbDDB {
 				}
 			}
 			if (args.getParamExist("-discover")) {
-				embddb.poolmanager.startNetDiscover();
+				List<InetSocketAddress> multicast_groups = Configuration.global.getClusterConfiguration("embddb", "multicast_groups", null, embddb.protocol.getDefaultUDPMulticastPort()).stream().map(item -> {
+					return item.getSocketAddress();
+				}).collect(Collectors.toList());
+				embddb.poolmanager.startNetDiscover(multicast_groups);
 			}
 			if (args.getParamExist("-bootstrap")) {
 				embddb.poolmanager.connectToBootstrapPotentialNodes("Local configuration, via CLI");

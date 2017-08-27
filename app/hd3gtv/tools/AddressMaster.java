@@ -244,13 +244,18 @@ public class AddressMaster {
 		});
 	}
 	
-	public Stream<NetworkInterface> getAllInterfaces() {
-		// Physical
+	public Stream<NetworkInterface> getAllPhysicalInterfaces() {
 		return all_addresses.stream().filter(addr -> {
-			return addr.up;
+			return addr.loopback == false & addr.virtual == false & addr.hw_addr != null;
+		}).filter(addr -> {
+			try {
+				return addr.current_interface.supportsMulticast();
+			} catch (SocketException e) {
+				return false;
+			}
 		}).map(addr -> {
 			return addr.current_interface;
-		});
+		}).distinct();
 	}
 	
 	/**

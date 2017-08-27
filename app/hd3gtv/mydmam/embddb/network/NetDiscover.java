@@ -11,95 +11,327 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 9 août 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
 package hd3gtv.mydmam.embddb.network;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.net.DatagramSocket;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.DatagramChannel;
-import java.security.GeneralSecurityException;
+import java.nio.channels.MembershipKey;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 
-import com.google.common.reflect.TypeToken;
+import hd3gtv.tools.AddressMaster;
 
-import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.Hexview;
-import hd3gtv.tools.StoppableThread;
-
-public class NetDiscover {
+/**
+ * Detect and find instances via multicast groups.
+ */
+class NetDiscover {
 	
-	private static Logger log = Logger.getLogger(NetDiscover.class);
+	private static final Logger log = Logger.getLogger(NetDiscover.class);
 	
-	/**
-	 * NETDISCOVER
-	 */
-	private static final byte[] HEADER = "NETDISCOVER".getBytes(MyDMAM.UTF8);
-	
-	private PoolManager manager;
-	
-	/**
-	 * Listen + send
-	 */
-	private List<Listener> listeners;
+	private ArrayList<InetSocketAddress> declared_groups;
+	private List<Engine> engines;
 	private ScheduledFuture<?> sch_future;
-	private byte[] json_host_public_listened_addrs;
-	private byte[] uuid_string;
 	
-	NetDiscover(PoolManager manager) throws IOException {
-		this.manager = manager;
+	NetDiscover(Protocol protocol, AddressMaster addr_master, List<InetSocketAddress> multicast_groups) {
+		declared_groups = new ArrayList<>(multicast_groups);
+		if (declared_groups.isEmpty()) {
+			declared_groups.add(new InetSocketAddress(protocol.getDefaulMulticastIPv4Addr(), protocol.getDefaultUDPMulticastPort()));
+			declared_groups.add(new InetSocketAddress(protocol.getDefaulMulticastIPv6Addr(), protocol.getDefaultUDPMulticastPort()));
+		}
 		
-		listeners = manager.getAddressMaster().getBroadcastAddresses().map(addr -> {
-			return new InetSocketAddress(addr, manager.getProtocol().getDefaultUDPBroadcastPort());
-		}).map(socket -> {
-			try {
-				return new Listener(socket);
-			} catch (IOException e) {
-				log.error("Can't create socket listener (" + socket + "), " + e.getMessage());
-				return null;
-			}
-		}).filter(listener -> {
-			return listener != null;
-		}).peek(listener -> {
-			listener.start();
+		engines = addr_master.getAllPhysicalInterfaces().map(physicalnetwork_interface -> {
+			return new Engine(physicalnetwork_interface);
 		}).collect(Collectors.toList());
 		
-		if (log.isInfoEnabled()) {
-			List<InetSocketAddress> addr = listeners.stream().map(listen -> {
-				return listen.addr_to_listen;
-			}).collect(Collectors.toList());
-			if (addr.size() == 1) {
-				log.info("Start node discover via broadcast address " + addr.get(0));
-			} else if (addr.size() > 1) {
-				log.info("Start node discover via broadcast addresses " + addr);
+	}
+	
+	void start() {
+		if (engines.isEmpty()) {
+			log.warn("Can't start discovering, no valid interfaces (up, physical and multicast enabled) founded");
+			return;
+		}
+		
+		engines.forEach(engine -> {
+			try {
+				engine.start();
+			} catch (Exception e) {
+				log.error("Can't start engine " + engine, e);
 			}
+		});
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+		}
+		
+		List<Engine> active_engines = engines.stream().filter(engine -> {
+			return engine.groups.stream().anyMatch(group -> {
+				if (group.channel == null) {
+					return false;
+				}
+				if (group.channel.isOpen() == false) {
+					return false;
+				}
+				if (group.receiver == null) {
+					return false;
+				}
+				return group.receiver.isAlive();
+			});
+		}).collect(Collectors.toList());
+		
+		if (active_engines.isEmpty()) {
+			log.warn("Can't start discovering, no group/interfaces to open and connect");
+			return;
+		}
+		
+		String groups_addr = active_engines.stream().flatMap(engine -> {
+			return engine.groups.stream();
+		}).map(group -> {
+			return group.group_socket;
+		}).distinct().map(group_socket -> {
+			return group_socket.toString();
+		}).collect(Collectors.joining(", "));
+		
+		String interfaces = active_engines.stream().map(engine -> {
+			return engine.network_interface.getName();
+		}).distinct().collect(Collectors.joining(", "));
+		
+		log.info("Start discovering and probing to " + groups_addr + " on " + interfaces);
+		
+		sch_future = Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(regular_send, 0, 30, TimeUnit.SECONDS);
+	}
+	
+	void close() {
+		if (sch_future != null) {
+			sch_future.cancel(false);
+		}
+		
+		engines.forEach(engine -> {
+			engine.close();
+		});
+		
+		List<Engine> active_engines = engines.stream().filter(engine -> {
+			return engine.groups.isEmpty() == false;
+		}).collect(Collectors.toList());
+		
+		if (active_engines.isEmpty() == false) {
+			String groups_addr = active_engines.stream().flatMap(engine -> {
+				return engine.groups.stream();
+			}).map(group -> {
+				return group.group_socket;
+			}).distinct().map(group_socket -> {
+				return group_socket.toString();
+			}).collect(Collectors.joining(", "));
+			
+			String interfaces = active_engines.stream().map(engine -> {
+				return engine.network_interface.getName();
+			}).distinct().collect(Collectors.joining(", "));
+			
+			log.info("Stop discovering and probing from " + groups_addr + " on " + interfaces);
 		}
 	}
 	
-	/**
+	private static final Predicate<NetworkInterface> isIPv4Configured = network_interface -> {
+		return network_interface.getInterfaceAddresses().stream().anyMatch(intf -> {
+			return intf.getAddress() instanceof Inet4Address;
+		});
+	};
+	
+	private static final Predicate<NetworkInterface> isIPv6Configured = network_interface -> {
+		return network_interface.getInterfaceAddresses().stream().anyMatch(intf -> {
+			return intf.getAddress() instanceof Inet6Address;
+		});
+	};
+	
+	private class Engine {
+		
+		final List<Group> groups;
+		final NetworkInterface network_interface;
+		
+		Engine(NetworkInterface network_interface) {
+			this.network_interface = network_interface;
+			
+			boolean is_ipv4_configured = isIPv4Configured.test(network_interface);
+			/**
+			 * If IPv4, don't configure IPv6
+			 */
+			boolean is_ipv6_configured = is_ipv4_configured == false & isIPv6Configured.test(network_interface);
+			
+			groups = declared_groups.stream().filter(group_socket -> {
+				return (is_ipv4_configured && group_socket.getAddress() instanceof Inet4Address) | (is_ipv6_configured && group_socket.getAddress() instanceof Inet6Address);
+			}).map(group_socket -> {
+				try {
+					return new Group(group_socket);
+				} catch (IOException e) {
+					log.debug("Can't create group", e);
+					return null;
+				}
+			}).filter(group -> {
+				return group != null;
+			}).collect(Collectors.toList());
+		}
+		
+		public String toString() {
+			String disp_name = network_interface.getDisplayName();
+			if (disp_name.length() > 10) {
+				disp_name = disp_name.substring(0, 10);
+			}
+			String net_name = network_interface.getName();
+			if (net_name.equalsIgnoreCase(disp_name)) {
+				return net_name;
+			} else {
+				return net_name + " (via " + disp_name + ")";
+			}
+		}
+		
+		private String toSuperString() {
+			return toString();
+		}
+		
+		void start() throws IOException {
+			try {
+				groups.forEach(group -> {
+					try {
+						group.start();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				});
+			} catch (RuntimeException e) {
+				throw new IOException(e.getCause());
+			}
+		}
+		
+		void close() {
+			groups.forEach(group -> {
+				group.close();
+			});
+		}
+		
+		private class Group {
+			
+			final InetSocketAddress group_socket;
+			InetSocketAddress bind_to;
+			ProtocolFamily pf;
+			Thread receiver;
+			DatagramChannel channel;
+			MembershipKey key;
+			
+			Group(InetSocketAddress group_socket) throws IOException {
+				this.group_socket = group_socket;
+				
+				if (group_socket.getAddress() instanceof Inet4Address) {
+					pf = StandardProtocolFamily.INET;
+				} else {
+					pf = StandardProtocolFamily.INET6;
+				}
+				
+				InetAddress first_addrnetwork_interface = network_interface.getInterfaceAddresses().stream().map(inet -> {
+					return inet.getAddress();
+				}).filter(inet_addr -> {
+					return pf == StandardProtocolFamily.INET & inet_addr instanceof Inet4Address | pf == StandardProtocolFamily.INET6 & inet_addr instanceof Inet6Address;
+				}).findFirst().orElseThrow(() -> new IOException("Can't found IPv4/6 addr in a IPv6/4 link"));
+				
+				bind_to = new InetSocketAddress(group_socket.getPort());
+				if (SystemUtils.IS_OS_WINDOWS) {
+					bind_to = new InetSocketAddress(first_addrnetwork_interface, group_socket.getPort());
+				}
+			}
+			
+			public String toString() {
+				return group_socket + " on " + toSuperString();
+			}
+			
+			void start() throws IOException {
+				channel = DatagramChannel.open(pf).setOption(StandardSocketOptions.SO_REUSEADDR, true).bind(bind_to);
+				key = channel.join(group_socket.getAddress(), network_interface);
+				
+				ByteBuffer buffer = ByteBuffer.allocate(Protocol.BUFFER_SIZE);
+				receiver = new Thread(() -> {
+					InetSocketAddress sender;
+					try {
+						while (channel.isOpen()) {
+							sender = (InetSocketAddress) channel.receive(buffer);
+							buffer.flip();
+							/*String value = */new String(buffer.array());// TODO real protocol
+							buffer.clear();
+							
+							if (log.isTraceEnabled()) {
+								log.trace("Receive datagram from " + sender.getHostString() + " on " + toString());
+							}
+						}
+					} catch (AsynchronousCloseException e) {
+					} catch (IOException e) {
+						log.error("Trouble with " + toString(), e);
+					}
+					log.debug("Close receive on " + toString());
+				});
+				receiver.setDaemon(true);
+				receiver.setName("NetDiscover-" + toString());
+				receiver.start();
+			}
+			
+			void close() {
+				try {
+					if (channel != null) {
+						channel.close();
+					}
+				} catch (IOException e) {
+					log.debug("Can't close socket " + toString(), e);
+				}
+				if (key != null) {
+					key.drop();
+				}
+			}
+			
+		}
+		
+	}
+	
+	private Runnable regular_send = () -> {
+		engines.stream().flatMap(engine -> {
+			return engine.groups.stream();
+		}).filter(group -> {
+			return group.channel != null;
+		}).filter(group -> {
+			return group.channel.isOpen();
+		}).forEach(group -> {
+			try {
+				int size_sended = group.channel.send(ByteBuffer.wrap("AAAA".getBytes()), group.group_socket);// TODO real protocol
+				if (log.isTraceEnabled()) {
+					log.trace("Send datagram (" + size_sended + " bytes) to " + group.toString());
+				}
+			} catch (IOException e) {
+				log.warn("Can't send datagram to " + group.toString(), e);
+			}
+		});
+	};
+	
+	/*
+	//TODO send UUID, public & open IPs/ports, "mydmam + url", password hash, version 
+	
+	
 	 * return json_host_public_listened_addrs;
-	 */
 	private byte[] refreshListenAddrList() {
 		counter_for_regular_refresh_listened_addrs.set(0);
 		
@@ -118,122 +350,12 @@ public class NetDiscover {
 	void startRegularSend() {
 		refreshListenAddrList();
 		uuid_string = manager.getUUIDRef().toString().getBytes(MyDMAM.UTF8);
-		sch_future = Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(getPacketSender(), 3, 30, TimeUnit.SECONDS);
 	}
 	
-	private class Listener extends StoppableThread {
-		
-		DatagramChannel channel_send;
-		DatagramChannel channel_rece;
-		InetSocketAddress addr_to_listen;
-		ByteBuffer buffer;
-		
-		public Listener(InetSocketAddress addr_to_listen) throws IOException {
-			super("Listen on UDP/" + addr_to_listen);
-			this.addr_to_listen = addr_to_listen;
-			buffer = ByteBuffer.allocate(Protocol.BUFFER_SIZE);
-			
-			channel_send = DatagramChannel.open(StandardProtocolFamily.INET);
-			// channel_send.join(ecgroup, interf)
-			channel_send.socket().setBroadcast(true);
-			
-			channel_rece = DatagramChannel.open(StandardProtocolFamily.INET);
-			channel_rece.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-			DatagramSocket socket_server = channel_rece.socket();
-			socket_server.setBroadcast(true);
-			socket_server.bind(addr_to_listen);
-		}
-		
-		public void run() {
-			while (isWantToRun()) {
-				buffer.clear();
-				InetSocketAddress sender = null;
-				try {
-					final InetSocketAddress _sender = (InetSocketAddress) channel_rece.receive(buffer);
-					
-					if (manager.getAddressMaster().getAddresses().anyMatch(addr -> {
-						return addr.equals(_sender.getAddress());
-					})) {
-						continue;
-					}
-					
-					sender = _sender;
-				} catch (IOException e) {
-					log.error("Can't listen on UDP/" + addr_to_listen + ", cancel listening", e);
-					return;
-				}
-				
-				try {
-					int size = buffer.position();
-					if (size == 0) {
-						continue;
-					}
-					log.trace("Receive datagram from " + sender.toString() + " (" + size + " bytes)");
-					buffer.rewind();
-					byte[] raw = new byte[size];
-					buffer.get(raw);
-					readDatagram(raw);
-				} catch (GeneralSecurityException e) {
-					log.trace("Can't decode datagram (bad password/corrupted) from" + sender.toString(), e);
-				} catch (Exception e) {
-					log.warn("Can't read datagram from" + sender.toString(), e);
-				}
-			}
-		}
-		
-		public void waitToStop() {
-			try {
-				channel_rece.close();
-				channel_send.close();
-			} catch (IOException e) {
-				log.warn("Can't stop socket " + toString(), e);
-			}
-			super.waitToStop();
-		}
-		
-		void send(ByteBuffer datagram) throws IOException {
-			datagram.rewind();
-			channel_send.send(datagram, addr_to_listen);
-		}
-		
-		public String toString() {
-			return addr_to_listen.toString();
-		}
-	}
 	
-	private final AtomicInteger counter_for_regular_refresh_listened_addrs = new AtomicInteger(0);
 	
-	public Runnable getPacketSender() {
-		return () -> {
-			if (counter_for_regular_refresh_listened_addrs.incrementAndGet() == 1) {
-				refreshListenAddrList();
-			}
-			
-			if (json_host_public_listened_addrs == null) {
-				if (refreshListenAddrList() == null) {
-					return;
-				}
-			}
-			
-			try {
-				ByteBuffer datagram = ByteBuffer.wrap(createDatagram());
-				log.trace("Send broadcast datagram (" + datagram.capacity() + " bytes) to " + listeners);
-				
-				listeners.forEach(listener -> {
-					try {
-						listener.send(datagram);
-					} catch (IOException e) {
-						log.error("Can't send broadcast datagram to " + listener, e);
-					}
-				});
-				datagram.clear();
-			} catch (IOException | GeneralSecurityException e) {
-				log.error("Can't create datagram, cancel net discover", e);
-			}
-		};
-	}
 	
-	private void readDatagram(byte[] raw_datas) throws IOException, GeneralSecurityException {
+		private void readDatagram(byte[] raw_datas) throws IOException, GeneralSecurityException {
 		byte[] datas = manager.getProtocol().decrypt(raw_datas, 0, raw_datas.length);
 		
 		if (log.isTraceEnabled()) {
@@ -300,7 +422,7 @@ public class NetDiscover {
 		}
 		
 		String json_addrs = readString(dis, "json_addr");
-		ArrayList<InetSocketAddress> socket_list = MyDMAM.gson_kit.getGsonSimple().fromJson(json_addrs, type_ArrayList_InetSocketAddress);
+		ArrayList<InetSocketAddress> socket_list = MyDMAM.gson_kit.getGsonSimple().fromJson(json_addrs, GsonKit.type_ArrayList_InetSocketAddr);
 		
 		socket_list.stream().sorted((l, r) -> {
 			boolean r_l = manager.getAddressMaster().isInNetworkRange(l.getAddress());
@@ -334,9 +456,6 @@ public class NetDiscover {
 			}
 		});
 	}
-	
-	public final static Type type_ArrayList_InetSocketAddress = new TypeToken<ArrayList<InetSocketAddress>>() {
-	}.getType();
 	
 	private static String readString(DataInputStream dis, String name) throws IOException {
 		int size = dis.readInt();
@@ -372,14 +491,6 @@ public class NetDiscover {
 		return manager.getProtocol().encrypt(datas, 0, datas.length);
 	}
 	
-	void close() {
-		if (sch_future != null) {
-			sch_future.cancel(true);
-		}
-		
-		listeners.forEach(l -> {
-			l.waitToStop();
-		});
-	}
 	
+	*/
 }

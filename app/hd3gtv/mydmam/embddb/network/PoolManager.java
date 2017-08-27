@@ -314,10 +314,10 @@ public class PoolManager {
 	 */
 	private NetDiscover net_discover;
 	
-	public void startNetDiscover() throws IOException {
+	public void startNetDiscover(List<InetSocketAddress> multicast_groups) throws IOException {
 		if (net_discover == null) {
-			net_discover = new NetDiscover(this);
-			net_discover.startRegularSend();
+			net_discover = new NetDiscover(protocol, addr_master, multicast_groups);
+			net_discover.start();
 		}
 	}
 	

@@ -27,28 +27,39 @@ import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.MembershipKey;
+import java.util.ArrayList;
 import java.util.Enumeration;
 
+import org.apache.commons.lang.SystemUtils;
+
+import hd3gtv.tools.AddressMaster;
+
+@Deprecated
 public class MulticastTest {
 	
 	public static void main(String[] args) throws Exception {
-		/**
-		 * https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
-		 */
-		InetAddress group_v4 = InetAddress.getByName("239.0.0.1"); // Organization-Local Scope
-		// 224.0.0.3 All Routers on this Subnet
-		// 224.0.168.1 AD-HOC Block I
-		// 224.0.0.130 IPv4 Multicast Address, Local Network Control Block, Unassigned
+		NetDiscover nd = new NetDiscover(new Protocol("12132131"), new AddressMaster(), new ArrayList<>());
+		nd.start();
+		
+		new BufferedReader(new InputStreamReader(System.in)).readLine();
+		System.exit(0);
 		
 		/**
+		 * https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
 		 * http://www.iana.org/assignments/ipv6-multicast-addresses/ipv6-multicast-addresses.xhtml
 		 */
-		InetAddress group_v6 = InetAddress.getByName("FF02::110");// IPv6 Multicast Address, Link-Local Scope Multicast Addresses, variable scope allocation
-		// FF05::15D IPv6 Multicast Address, Site-Local Scope, Unassigned
+		/**
+		 * IPv4 Multicast Address, Organization-Local Scope
+		 */
+		InetAddress group_v4 = InetAddress.getByName("239.0.0.1");
+		/**
+		 * IPv6 Multicast Address, Link-Local Scope Multicast Addresses, variable scope allocation
+		 */
+		InetAddress group_v6 = InetAddress.getByName("FF02::110");
 		int port = 9160;
-		/*protocol.getDefaultUDPBroadcastPort()*/;
 		
 		Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 		
@@ -59,9 +70,6 @@ public class MulticastTest {
 			}
 			if (_interface.getInterfaceAddresses().isEmpty()) {
 				continue;
-			}
-			if (_interface.getDisplayName().startsWith("Intel(R) Ethernet Connection I217-LM")) {
-				// continue;// TODO remove
 			}
 			
 			ProtocolFamily _pf = StandardProtocolFamily.INET;
@@ -74,7 +82,6 @@ public class MulticastTest {
 				 */
 				_pf = StandardProtocolFamily.INET6;
 				group = group_v6;
-				System.out.println("IPv6 !");
 			}
 			
 			final ProtocolFamily pf = _pf;
@@ -86,31 +93,28 @@ public class MulticastTest {
 				return ipv4_addr == ipv4_itf;
 			}).findFirst().orElseThrow(() -> new IOException("Can't found IPv4/6 addr in a IPv6/4 link"));
 			
-			InetSocketAddress bind_to = new InetSocketAddress(first_addr_interface, port);
-			if (args.length > 0) {// TODO replace by if Linux
-				bind_to = new InetSocketAddress(port);
+			InetSocketAddress bind_to = new InetSocketAddress(port);
+			if (SystemUtils.IS_OS_WINDOWS) {
+				bind_to = new InetSocketAddress(first_addr_interface, port);
 			}
 			
 			try {
 				DatagramChannel channel = DatagramChannel.open(pf).setOption(StandardSocketOptions.SO_REUSEADDR, true).bind(bind_to);
 				MembershipKey key = channel.join(group, _interface);
 				
-				/*DatagramSocket socket_server = channel.socket();
-				socket_server.setBroadcast(true);
-				socket_server.bind(addr_to_listen);*/
 				ByteBuffer buffer = ByteBuffer.allocate(100);
 				Runnable r = () -> {
 					String value;
 					InetSocketAddress _sender;
 					try {
 						while (channel.isOpen()) {
-							// System.out.println("Wait receive on " + _interface.getDisplayName() + "...");
 							_sender = (InetSocketAddress) channel.receive(buffer);
 							buffer.flip();
 							value = new String(buffer.array());
 							buffer.clear();
 							System.out.println(">>> Receive-" + Thread.currentThread().getId() + " from " + _sender.getHostString() + " " + value);
 						}
+					} catch (AsynchronousCloseException e) {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -135,23 +139,11 @@ public class MulticastTest {
 				};
 				new Thread(rsend).start();
 				
-				/*Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-					try {
-						System.out.println("Switch off sender " + _interface.getName());
-						channel_send.close();
-						multicast_send_member.drop();
-						// System.out.println("Done for sender " + _interface.getName());
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}));*/
-				
 				Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 					try {
 						System.out.println("Switch off " + _interface.getName());
 						channel.close();
 						key.drop();
-						// System.out.println("Done for receiver " + _interface.getName());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}

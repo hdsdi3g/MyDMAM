@@ -17,6 +17,10 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.UnsupportedEncodingException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.CompletionHandler;
 import java.security.GeneralSecurityException;
@@ -84,8 +88,34 @@ public final class Protocol {
 		return 9160;
 	}
 	
-	public int getDefaultUDPBroadcastPort() {
+	public int getDefaultUDPMulticastPort() {
 		return 9160;
+	}
+	
+	/**
+	 * 239.0.0.1
+	 * https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+	 * IPv4 Multicast Address, Organization-Local Scope
+	 */
+	public Inet4Address getDefaulMulticastIPv4Addr() {
+		try {
+			return (Inet4Address) InetAddress.getByName("239.0.0.1");
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * FF02::110
+	 * http://www.iana.org/assignments/ipv6-multicast-addresses/ipv6-multicast-addresses.xhtml
+	 * IPv6 Multicast Address, Link-Local Scope Multicast Addresses, variable scope allocation
+	 */
+	public Inet6Address getDefaulMulticastIPv6Addr() {
+		try {
+			return (Inet6Address) InetAddress.getByName("FF02::110");
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public SocketHandlerReader getHandlerReader() {
