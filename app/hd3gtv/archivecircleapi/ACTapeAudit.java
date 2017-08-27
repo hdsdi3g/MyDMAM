@@ -14,24 +14,23 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.pathindexing;
+package hd3gtv.archivecircleapi;
 
-import hd3gtv.mydmam.factory.JSComment;
-import hd3gtv.mydmam.factory.JSVarName;
+import hd3gtv.mydmam.Loggers;
 
-public interface IdExtractorFileName {
+public class ACTapeAudit {
 	
-	public static final String MODULE_NAME = "IdExtractorFileName";
+	public int id;
+	public String barcode;
+	public long date;
+	public TapeAuditEvent event;
 	
-	/**
-	 * @param filename without path
-	 */
-	public String getId(@JSVarName("filename") String filename);
+	public String toString() {
+		return Loggers.dateLog(date) + " " + barcode + " " + event + " [" + id + "]";
+	}
 	
-	/**
-	 * @param filename without path
-	 */
-	@JSComment("If this return true, getIdFromFilename should not return null")
-	public boolean isValidId(@JSVarName("filename") String filename);
+	public enum TapeAuditEvent {
+		CREATED, REMOVED, DELETED, MOVED_OUT_FROM_LIBRARY, MOVED_INTO_LIBRARY;
+	}
 	
 }

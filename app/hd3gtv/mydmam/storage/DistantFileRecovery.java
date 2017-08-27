@@ -217,7 +217,7 @@ public class DistantFileRecovery {
 		
 		private synchronized boolean isExpired() {
 			if (cant_download) {
-				if ((last_activity + (ttl * 1000) < System.currentTimeMillis())) {
+				if ((last_activity + (ttl * 1000l) < System.currentTimeMillis())) {
 					Loggers.Storage_DFR.debug("Item [" + base_name_unique_element_key + "] is expired because: cant_download + last_activity<");
 					if (local_file.exists()) {
 						deleteFile();
@@ -228,7 +228,7 @@ public class DistantFileRecovery {
 				if (local_file.exists() == false) {
 					Loggers.Storage_DFR.debug("Item [" + base_name_unique_element_key + "] is expired because: !local_file: " + local_file.getPath() + ", " + local_file.exists());
 					return true;
-				} else if ((last_activity + (ttl * 1000) < System.currentTimeMillis())) {
+				} else if ((last_activity + (ttl * 1000l) < System.currentTimeMillis())) {
 					
 					for (int pos = users.size() - 1; pos > -1; pos--) {
 						if (users.get(pos).isAlive()) {
@@ -247,7 +247,7 @@ public class DistantFileRecovery {
 					return true;
 				}
 			}
-			if (original_path == null & (created_date + (60 * 1000) < System.currentTimeMillis())) {
+			if (original_path == null & (created_date + (60l * 1000l) < System.currentTimeMillis())) {
 				Loggers.Storage_DFR.debug("Item was created [" + base_name_unique_element_key + "], but never downloaded");
 				return true;
 			}

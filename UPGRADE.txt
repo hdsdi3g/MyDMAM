@@ -4,6 +4,9 @@
 
 === Previous versions ===
 
+v0.24
+No particular points to be check.
+
 v0.23
 #283 CLI option dumpdb is removed. Use instead actiondb -import|export.
 #283 CLI options storageindex and storage are definitively removed.

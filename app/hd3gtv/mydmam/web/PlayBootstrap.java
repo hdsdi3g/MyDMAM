@@ -96,15 +96,8 @@ public class PlayBootstrap {
 			System.exit(1);
 		}
 		
-		String host = Configuration.global.getValue("acapi", "host", "");
-		if (host.equals("") == false) {
-			String user = Configuration.global.getValue("acapi", "user", "");
-			String password = Configuration.global.getValue("acapi", "password", "");
-			int port = Configuration.global.getValue("acapi", "port", 8081);
-			
-			ACAPI acapi = new ACAPI(host, user, password);
-			acapi.setTcp_port(port);
-			
+		ACAPI acapi = ACAPI.loadFromConfiguration();
+		if (acapi != null) {
 			ACNode node = acapi.getNode();
 			if (node == null) {
 				Loggers.Play.warn("Can't init ACAPI now");
@@ -120,6 +113,7 @@ public class PlayBootstrap {
 				}
 			}
 		}
+		
 		if (bridge_pathindex_archivelocation == null) {
 			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation();
 		}

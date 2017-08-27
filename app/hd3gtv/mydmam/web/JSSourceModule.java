@@ -196,7 +196,7 @@ public class JSSourceModule {
 				Loggers.Play_JSSource.info("Start Babel processing for " + file.getName() + " (in " + file.getParent() + ")");
 			} else if (file_count < 10) {
 				String f_list = must_process_source_files.stream().map(s_f -> {
-					return FilenameUtils.getBaseName(s_f.getRelativePath());
+					return FilenameUtils.getName(s_f.getRelativePath());
 				}).collect(Collectors.joining(", "));
 				Loggers.Play_JSSource.info("Start Babel processing for " + f_list + " (" + file_count + " JS files), in module " + module_name);
 			} else {

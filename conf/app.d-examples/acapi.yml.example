@@ -8,3 +8,8 @@ acapi:
             storage: MyArchiveStorage
             share: myarchstorage
             path: /archived
+    # default_destage_node: node1 # Use this node by default for destage files
+
+#acapi_node_host_names_map:
+#    node1: node-1.local
+#    node2: node-2.local

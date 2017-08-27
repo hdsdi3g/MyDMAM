@@ -11,19 +11,90 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2016
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
 package hd3gtv.archivecircleapi;
 
 public class ACTape {
 	
-	ACTape() {
+	public String barcode;
+	public String name;
+	public String type;
+	public String poolName;
+	public PoolType poolType;
+	public boolean fragmented;
+	public int fragmentation;
+	public boolean closed;
+	public boolean full;
+	public long capacity;
+	public long used;
+	public String externalId;
+	public String externalLocationCode;
+	public long lastMount;
+	public ACAccessibility accessibility;
+	public TapeLocation location;
+	public String address;
+	public long lastUpdated;
+	
+	public enum PoolType {
+		UNKNOWN, CLEAN, NOT_ASSIGNED, USER;
 	}
 	
-	public String barcode;
-	public ACAccessibility accessibility;
-	public String tarNumber;
-	public String offsetInTar;
+	public enum TapeLocation {
+		DRIVE, MAILBOX, SLOT, PICKER;
+	}
 	
+	public String toString() {
+		String s_closed = "";
+		if (closed) {
+			s_closed = "closed ";
+		}
+		
+		String s_full = "";
+		if (full) {
+			s_full = "full ";
+		}
+		
+		String s_location = "";
+		if (location != null) {
+			s_location = "in " + location + " ";
+		}
+		String s_address = "";
+		if (address != null) {
+			s_address = address + " ";
+		}
+		
+		return barcode + " " + accessibility + " " + type + " from " + poolName + " " + s_closed + s_full + s_location + s_address;
+	}
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((barcode == null) ? 0 : barcode.hashCode());
+		return result;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		ACTape other = (ACTape) obj;
+		if (barcode == null) {
+			if (other.barcode != null) {
+				return false;
+			}
+		} else if (!barcode.equals(other.barcode)) {
+			return false;
+		}
+		return true;
+	}
 }

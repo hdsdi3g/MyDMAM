@@ -11,27 +11,19 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.pathindexing;
+package hd3gtv.archivecircleapi;
 
-import hd3gtv.mydmam.factory.JSComment;
-import hd3gtv.mydmam.factory.JSVarName;
-
-public interface IdExtractorFileName {
+public class ACFileLocationTapeSupport {
 	
-	public static final String MODULE_NAME = "IdExtractorFileName";
+	ACFileLocationTapeSupport() {
+	}
 	
-	/**
-	 * @param filename without path
-	 */
-	public String getId(@JSVarName("filename") String filename);
-	
-	/**
-	 * @param filename without path
-	 */
-	@JSComment("If this return true, getIdFromFilename should not return null")
-	public boolean isValidId(@JSVarName("filename") String filename);
+	public String barcode;
+	public ACAccessibility accessibility;
+	public String tarNumber;
+	public String offsetInTar;
 	
 }

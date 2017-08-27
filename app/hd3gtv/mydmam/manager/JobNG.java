@@ -184,7 +184,7 @@ public final class JobNG {
 		urgent = false;
 		priority = 0;
 		delete_after_completed = false;
-		expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10);
+		expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10l);
 		max_execution_time = default_max_execution_time;
 		status = JobStatus.WAITING;
 		required_keys = new ArrayList<String>(1);
@@ -767,7 +767,7 @@ public final class JobNG {
 					continue;
 				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
-				job.expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
+				job.expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7l);
 				job.update_date = System.currentTimeMillis();
 				if (Loggers.Job.isDebugEnabled()) {
 					Loggers.Job.info("Remove max date for this postponed job:\t" + job);

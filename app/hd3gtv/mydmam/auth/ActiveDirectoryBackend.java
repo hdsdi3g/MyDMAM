@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -196,17 +197,19 @@ class ActiveDirectoryBackend {
 		private ADUser(String username, Attributes attr) throws NamingException, NullPointerException {
 			this.username = username;
 			
-			/*NamingEnumeration<? extends Attribute> na = attr.getAll();
-			Attribute next;
-			while (na.hasMore()) {
-				next = na.next();
-				System.out.print(next.getID());
-				System.out.print("\t\t");
-				System.out.println(next.get());
-			}*/
-			
-			userprincipal = (String) attr.get("userPrincipalName").get();
-			commonname = (String) attr.get("cn").get();
+			try {
+				userprincipal = (String) attr.get("userPrincipalName").get();
+				commonname = (String) attr.get("cn").get();
+			} catch (NullPointerException e) {
+				NamingEnumeration<? extends Attribute> na = attr.getAll();
+				Attribute next;
+				LinkedHashMap<String, String> err = new LinkedHashMap<>();
+				while (na.hasMore()) {
+					next = na.next();
+					err.put(next.getID(), (String) next.get());
+				}
+				throw new NullPointerException("Attribute missing for " + username + ". Actual attributes are " + err);
+			}
 			
 			if (attr.get("mail") != null) {
 				mail = (String) attr.get("mail").get();

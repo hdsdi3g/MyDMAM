@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
@@ -57,7 +58,8 @@ public class MyDMAM {
 	
 	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2017";
 	
-	public static final Charset UTF8 = Charset.forName("UTF-8");
+	public static final Charset UTF8 = StandardCharsets.UTF_8;
+	public static final Charset ISO_8859_1 = StandardCharsets.ISO_8859_1;
 	
 	public static final Factory factory = new Factory();
 	
