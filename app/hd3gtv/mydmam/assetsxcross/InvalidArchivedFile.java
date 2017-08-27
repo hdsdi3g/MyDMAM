@@ -14,24 +14,18 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.pathindexing;
+package hd3gtv.mydmam.assetsxcross;
 
-import hd3gtv.mydmam.factory.JSComment;
-import hd3gtv.mydmam.factory.JSVarName;
+import java.io.IOException;
 
-public interface IdExtractorFileName {
+public class InvalidArchivedFile extends IOException {
 	
-	public static final String MODULE_NAME = "IdExtractorFileName";
+	public InvalidArchivedFile(String message) {
+		super(message);
+	}
 	
-	/**
-	 * @param filename without path
-	 */
-	public String getId(@JSVarName("filename") String filename);
-	
-	/**
-	 * @param filename without path
-	 */
-	@JSComment("If this return true, getIdFromFilename should not return null")
-	public boolean isValidId(@JSVarName("filename") String filename);
+	public InvalidArchivedFile(String message, Throwable cause) {
+		super(message, cause);
+	}
 	
 }

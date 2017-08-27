@@ -14,24 +14,24 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.pathindexing;
+package hd3gtv.mydmam.assetsxcross;
 
-import hd3gtv.mydmam.factory.JSComment;
-import hd3gtv.mydmam.factory.JSVarName;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
-public interface IdExtractorFileName {
+@Deprecated
+@FunctionalInterface
+public interface PathindexScanToESMatchingItem<T> {
 	
-	public static final String MODULE_NAME = "IdExtractorFileName";
+	public void match(SourcePathIndexerElement element, T db_entry);
 	
 	/**
-	 * @param filename without path
+	 * Do nothing.
 	 */
-	public String getId(@JSVarName("filename") String filename);
+	public default void notMatch(SourcePathIndexerElement element, NotMatchReason reason) {
+	}
 	
-	/**
-	 * @param filename without path
-	 */
-	@JSComment("If this return true, getIdFromFilename should not return null")
-	public boolean isValidId(@JSVarName("filename") String filename);
+	public enum NotMatchReason {
+		NO_ID_FOR_ELEMENT, MISSING_IN_DATABASE
+	}
 	
 }

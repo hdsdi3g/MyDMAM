@@ -128,7 +128,7 @@ public class Explorer {
 		if (min_index_date == 0) {
 			request.setQuery(QueryBuilders.termQuery("parentpath", parentpath_key));
 		} else {
-			request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("parentpath", parentpath_key)).must(QueryBuilders.rangeQuery("dateindex").from(min_index_date).to(System.currentTimeMillis() + 1000000)));
+			request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("parentpath", parentpath_key)).must(QueryBuilders.rangeQuery("dateindex").from(min_index_date).to(System.currentTimeMillis() + 1000000l)));
 		}
 		request.setPageSize(500);
 		

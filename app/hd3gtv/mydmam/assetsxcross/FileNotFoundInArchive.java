@@ -14,24 +14,14 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.pathindexing;
+package hd3gtv.mydmam.assetsxcross;
 
-import hd3gtv.mydmam.factory.JSComment;
-import hd3gtv.mydmam.factory.JSVarName;
+import java.io.FileNotFoundException;
 
-public interface IdExtractorFileName {
+public class FileNotFoundInArchive extends FileNotFoundException {
 	
-	public static final String MODULE_NAME = "IdExtractorFileName";
-	
-	/**
-	 * @param filename without path
-	 */
-	public String getId(@JSVarName("filename") String filename);
-	
-	/**
-	 * @param filename without path
-	 */
-	@JSComment("If this return true, getIdFromFilename should not return null")
-	public boolean isValidId(@JSVarName("filename") String filename);
+	public FileNotFoundInArchive(String s) {
+		super(s);
+	}
 	
 }

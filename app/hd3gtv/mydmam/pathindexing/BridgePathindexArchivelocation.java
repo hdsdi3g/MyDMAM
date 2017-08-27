@@ -71,6 +71,10 @@ public class BridgePathindexArchivelocation {
 		map_storagename_bridge = new LinkedHashMap<>(1);
 	}
 	
+	public ACFile getExternalLocation(SourcePathIndexerElement element) {
+		return getExternalLocation(element.storagename, element.currentpath);
+	}
+	
 	public ACFile getExternalLocation(String storagename, String path) {
 		if (map_storagename_bridge.containsKey(storagename) == false) {
 			throw new NullPointerException("Can't found Bridge for " + storagename);

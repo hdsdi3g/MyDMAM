@@ -20,6 +20,9 @@ import java.util.List;
 
 public interface IGitInfo {
 	
+	/**
+	 * @return "branch commit" or "v0.18-78-g316c9be"
+	 */
 	String getActualRepositoryInformation();
 	
 	List<GitRevision> getRevisionsFrom(String from);

@@ -334,7 +334,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		public void run() {
 			try {
 				while (isWantToRun()) {
-					next_refresh_date = System.currentTimeMillis() + (SLEEP_COUNT_UPDATE * SLEEP_BASE_TIME_UPDATE * 1000);
+					next_refresh_date = System.currentTimeMillis() + (long) (SLEEP_COUNT_UPDATE * SLEEP_BASE_TIME_UPDATE * 1000);
 					
 					instance_status.refresh();
 					WorkerExporter.updateWorkerStatus(enabled_workers, referer);
@@ -343,18 +343,18 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 						if (isWantToStop()) {
 							return;
 						}
-						next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000);
+						next_refresh_date = System.currentTimeMillis() + (long) ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000);
 						
 						boolean pending_actions = InstanceAction.performInstanceActions(all_instance_action_receviers);
 						
 						if (pending_actions & isWantToRun()) {
-							next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000) + 1000;
+							next_refresh_date = System.currentTimeMillis() + (long) ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000) + 1000l;
 							stoppableSleep(1000);
 							instance_status.refresh();
 							WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 						}
 						
-						stoppableSleep(SLEEP_BASE_TIME_UPDATE * 1000);
+						stoppableSleep((long) (SLEEP_BASE_TIME_UPDATE * 1000));
 					}
 				}
 			} catch (Exception e) {

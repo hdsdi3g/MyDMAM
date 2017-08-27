@@ -49,7 +49,7 @@ public final class BCAEventCatched {
 	}
 	
 	boolean isOldAired() {
-		return date + 10000 < System.currentTimeMillis();
+		return date + 10000l < System.currentTimeMillis();
 	}
 	
 	public String getExternalRef() {
