@@ -385,6 +385,9 @@ public class PoolManager {
 		}).collect(Collectors.toList()));
 	}
 	
+	/**
+	 * @param listen_list can be null or empty
+	 */
 	public void startLocalServers(List<InetSocketAddress> listen_list) throws IOException {
 		if (listen_list == null) {
 			startLocalServers();

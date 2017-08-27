@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
-import java.io.IOException;
-
 import org.apache.log4j.Logger;
 
 public class RequestDisconnect extends RequestHandler<String> {
@@ -33,16 +31,12 @@ public class RequestDisconnect extends RequestHandler<String> {
 	}
 	
 	public void onRequest(DataBlock block, Node node) {
-		try {
-			log.info("Distant node " + node + " ask to to close because it say \"" + block.getByName("reason").getDatasAsString() + "\"");
-		} catch (IOException e) {
-			log.info("Distant node " + node + " ask to to close", e);
-		}
+		log.info("Distant node " + node + " ask to to close because it say \"" + block.getStringDatas() + "\"");
 		node.close(getClass());
 	}
 	
 	public DataBlock createRequest(String options) {
-		return new DataBlock(getHandleName()).createEntry("reason", options);
+		return new DataBlock(this, options);
 	}
 	
 	protected boolean isCloseChannelRequest(String options) {

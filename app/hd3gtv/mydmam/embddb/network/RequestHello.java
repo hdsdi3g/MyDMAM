@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonObject;
+
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonKit;
 
@@ -39,9 +41,11 @@ public class RequestHello extends RequestHandler<Void> {
 	
 	public void onRequest(DataBlock block, Node source_node) {
 		try {
-			source_node.setDistantDate(Long.valueOf(block.getByName("now").getDatasAsString()));
-			source_node.setUUIDRef(UUID.fromString(block.getByName("uuid").getDatasAsString()));
-			source_node.setLocalServerNodeAddresses(MyDMAM.gson_kit.getGsonSimple().fromJson(block.getByName("listen_on").getDatasAsString(), GsonKit.type_ArrayList_InetSocketAddr));
+			source_node.setDistantDate(block.getCreateDate());
+			
+			JsonObject jo = block.getJsonDatas().getAsJsonObject();
+			source_node.setUUIDRef(UUID.fromString(jo.get("uuid").getAsString()));
+			source_node.setLocalServerNodeAddresses(MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("listen_on"), GsonKit.type_ArrayList_InetSocketAddr));
 			
 			pool_manager.getNode_scheduler().add(source_node, source_node.getScheduledAction());
 		} catch (IOException e) {
@@ -51,11 +55,10 @@ public class RequestHello extends RequestHandler<Void> {
 	}
 	
 	public DataBlock createRequest(Void options) {
-		DataBlock b = new DataBlock(getHandleName());
-		b.createEntry("now", String.valueOf(System.currentTimeMillis()));
-		b.createEntry("uuid", pool_manager.getUUIDRef().toString());
-		b.createEntry("listen_on", MyDMAM.gson_kit.getGsonSimple().toJson(pool_manager.getListenedServerAddress().collect(Collectors.toList())));
-		return b;
+		JsonObject jo = new JsonObject();
+		jo.addProperty("uuid", pool_manager.getUUIDRef().toString());
+		jo.add("listen_on", MyDMAM.gson_kit.getGsonSimple().toJsonTree(pool_manager.getListenedServerAddress().collect(Collectors.toList())));
+		return new DataBlock(this, jo);
 	}
 	
 	protected boolean isCloseChannelRequest(Void options) {

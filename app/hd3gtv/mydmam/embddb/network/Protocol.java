@@ -19,11 +19,11 @@ package hd3gtv.mydmam.embddb.network;
 import java.io.UnsupportedEncodingException;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.CompletionHandler;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
 
@@ -40,19 +40,20 @@ import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.Hexview;
 
 public final class Protocol {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	
 	public static final int VERSION = 1;
-	public static final Charset UTF8 = Charset.forName("UTF-8");
 	public static final int BUFFER_SIZE = 0xFFFF;
+	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
 	
 	/**
 	 * EMBDBMYD
 	 */
-	public static final byte[] APP_SOCKET_HEADER_TAG = "EMBDBMYD".getBytes(UTF8);
+	public static final byte[] APP_SOCKET_HEADER_TAG = "EMBDBMYD".getBytes(MyDMAM.UTF8);
 	
 	private KeyParameter keyParam;
 	private CipherParameters params;

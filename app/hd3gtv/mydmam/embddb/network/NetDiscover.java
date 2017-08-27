@@ -53,7 +53,7 @@ public class NetDiscover {
 	/**
 	 * NETDISCOVER
 	 */
-	private static final byte[] HEADER = "NETDISCOVER".getBytes(Protocol.UTF8);
+	private static final byte[] HEADER = "NETDISCOVER".getBytes(MyDMAM.UTF8);
 	
 	private PoolManager manager;
 	
@@ -108,14 +108,14 @@ public class NetDiscover {
 		if (addrs.isEmpty()) {
 			json_host_public_listened_addrs = null;
 		} else {
-			json_host_public_listened_addrs = MyDMAM.gson_kit.getGsonSimple().toJson(addrs).getBytes(Protocol.UTF8);
+			json_host_public_listened_addrs = MyDMAM.gson_kit.getGsonSimple().toJson(addrs).getBytes(MyDMAM.UTF8);
 		}
 		return json_host_public_listened_addrs;
 	}
 	
 	void startRegularSend() {
 		refreshListenAddrList();
-		uuid_string = manager.getUUIDRef().toString().getBytes(Protocol.UTF8);
+		uuid_string = manager.getUUIDRef().toString().getBytes(MyDMAM.UTF8);
 		sch_future = Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(getPacketSender(), 3, 30, TimeUnit.SECONDS);
 	}
 	
@@ -342,7 +342,7 @@ public class NetDiscover {
 		
 		byte[] value = new byte[size];
 		dis.read(value);
-		return new String(value, Protocol.UTF8);
+		return new String(value, MyDMAM.UTF8);
 	}
 	
 	private byte[] createDatagram() throws IOException, GeneralSecurityException {

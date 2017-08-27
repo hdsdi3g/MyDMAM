@@ -98,6 +98,7 @@ public class ApplicationArgs {
 	
 	/**
 	 * -param value
+	 * @return can be null
 	 */
 	public String getSimpleParamValue(String name) {
 		int i = getParampos(name);

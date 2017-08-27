@@ -35,11 +35,8 @@ public class RequestPoke extends RequestHandler<Void> {
 	
 	public void onRequest(DataBlock block, Node source_node) {
 		try {
-			long node_date = Long.valueOf(block.getByName("now").getDatasAsString());
-			UUID current_uuid = UUID.fromString(block.getByName("uuid").getDatasAsString());
-			
-			source_node.setDistantDate(node_date);
-			source_node.setUUIDRef(current_uuid);
+			source_node.setDistantDate(block.getCreateDate());
+			source_node.setUUIDRef(UUID.fromString(block.getStringDatas()));
 		} catch (IOException e) {
 			log.error("Node return invalid response... disconnect it", e);
 			source_node.close(getClass());
@@ -47,7 +44,7 @@ public class RequestPoke extends RequestHandler<Void> {
 	}
 	
 	public DataBlock createRequest(Void options) {
-		return new DataBlock(getHandleName()).createEntry("now", String.valueOf(System.currentTimeMillis())).createEntry("uuid", pool_manager.getUUIDRef().toString());
+		return new DataBlock(this, pool_manager.getUUIDRef().toString());
 	}
 	
 	protected boolean isCloseChannelRequest(ErrorReturn options) {

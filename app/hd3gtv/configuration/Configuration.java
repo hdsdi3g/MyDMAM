@@ -222,26 +222,7 @@ public class Configuration {
 		if (isElementKeyExists(baseelement, elementname, key)) {
 			Object value = baseelement.get(elementname).content.get(key);
 			if (value instanceof String) {
-				String[] clusterdef = ((String) value).split(",");
-				for (int pos_cluster = 0; pos_cluster < clusterdef.length; pos_cluster++) {
-					clusterdef[pos_cluster] = clusterdef[pos_cluster].trim();
-					int colonpos = clusterdef[pos_cluster].indexOf(":");
-					String hostname;
-					int port;
-					if (colonpos > 0) {
-						hostname = clusterdef[pos_cluster].substring(0, colonpos);
-						try {
-							port = Integer.valueOf(clusterdef[pos_cluster].substring(colonpos + 1));
-						} catch (NumberFormatException e) {
-							Loggers.Configuration.warn("Bad port definition : " + clusterdef[pos_cluster].substring(colonpos + 1) + " is not an integer", e);
-							port = defaultport;
-						}
-					} else {
-						hostname = clusterdef[pos_cluster];
-						port = defaultport;
-					}
-					items.add(new ConfigurationClusterItem(hostname, port));
-				}
+				items.addAll(ConfigurationClusterItem.parse((String) value, defaultport).collect(Collectors.toList()));
 			}
 		}
 		if ((items.size() == 0) & (defaultaddress != null)) {

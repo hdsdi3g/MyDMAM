@@ -47,7 +47,6 @@ public abstract class RequestHandler<T> {
 		if (block == null) {
 			throw new NullPointerException("No blocks to send");
 		}
-		block.checkIfNotEmpty();
 		dest_node.sendBlock(block, isCloseChannelRequest(options));
 	}
 	

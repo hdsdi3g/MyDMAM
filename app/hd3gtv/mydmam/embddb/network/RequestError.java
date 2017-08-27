@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
-import java.io.IOException;
-
-import org.jfree.util.Log;
-
 public class RequestError extends RequestHandler<ErrorReturn> {
 	
 	public RequestError(PoolManager pool_manager) {
@@ -31,16 +27,12 @@ public class RequestError extends RequestHandler<ErrorReturn> {
 	}
 	
 	public void onRequest(DataBlock blocks, Node source_node) {
-		try {
-			ErrorReturn error = ErrorReturn.fromJsonString(pool_manager, blocks.getByName("message").getDatasAsString());
-			source_node.onErrorReturnFromNode(error);
-		} catch (IOException e) {
-			Log.error("Can't get error message from " + source_node, e);
-		}
+		ErrorReturn error = ErrorReturn.fromJsonString(pool_manager, blocks.getStringDatas());
+		source_node.onErrorReturnFromNode(error);
 	}
 	
 	public DataBlock createRequest(ErrorReturn options) {
-		return new DataBlock(getHandleName()).createEntry("message", ErrorReturn.toJsonString(pool_manager, options));
+		return new DataBlock(this, ErrorReturn.toJsonString(pool_manager, options));
 	}
 	
 	public void directSendError(Node node, String message, Class<?> caller, boolean disconnectme) {

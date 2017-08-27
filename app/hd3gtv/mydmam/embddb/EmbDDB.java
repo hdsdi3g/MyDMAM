@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import org.apache.log4j.Logger;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationClusterItem;
 import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.Protocol;
@@ -101,11 +102,34 @@ public class EmbDDB {
 		
 		public void execCliModule(ApplicationArgs args) throws Exception {
 			EmbDDB embddb = new EmbDDB(getMasterPasswordKey(), Configuration.global.getValue("embddb", "thread_pool_queue_size", 100));
+			
+			if (args.getParamExist("-listen")) {
+				String specific_listen = args.getSimpleParamValue("-listen");
+				if (specific_listen == null) {
+					embddb.poolmanager.startLocalServers();
+				} else {
+					List<InetSocketAddress> listen_list = ConfigurationClusterItem.parse(specific_listen, embddb.protocol.getDefaultTCPPort()).map(cci -> {
+						return cci.getSocketAddress();
+					}).collect(Collectors.toList());
+					embddb.poolmanager.startLocalServers(listen_list);
+				}
+			}
+			if (args.getParamExist("-discover")) {
+				embddb.poolmanager.startNetDiscover();
+			}
+			if (args.getParamExist("-bootstrap")) {
+				embddb.poolmanager.connectToBootstrapPotentialNodes("Local configuration, via CLI");
+			}
 			embddb.poolmanager.startConsole();
 		}
 		
 		public void showFullCliModuleHelp() {
-			// TODO opts for start server, start autodiscover, connect to pentential
+			System.out.println("Usage " + getCliModuleName() + " [-listen [addr[:port],]] [-discover] [-bootstrap]");
+			System.out.println("With:");
+			System.out.println("  -listen for start server, with a local addresses/host and port to listen, IPv4 or 6");
+			System.out.println("  -discover for start netdiscover tool, and detect other running nodes");
+			System.out.println("  -bootstrap for direct connect at start to some preconfigured nodes addresses. They can be off.");
+			System.out.println("Beware if you start CLI on the same host with an other MyDMAM instance (maybe some port listen conflicts).");
 		}
 		
 		public boolean isFunctionnal() {

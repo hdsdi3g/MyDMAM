@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import hd3gtv.tools.AddressMaster;
 
@@ -48,8 +47,6 @@ public class RequestNodelist extends RequestHandler<Void> {
 		return "nodelist";
 	}
 	
-	private static final JsonParser parser = new JsonParser();
-	
 	public void onRequest(DataBlock block, Node source_node) {
 		try {
 			Predicate<InetAddress> non_local_address_filter = addr -> {
@@ -57,7 +54,7 @@ public class RequestNodelist extends RequestHandler<Void> {
 			};
 			List<InetAddress> current_host_routed_addr_list = address_master.getAddresses().filter(non_local_address_filter).collect(Collectors.toList());
 			
-			JsonArray list = parser.parse(block.getByName("json").getDatasAsString()).getAsJsonArray();
+			JsonArray list = block.getJsonDatas().getAsJsonArray();
 			if (list.size() == 0) {
 				return;
 			}
@@ -231,7 +228,7 @@ public class RequestNodelist extends RequestHandler<Void> {
 	}
 	
 	public DataBlock createRequest(Void opt) {
-		return new DataBlock(getHandleName()).createEntry("json", pool_manager.makeAutodiscoverList().toString());
+		return new DataBlock(this, pool_manager.makeAutodiscoverList());
 	}
 	
 	protected boolean isCloseChannelRequest(Void options) {
