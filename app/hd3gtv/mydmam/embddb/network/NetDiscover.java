@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.StandardProtocolFamily;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.security.GeneralSecurityException;
@@ -131,10 +133,12 @@ public class NetDiscover {
 			this.addr_to_listen = addr_to_listen;
 			buffer = ByteBuffer.allocate(Protocol.BUFFER_SIZE);
 			
-			channel_send = DatagramChannel.open();
+			channel_send = DatagramChannel.open(StandardProtocolFamily.INET);
+			// channel_send.join(ecgroup, interf)
 			channel_send.socket().setBroadcast(true);
 			
-			channel_rece = DatagramChannel.open();
+			channel_rece = DatagramChannel.open(StandardProtocolFamily.INET);
+			channel_rece.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 			DatagramSocket socket_server = channel_rece.socket();
 			socket_server.setBroadcast(true);
 			socket_server.bind(addr_to_listen);

@@ -96,6 +96,8 @@ public class AddressMaster {
 	}
 	
 	private class AddressEntry {
+		NetworkInterface current_interface;
+		
 		byte[] hw_addr;
 		int mtu;
 		String name;
@@ -110,6 +112,11 @@ public class AddressMaster {
 		CIDRUtils cidr_tool;
 		
 		public AddressEntry(NetworkInterface current_interface, InterfaceAddress interface_address) throws SocketException {
+			this.current_interface = current_interface;
+			if (current_interface == null) {
+				throw new NullPointerException("\"current_interface\" can't to be null");
+			}
+			
 			hw_addr = current_interface.getHardwareAddress();
 			mtu = current_interface.getMTU();
 			name = current_interface.getName();
@@ -234,6 +241,15 @@ public class AddressMaster {
 			return addr.broadcast != null;
 		}).map(addr -> {
 			return addr.broadcast;
+		});
+	}
+	
+	public Stream<NetworkInterface> getAllInterfaces() {
+		// Physical
+		return all_addresses.stream().filter(addr -> {
+			return addr.up;
+		}).map(addr -> {
+			return addr.current_interface;
 		});
 	}
 	
