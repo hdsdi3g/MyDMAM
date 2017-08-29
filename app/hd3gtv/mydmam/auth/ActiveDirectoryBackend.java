@@ -127,17 +127,16 @@ class ActiveDirectoryBackend {
 			}
 			
 			if (domainName != null) {
-				String principalName = username + "@" + domainName;
 				SearchControls controls = new SearchControls();
 				controls.setSearchScope(SUBTREE_SCOPE);
 				controls.setReturningAttributes(userAttributes);
 				controls.setCountLimit(10);
 				controls.setTimeLimit(500);
 				
-				NamingEnumeration<SearchResult> answer = context.search(toDC(domainName), "(& (userPrincipalName=" + principalName + ")(objectClass=user))", controls);
+				NamingEnumeration<SearchResult> answer = context.search(toDC(domainName), "(& (sAMAccountName=" + username + ")(objectClass=user))", controls);
 				if (answer.hasMore()) {
 					Attributes attr = answer.next().getAttributes();
-					Attribute user = attr.get("userPrincipalName");
+					Attribute user = attr.get("sAMAccountName");
 					if (user != null) {
 						if (Loggers.Auth.isDebugEnabled()) {
 							Loggers.Auth.debug("Valid user founded from " + toString() + ", user: " + username);
@@ -194,8 +193,8 @@ class ActiveDirectoryBackend {
 		 */
 		public ArrayList<String> organizational_units;
 		
-		private ADUser(String username, Attributes attr) throws NamingException, NullPointerException {
-			this.username = username;
+		private ADUser(String sAMAccountName, Attributes attr) throws NamingException, NullPointerException {
+			this.username = sAMAccountName;
 			
 			try {
 				userprincipal = (String) attr.get("userPrincipalName").get();
@@ -208,7 +207,7 @@ class ActiveDirectoryBackend {
 					next = na.next();
 					err.put(next.getID(), (String) next.get());
 				}
-				throw new NullPointerException("Attribute missing for " + username + ". Actual attributes are " + err);
+				throw new NullPointerException("Attribute missing for " + sAMAccountName + ". Actual attributes are " + err);
 			}
 			
 			if (attr.get("mail") != null) {
