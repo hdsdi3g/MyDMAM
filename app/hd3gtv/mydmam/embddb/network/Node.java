@@ -44,6 +44,10 @@ public class Node {
 	private static final Logger log = Logger.getLogger(Node.class);
 	
 	private PoolManager pool_manager;
+	
+	/**
+	 * Can be empty
+	 */
 	private ArrayList<InetSocketAddress> local_server_node_addr;
 	
 	private UUID uuid_ref;
@@ -255,9 +259,10 @@ public class Node {
 			throw new IOException("\"local_server_node_addr\" can't to be null");
 		}
 		if (local_server_node_addr.isEmpty()) {
-			throw new IOException("\"local_server_node_addr\" can't to be empty");
+			log.info("Node " + toString() + " hasn't sockets addresses for its local server (client only node, maybe a console)");
+		} else {
+			log.debug("Node " + toString() + " has some sockets addresses for its local server: " + local_server_node_addr);
 		}
-		log.debug("Node " + toString() + " has some sockets addresses for its local server: " + local_server_node_addr);
 	}
 	
 	/**
@@ -265,6 +270,12 @@ public class Node {
 	 */
 	JsonObject getAutodiscoverIDCard() {
 		if (uuid_ref == null | isOpenSocket() == false) {
+			return null;
+		}
+		if (local_server_node_addr == null) {
+			return null;
+		}
+		if (local_server_node_addr.isEmpty()) {
 			return null;
 		}
 		JsonObject jo = new JsonObject();

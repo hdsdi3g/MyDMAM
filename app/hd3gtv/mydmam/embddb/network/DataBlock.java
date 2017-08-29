@@ -23,7 +23,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -91,10 +90,10 @@ public final class DataBlock {
 		
 		DataInputStream dis = new DataInputStream(gzin);
 		
-		byte[] app_socket_header_tag = new byte[Protocol.APP_SOCKET_HEADER_TAG.length];
-		dis.readFully(app_socket_header_tag, 0, Protocol.APP_SOCKET_HEADER_TAG.length);
+		byte[] app_socket_header_tag = new byte[Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length];
+		dis.readFully(app_socket_header_tag, 0, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length);
 		
-		if (Arrays.equals(Protocol.APP_SOCKET_HEADER_TAG, app_socket_header_tag) == false) {
+		if (Arrays.equals(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, app_socket_header_tag) == false) {
 			throw new IOException("Protocol error with app_socket_header_tag");
 		}
 		
@@ -142,20 +141,6 @@ public final class DataBlock {
 			datas = new byte[data_size];
 			dis.read(datas);
 		}
-		
-		tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, can't found cksum");
-		}
-		
-		CRC32 checksum = new CRC32();
-		checksum.update(request_name_raw);
-		checksum.update(datas);
-		long real_cksum = checksum.getValue();
-		long planned_cksum = dis.readLong();
-		if (real_cksum != planned_cksum) {
-			throw new IOException("Invalid CRC32 real: " + real_cksum + " planned: " + planned_cksum + ". Corrupted packet ?");
-		}
 	}
 	
 	byte[] getBytes(Protocol protocol) throws IOException {
@@ -163,7 +148,7 @@ public final class DataBlock {
 		GZIPOutputStream gzout = new GZIPOutputStream(byte_array_out_stream, Protocol.BUFFER_SIZE);
 		
 		DataOutputStream dos = new DataOutputStream(gzout);
-		dos.write(Protocol.APP_SOCKET_HEADER_TAG);
+		dos.write(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);
 		dos.writeInt(Protocol.VERSION);
 		
 		/**
@@ -189,15 +174,6 @@ public final class DataBlock {
 		if (datas.length > 0) {
 			dos.write(datas);
 		}
-		
-		/**
-		 * Start cksum
-		 */
-		dos.writeByte(0);
-		CRC32 checksum = new CRC32();
-		checksum.update(request_name_data);
-		checksum.update(datas);
-		dos.writeLong(checksum.getValue());
 		
 		dos.flush();
 		gzout.finish();

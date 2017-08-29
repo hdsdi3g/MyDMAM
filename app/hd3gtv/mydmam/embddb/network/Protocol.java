@@ -55,12 +55,18 @@ public final class Protocol {
 	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
 	
 	/**
-	 * EMBDBMYD
+	 * EMBDDBMYD
 	 */
-	public static final byte[] APP_SOCKET_HEADER_TAG = "EMBDBMYD".getBytes(MyDMAM.UTF8);
+	public static final byte[] APP_EMBDDB_SOCKET_HEADER_TAG = "EMBDDBMYD".getBytes(MyDMAM.UTF8);
 	
-	private KeyParameter keyParam;
-	private CipherParameters params;
+	/**
+	 * MYDNETDSCVR
+	 */
+	public static final byte[] APP_NETDISCOVER_SOCKET_HEADER_TAG = "MYDNETDSCVR".getBytes(MyDMAM.UTF8);
+	
+	private final KeyParameter keyParam;
+	private final CipherParameters params;
+	private final String hashed_password_key;
 	
 	private SocketHandlerReader handler_reader;
 	private SocketHandlerWriter handler_writer;
@@ -79,9 +85,10 @@ public final class Protocol {
 		
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 		byte[] key = md.digest(master_password_key.getBytes("UTF-8"));
-		
 		keyParam = new KeyParameter(key);
 		params = new ParametersWithIV(keyParam, key, 0, 16);
+		
+		hashed_password_key = MyDMAM.byteToString(key);
 	}
 	
 	public int getDefaultTCPPort() {
@@ -116,6 +123,13 @@ public final class Protocol {
 		} catch (UnknownHostException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * @return SHA-256(master_password_key)
+	 */
+	public String getHashedPasswordKey() {
+		return hashed_password_key;
 	}
 	
 	public SocketHandlerReader getHandlerReader() {

@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -31,6 +33,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.MembershipKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +43,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 
-import hd3gtv.tools.AddressMaster;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.Hexview;
+import hd3gtv.tools.PressureMeasurement;
 
 /**
  * Detect and find instances via multicast groups.
@@ -49,21 +54,248 @@ class NetDiscover {
 	
 	private static final Logger log = Logger.getLogger(NetDiscover.class);
 	
-	private ArrayList<InetSocketAddress> declared_groups;
+	private final PoolManager pool_manager;
+	private final ArrayList<InetSocketAddress> declared_groups;
 	private List<Engine> engines;
 	private ScheduledFuture<?> sch_future;
+	private transient byte[] datagram_to_send;
 	
-	NetDiscover(Protocol protocol, AddressMaster addr_master, List<InetSocketAddress> multicast_groups) {
+	private final String hashed_password_key;
+	private final UUID uuid;
+	private final PressureMeasurement pressure_measurement;
+	
+	NetDiscover(PoolManager pool_manager, List<InetSocketAddress> multicast_groups, PressureMeasurement pressure_measurement) {
+		this.pool_manager = pool_manager;
+		if (pool_manager == null) {
+			throw new NullPointerException("\"pool_manager\" can't to be null");
+		}
+		if (multicast_groups == null) {
+			throw new NullPointerException("\"multicast_groups\" can't to be null");
+		}
+		this.pressure_measurement = pressure_measurement;
+		if (pressure_measurement == null) {
+			throw new NullPointerException("\"pressure_measurement\" can't to be null");
+		}
+		
 		declared_groups = new ArrayList<>(multicast_groups);
 		if (declared_groups.isEmpty()) {
+			Protocol protocol = pool_manager.getProtocol();
 			declared_groups.add(new InetSocketAddress(protocol.getDefaulMulticastIPv4Addr(), protocol.getDefaultUDPMulticastPort()));
 			declared_groups.add(new InetSocketAddress(protocol.getDefaulMulticastIPv6Addr(), protocol.getDefaultUDPMulticastPort()));
 		}
 		
-		engines = addr_master.getAllPhysicalInterfaces().map(physicalnetwork_interface -> {
+		engines = pool_manager.getAddressMaster().getAllPhysicalInterfaces().map(physicalnetwork_interface -> {
 			return new Engine(physicalnetwork_interface);
 		}).collect(Collectors.toList());
 		
+		hashed_password_key = pool_manager.getProtocol().getHashedPasswordKey();
+		uuid = pool_manager.getUUIDRef();
+		
+		updatePayload();
+	}
+	
+	private static class Payload {
+		/**
+		 * uuid
+		 */
+		UUID u;
+		/**
+		 * hashed_password_key
+		 */
+		String hk;
+		/**
+		 * host_public_listened_addrs
+		 */
+		ArrayList<InetSocketAddress> a;
+		
+		transient PoolManager pool_manager;
+		transient String ref_hashed_password_key;
+		transient UUID ref_uuid;
+		transient PressureMeasurement pressure_measurement;
+		
+		void asyncProcessor(InetAddress source) {
+			pool_manager.executeInThePool(() -> {
+				long start_time = System.currentTimeMillis();
+				try {
+					if (hk == null) {
+						throw new NullPointerException("\"hk\" can't to be null");
+					}
+					if (u == null) {
+						throw new NullPointerException("\"u\" can't to be null");
+					}
+					if (a == null) {
+						throw new NullPointerException("\"a\" can't to be null");
+					}
+					
+					/**
+					 * Test hashed_password_key
+					 */
+					if (hk.equals(ref_hashed_password_key) == false) {
+						if (log.isDebugEnabled()) {
+							log.debug("This payload as not the same password from " + source + ", payload hash: " + hk + ", instance hash: " + ref_hashed_password_key);
+						}
+					}
+					
+					/**
+					 * Test UUID
+					 */
+					if (u.equals(ref_uuid)) {
+						/**
+						 * It's me !
+						 */
+						if (log.isTraceEnabled()) {
+							log.trace("I have just to get payload from me...");
+						}
+						return;
+					}
+					if (pool_manager.isConnectedTo(u)) {
+						/**
+						 * It was connected.
+						 */
+						if (log.isTraceEnabled()) {
+							log.trace("I have just to get payload from an actual connected node from " + source + " " + u);
+						}
+						return;
+					}
+					
+					a.stream().sorted((l, r) -> {
+						boolean r_l = pool_manager.getAddressMaster().isInNetworkRange(l.getAddress());
+						boolean r_r = pool_manager.getAddressMaster().isInNetworkRange(r.getAddress());
+						if (r_l & r_r) {
+							return 0;
+						} else if (r_l == false & r_r == false) {
+							return 0;
+						} else if (r_l & r_r == false) {
+							return 1;
+						} else {
+							return -1;
+						}
+					}).forEach(addr -> {
+						try {
+							pool_manager.declareNewPotentialDistantServer(addr, new ConnectionCallback() {
+								
+								public void onNewConnectedNode(Node node) {
+									log.info("Connected to node: " + node);
+								}
+								
+								public void onLocalServerConnection(InetSocketAddress server) {
+									log.warn("Can't add server (" + server.getHostString() + "/" + server.getPort() + ") not node list");
+								}
+								
+								public void alreadyConnectedNode(Node node) {
+								}
+							});
+						} catch (Exception e) {
+							log.error("Can't create node: " + addr, e);
+						}
+					});
+					
+					pressure_measurement.onProcess(System.currentTimeMillis() - start_time);
+				} catch (Exception e) {
+					if (log.isTraceEnabled()) {
+						log.trace("Invalid payload format from " + source, e);
+					}
+				}
+			});
+		}
+	}
+	
+	void updatePayload() {
+		try {
+			List<InetSocketAddress> addrs = pool_manager.getListenedServerAddress().filter(socket -> {
+				return pool_manager.getAddressMaster().isPublicAndPhysicalAddress(socket.getAddress());
+			}).collect(Collectors.toList());
+			if (addrs.isEmpty()) {
+				datagram_to_send = null;
+				return;
+			}
+			
+			Payload payload = new Payload();
+			payload.u = uuid;
+			payload.hk = hashed_password_key;
+			payload.a = new ArrayList<>(addrs);
+			
+			byte[] json_byted_payload = MyDMAM.gson_kit.getGsonSimple().toJson(payload).getBytes(MyDMAM.UTF8);
+			
+			ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
+			DataOutputStream dos = new DataOutputStream(byte_array_out_stream);
+			
+			dos.write(Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG);
+			dos.writeInt(Protocol.VERSION);
+			dos.writeByte(0);
+			dos.writeInt(json_byted_payload.length);
+			dos.write(json_byted_payload);
+			dos.flush();
+			
+			datagram_to_send = byte_array_out_stream.toByteArray();
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Create Payload" + Hexview.LINESEPARATOR + Hexview.tracelog(datagram_to_send));
+			}
+			
+		} catch (Exception e) {
+			log.error("Can't create Payload", e);
+			datagram_to_send = null;
+		}
+	}
+	
+	private void logBadPayload(byte[] content, InetAddress source, String reason) {
+		if (log.isTraceEnabled() == false) {
+			return;
+		}
+		
+		log.trace(reason + " from " + source + ": " + Hexview.LINESEPARATOR + Hexview.tracelog(content));
+	}
+	
+	private void readPayload(InetAddress source, byte[] content) {
+		int protocol_head_tag_len = Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG.length;
+		if (content.length < protocol_head_tag_len + 1) {
+			logBadPayload(content, source, "Invalid datagram (too small)");
+			return;
+		}
+		
+		for (int pos = 0; pos < protocol_head_tag_len; pos++) {
+			if (Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG[pos] != content[pos]) {
+				logBadPayload(content, source, "Invalid datagram (bad header)");
+				return;
+			}
+		}
+		
+		ByteBuffer byte_buffer = ByteBuffer.wrap(content, protocol_head_tag_len, content.length - protocol_head_tag_len);
+		
+		if (byte_buffer.getInt() != Protocol.VERSION) {
+			logBadPayload(content, source, "Invalid datagram (bad version)");
+			return;
+		}
+		
+		if (byte_buffer.get() != 0) {
+			logBadPayload(content, source, "Invalid datagram (bad first 0)");
+			return;
+		}
+		
+		int payload_size = byte_buffer.getInt();
+		if (payload_size < 1) {
+			logBadPayload(content, source, "Invalid datagram (bad payload size: " + payload_size + ")");
+			return;
+		}
+		
+		byte[] json_byted_payload = new byte[payload_size];
+		byte_buffer.get(json_byted_payload);
+		
+		try {
+			Payload payload = MyDMAM.gson_kit.getGsonSimple().fromJson(new String(json_byted_payload), Payload.class);
+			payload.pool_manager = pool_manager;
+			payload.ref_hashed_password_key = hashed_password_key;
+			payload.ref_uuid = uuid;
+			payload.pressure_measurement = pressure_measurement;
+			payload.asyncProcessor(source);
+		} catch (Exception e) {
+			if (log.isTraceEnabled()) {
+				log.warn("Error during payload import from " + source + ": " + Hexview.LINESEPARATOR + Hexview.tracelog(content), e);
+			} else {
+				log.warn("Error during payload import from " + source, e);
+			}
+		}
 	}
 	
 	void start() {
@@ -118,7 +350,7 @@ class NetDiscover {
 		
 		log.info("Start discovering and probing to " + groups_addr + " on " + interfaces);
 		
-		sch_future = Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(regular_send, 0, 30, TimeUnit.SECONDS);
+		sch_future = Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(regular_send, 1, 30, TimeUnit.SECONDS);
 	}
 	
 	void close() {
@@ -265,20 +497,34 @@ class NetDiscover {
 			void start() throws IOException {
 				channel = DatagramChannel.open(pf).setOption(StandardSocketOptions.SO_REUSEADDR, true).bind(bind_to);
 				key = channel.join(group_socket.getAddress(), network_interface);
-				
 				ByteBuffer buffer = ByteBuffer.allocate(Protocol.BUFFER_SIZE);
+				
 				receiver = new Thread(() -> {
 					InetSocketAddress sender;
+					long start_time;
+					int buffer_size;
 					try {
 						while (channel.isOpen()) {
 							sender = (InetSocketAddress) channel.receive(buffer);
+							start_time = System.currentTimeMillis();
 							buffer.flip();
-							/*String value = */new String(buffer.array());// TODO real protocol
-							buffer.clear();
-							
-							if (log.isTraceEnabled()) {
-								log.trace("Receive datagram from " + sender.getHostString() + " on " + toString());
+							buffer_size = buffer.remaining();
+							if (buffer_size == 0) {
+								log.warn("Receive invalid datagram (" + buffer_size + " bytes) from " + sender.getHostString() + " on " + toString());
+							} else {
+								try {
+									if (log.isTraceEnabled()) {
+										log.trace("Receive datagram (" + buffer_size + " bytes) from " + sender.getHostString() + " on " + toString());
+									}
+									byte[] content = new byte[buffer_size];
+									buffer.get(content);
+									readPayload(sender.getAddress(), content);
+									pressure_measurement.onDatas(buffer_size, System.currentTimeMillis() - start_time);
+								} catch (Exception e) {
+									log.error("Trouble payload processing from " + sender.getHostString() + " on " + toString(), e);
+								}
 							}
+							buffer.clear();
 						}
 					} catch (AsynchronousCloseException e) {
 					} catch (IOException e) {
@@ -305,10 +551,12 @@ class NetDiscover {
 			}
 			
 		}
-		
 	}
 	
 	private Runnable regular_send = () -> {
+		if (datagram_to_send == null) {
+			return;
+		}
 		engines.stream().flatMap(engine -> {
 			return engine.groups.stream();
 		}).filter(group -> {
@@ -317,7 +565,11 @@ class NetDiscover {
 			return group.channel.isOpen();
 		}).forEach(group -> {
 			try {
-				int size_sended = group.channel.send(ByteBuffer.wrap("AAAA".getBytes()), group.group_socket);// TODO real protocol
+				ByteBuffer to_send = ByteBuffer.wrap(datagram_to_send);
+				int size_sended = group.channel.send(to_send, group.group_socket);
+				if (size_sended == 0) {
+					throw new IOException("Send empty packet");
+				}
 				if (log.isTraceEnabled()) {
 					log.trace("Send datagram (" + size_sended + " bytes) to " + group.toString());
 				}
@@ -327,170 +579,4 @@ class NetDiscover {
 		});
 	};
 	
-	/*
-	//TODO send UUID, public & open IPs/ports, "mydmam + url", password hash, version 
-	
-	
-	 * return json_host_public_listened_addrs;
-	private byte[] refreshListenAddrList() {
-		counter_for_regular_refresh_listened_addrs.set(0);
-		
-		List<InetSocketAddress> addrs = manager.getListenedServerAddress().filter(socket -> {
-			return manager.getAddressMaster().isPublicAndPhysicalAddress(socket.getAddress());
-		}).collect(Collectors.toList());
-		
-		if (addrs.isEmpty()) {
-			json_host_public_listened_addrs = null;
-		} else {
-			json_host_public_listened_addrs = MyDMAM.gson_kit.getGsonSimple().toJson(addrs).getBytes(MyDMAM.UTF8);
-		}
-		return json_host_public_listened_addrs;
-	}
-	
-	void startRegularSend() {
-		refreshListenAddrList();
-		uuid_string = manager.getUUIDRef().toString().getBytes(MyDMAM.UTF8);
-	}
-	
-	
-	
-	
-		private void readDatagram(byte[] raw_datas) throws IOException, GeneralSecurityException {
-		byte[] datas = manager.getProtocol().decrypt(raw_datas, 0, raw_datas.length);
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Get raw datas after decrypt" + Hexview.LINESEPARATOR + Hexview.tracelog(datas));
-		}
-		
-		ByteArrayInputStream byte_array_in_stream = new ByteArrayInputStream(datas);
-		DataInputStream dis = new DataInputStream(byte_array_in_stream);
-		
-		byte[] app_socket_header_tag = new byte[Protocol.APP_SOCKET_HEADER_TAG.length];
-		dis.readFully(app_socket_header_tag, 0, Protocol.APP_SOCKET_HEADER_TAG.length);
-		if (Arrays.equals(Protocol.APP_SOCKET_HEADER_TAG, app_socket_header_tag) == false) {
-			throw new IOException("Protocol error with app_socket_header_tag");
-		}
-		
-		int version = dis.readInt();
-		if (version != Protocol.VERSION) {
-			throw new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
-		}
-		
-		byte tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, missing 0x0: " + tag);
-		}
-		
-		byte[] header_tag = new byte[HEADER.length];
-		dis.readFully(header_tag, 0, HEADER.length);
-		if (Arrays.equals(HEADER, header_tag) == false) {
-			throw new IOException("Protocol error with header_tag");
-		}
-		
-		tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, missing 0x0: " + tag);
-		}
-		
-		UUID distant = UUID.fromString(readString(dis, "uuid"));
-		
-		if (manager.getUUIDRef().equals(distant)) {
-			log.trace("Datagram is from... me (" + distant + ")");
-			return;
-		}
-		
-		if (manager.isConnectedTo(distant)) {
-			log.trace("Already connected to " + distant);
-			return;
-		}
-		
-		tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, missing 0x0: " + tag);
-		}
-		
-		long date = dis.readLong();
-		long now = System.currentTimeMillis();
-		if (Math.abs(now - date) > 10000l) {
-			log.trace("To big time delta with the distant datagram sender " + distant + " is the " + Loggers.dateLog(date) + ", now it's the " + Loggers.dateLog(now));
-			return;
-		}
-		
-		tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, missing 0x0: " + tag);
-		}
-		
-		String json_addrs = readString(dis, "json_addr");
-		ArrayList<InetSocketAddress> socket_list = MyDMAM.gson_kit.getGsonSimple().fromJson(json_addrs, GsonKit.type_ArrayList_InetSocketAddr);
-		
-		socket_list.stream().sorted((l, r) -> {
-			boolean r_l = manager.getAddressMaster().isInNetworkRange(l.getAddress());
-			boolean r_r = manager.getAddressMaster().isInNetworkRange(r.getAddress());
-			if (r_l & r_r) {
-				return 0;
-			} else if (r_l == false & r_r == false) {
-				return 0;
-			} else if (r_l & r_r == false) {
-				return 1;
-			} else {
-				return -1;
-			}
-		}).forEach(addr -> {
-			try {
-				manager.declareNewPotentialDistantServer(addr, new ConnectionCallback() {
-					
-					public void onNewConnectedNode(Node node) {
-						log.info("Connected to node: " + node + " by net discover");
-					}
-					
-					public void onLocalServerConnection(InetSocketAddress server) {
-						log.warn("Can't add server (" + server.getHostString() + "/" + server.getPort() + ") not node list, by net discover");
-					}
-					
-					public void alreadyConnectedNode(Node node) {
-					}
-				});
-			} catch (Exception e) {
-				log.error("Can't create node: " + addr + ", by net discover", e);
-			}
-		});
-	}
-	
-	private static String readString(DataInputStream dis, String name) throws IOException {
-		int size = dis.readInt();
-		if (size < 1) {
-			throw new IOException("Protocol error, can't found \"" + name + "\" (" + size + ")");
-		}
-		
-		byte[] value = new byte[size];
-		dis.read(value);
-		return new String(value, MyDMAM.UTF8);
-	}
-	
-	private byte[] createDatagram() throws IOException, GeneralSecurityException {
-		ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
-		
-		DataOutputStream dos = new DataOutputStream(byte_array_out_stream);
-		dos.write(Protocol.APP_SOCKET_HEADER_TAG);
-		dos.writeInt(Protocol.VERSION);
-		dos.writeByte(0);
-		dos.write(HEADER);
-		dos.writeByte(0);
-		dos.writeInt(uuid_string.length);
-		dos.write(uuid_string);
-		dos.writeByte(0);
-		dos.writeLong(System.currentTimeMillis());
-		dos.writeByte(0);
-		dos.writeInt(json_host_public_listened_addrs.length);
-		dos.write(json_host_public_listened_addrs);
-		dos.flush();
-		dos.close();
-		
-		byte[] datas = byte_array_out_stream.toByteArray();
-		return manager.getProtocol().encrypt(datas, 0, datas.length);
-	}
-	
-	
-	*/
 }

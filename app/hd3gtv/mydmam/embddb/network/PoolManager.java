@@ -73,6 +73,7 @@ public class PoolManager {
 	
 	private PressureMeasurement pressure_measurement_sended;
 	private PressureMeasurement pressure_measurement_recevied;
+	private PressureMeasurement pressure_measurement_netdiscover;
 	private List<InetSocketAddress> bootstrap_servers;
 	
 	/**
@@ -102,6 +103,7 @@ public class PoolManager {
 		
 		pressure_measurement_sended = new PressureMeasurement();
 		pressure_measurement_recevied = new PressureMeasurement();
+		pressure_measurement_netdiscover = new PressureMeasurement();
 		
 		nodes = Collections.synchronizedList(new ArrayList<>());
 		autodiscover_can_be_remake = new AtomicBoolean(true);
@@ -246,10 +248,13 @@ public class PoolManager {
 		console.addOrder("srv", "Servers status", "Display all servers status", getClass(), param -> {
 			TableList table = new TableList();
 			local_servers.forEach(local_server -> {
-				if (local_server.isOpen()) {
-					table.addRow("open", local_server.getListen().getHostString(), String.valueOf(local_server.getListen().getPort()));
-				} else {
-					table.addRow("CLOSED", local_server.getListen().getHostString(), String.valueOf(local_server.getListen().getPort()));
+				try {
+					if (local_server.isOpen()) {
+						table.addRow("open", local_server.getListen().getHostString(), String.valueOf(local_server.getListen().getPort()));
+					} else {
+						table.addRow("CLOSED", local_server.getListen().getHostString(), String.valueOf(local_server.getListen().getPort()));
+					}
+				} catch (NullPointerException e) {
 				}
 			});
 		});
@@ -297,6 +302,7 @@ public class PoolManager {
 			PressureMeasurement.toTableHeader(list);
 			pressure_measurement_recevied.getActualStats(false).toTable(list, "Recevied");
 			pressure_measurement_sended.getActualStats(false).toTable(list, "Sended");
+			pressure_measurement_netdiscover.getActualStats(false).toTable(list, "Netdiscover");
 			list.print();
 		});
 		
@@ -305,6 +311,7 @@ public class PoolManager {
 			PressureMeasurement.toTableHeader(list);
 			pressure_measurement_recevied.getActualStats(true).toTable(list, "Recevied");
 			pressure_measurement_sended.getActualStats(true).toTable(list, "Sended");
+			pressure_measurement_netdiscover.getActualStats(true).toTable(list, "Netdiscover");
 			list.print();
 		});
 	}
@@ -316,7 +323,7 @@ public class PoolManager {
 	
 	public void startNetDiscover(List<InetSocketAddress> multicast_groups) throws IOException {
 		if (net_discover == null) {
-			net_discover = new NetDiscover(protocol, addr_master, multicast_groups);
+			net_discover = new NetDiscover(this, multicast_groups, pressure_measurement_netdiscover);
 			net_discover.start();
 		}
 	}
@@ -425,6 +432,14 @@ public class PoolManager {
 		
 		log.info("Start local server on " + logresult);
 		
+		if (net_discover != null) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+			}
+			net_discover.updatePayload();
+		}
+		
 		// T O D O manage white/black range addr list for node discover
 		
 		Runtime.getRuntime().addShutdownHook(shutdown_hook);
@@ -463,6 +478,16 @@ public class PoolManager {
 			Runtime.getRuntime().removeShutdownHook(shutdown_hook);
 		} catch (IllegalStateException e) {
 		}
+	}
+	
+	void executeInThePool(Runnable r) {
+		if (executor_pool == null) {
+			return;
+		}
+		if (executor_pool.isShutdown() | executor_pool.isTerminated() | executor_pool.isTerminated()) {
+			return;
+		}
+		executor_pool.execute(r);
 	}
 	
 	public boolean isListenToThis(InetSocketAddress server) {
