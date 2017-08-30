@@ -32,21 +32,35 @@ public class CLIAssetsXcross implements CLIDefinition {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		if (args.getParamExist("-ar")) {
-			String mydmam_id = args.getSimpleParamValue("-ar").trim();
-			String interplay_path = args.getSimpleParamValue("-path");
-			if (interplay_path == null) {
-				interplay_path = "/";
-			}
-			String base_task_name = args.getSimpleParamValue("-tn");
-			if (base_task_name == null) {
-				base_task_name = "";
-			}
-			
-			RestoreJob rj = RestoreInterplayVantageAC.createFromConfiguration().restore(mydmam_id, interplay_path, base_task_name);
-			if (rj == null) {
-				System.err.println("Can't found " + mydmam_id + " in " + interplay_path);
-				return;
+		if (args.getParamExist("-ar") | args.getParamExist("-restore")) {
+			RestoreJob rj = null;
+			if (args.getParamExist("-ar")) {
+				/**
+				 * Manual, by ID
+				 */
+				String mydmam_id = args.getSimpleParamValue("-ar").trim();
+				String interplay_path = args.getSimpleParamValue("-path");
+				if (interplay_path == null) {
+					interplay_path = "/";
+				}
+				String base_task_name = args.getSimpleParamValue("-tn");
+				if (base_task_name == null) {
+					base_task_name = "";
+				}
+				rj = RestoreInterplayVantageAC.createFromConfiguration().restore(mydmam_id, interplay_path, base_task_name);
+				if (rj == null) {
+					System.err.println("Can't found " + mydmam_id + " in " + interplay_path);
+					return;
+				}
+			} else {
+				/**
+				 * Automatic, by Category
+				 */
+				String interplay_path = args.getSimpleParamValue("-restore");
+				rj = RestoreInterplayVantageAC.createFromConfiguration().restoreBySpecificCategory(interplay_path);
+				if (rj == null) {
+					return;
+				}
 			}
 			
 			while (rj.isDone() == false) {
@@ -99,14 +113,30 @@ public class CLIAssetsXcross implements CLIDefinition {
 				throw new IndexOutOfBoundsException("You must provide an -upd month count");
 			}
 			RestoreInterplayVantageAC.createFromConfiguration().restartArchive(interplay_path, since_update_month);
+		} else if (args.getParamExist("-searchtoarchiveitp")) {
+			int max_results = args.getSimpleIntegerParamValue("-searchtoarchiveitp", 0);
+			if (max_results == 0) {
+				throw new IndexOutOfBoundsException("You must provide an -upd month count");
+			}
+			RestoreInterplayVantageAC.createFromConfiguration().searchAssetsToArchive(max_results);
+		} else {
+			showFullCliModuleHelp();
 		}
-		
-		showFullCliModuleHelp();
 	}
 	
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage:");
-		System.out.println("* Asset(s) restauration in Interplay database:");
+		System.out.println("* Automatic asset(s) restauration in Interplay database:");
+		System.out.println("  " + getCliModuleName() + " -restore /Interplay/Directory");
+		System.out.println("    With:");
+		System.out.println("    -restore the root path in Interplay database for found the assets to scan");
+		try {
+			System.out.println("    It's linked to the Category \"" + RestoreInterplayVantageAC.createFromConfiguration().getPendingRestoreCategoryInInterplay() + "\"");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("* Manual asset(s) restauration in Interplay database:");
 		System.out.println("  " + getCliModuleName() + " -ar MyDMAMId -path /Interplay/Directory -tn VantageTaskName");
 		System.out.println("    With:");
 		System.out.println("    -ar the MyDMAM id to search in the Interplay database");
@@ -144,6 +174,11 @@ public class CLIAssetsXcross implements CLIDefinition {
 		System.out.println("    With:");
 		System.out.println("    -restartitparch the root path in Interplay database for found the assets to scan");
 		System.out.println("    -upd X (since update month) search only assets not modified since X months");
+		
+		System.out.println("* Search assets to archive in Interplay :");
+		System.out.println("  " + getCliModuleName() + " -searchtoarchiveitp 3");
+		System.out.println("    With:");
+		System.out.println("    -searchtoarchiveitp X max results in search");
 		
 		System.out.println("");
 		System.out.println("Natural operation order: tagForShred, removeOldAssets, searchAndTagOrphansInProjectDirectories, tagArchiveStatusForRecent, restartArchive, searchAssetsToArchive");

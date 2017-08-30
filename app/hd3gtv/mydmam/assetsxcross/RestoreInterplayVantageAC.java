@@ -33,6 +33,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -69,6 +70,8 @@ import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileWorkflowInvalidStateEx
 
 public class RestoreInterplayVantageAC {
 	
+	// TODO create example file conf
+	
 	private String vantage_variable_name_interplay_mastermob;
 	private String vantage_variable_name_interplay_sourcemob;
 	private String vantage_variable_name_interplay_path;
@@ -95,6 +98,11 @@ public class RestoreInterplayVantageAC {
 	private int mydmam_id_size;
 	private String vantage_archive_workflow_name;
 	private String vantage_archive_destbasepath;
+	private String pending_restore_category_in_interplay;
+	
+	String getPendingRestoreCategoryInInterplay() {
+		return pending_restore_category_in_interplay;
+	}
 	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
@@ -159,6 +167,144 @@ public class RestoreInterplayVantageAC {
 		});
 		
 		vantage = VantageAPI.createFromConfiguration();
+	}
+	
+	public List<InterplayAsset> getAllOfflineInInterplayPath(String search_path) throws AssetsFault, IOException {
+		SearchType search_type = new SearchType();
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		// search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.offline.name()));
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_path));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		return interplay.convertSearchResponseToAssetList(response);
+	}
+	
+	/**
+	 * Search in interplay and AC is sync. Destage is async. Transcoding is async (and not managed).
+	 */
+	public RestoreJob restoreBySpecificCategory(String search_root_path) throws Exception {
+		SearchType search_type = new SearchType();
+		search_type.setMaxResults(1000);
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getCategoryCondition().add(InterplayAPI.createCategoryCondition(pending_restore_category_in_interplay));
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		List<InterplayAsset> raw_responses = interplay.convertSearchResponseToAssetList(response);
+		
+		ArrayList<InterplayAsset> assets_to_restore = new ArrayList<>();
+		
+		/**
+		 * Masterclips checked
+		 */
+		assets_to_restore.addAll(raw_responses.stream().filter(asset -> {
+			return asset.isMasterclip();
+		}).collect(Collectors.toList()));
+		
+		/**
+		 * Masterclips in relatives checked sequences
+		 */
+		final Function<InterplayAsset, Stream<InterplayAsset>> getOfflineRelativesFromSequence = sequence -> {
+			try {
+				return sequence.getRelatives(true).stream();
+			} catch (AssetsFault | IOException e) {
+				throw new RuntimeException("Can't access to sequence " + sequence, e);
+			}
+		};
+		
+		assets_to_restore.addAll(raw_responses.stream().filter(asset -> {
+			return asset.isSequence();
+		}).flatMap(getOfflineRelativesFromSequence).collect(Collectors.toList()));
+		
+		/**
+		 * Folders checked
+		 */
+		List<InterplayAsset> asset_founded_in_folders = raw_responses.stream().filter(asset -> {
+			return asset.isFolder();
+		}).flatMap(asset -> {
+			try {
+				return getAllOfflineInInterplayPath(asset.getFullPath()).stream();
+			} catch (AssetsFault | IOException e) {
+				throw new RuntimeException("Can't access to folder " + asset, e);
+			}
+		}).collect(Collectors.toList());
+		
+		/**
+		 * Masterclips in checked folders
+		 */
+		assets_to_restore.addAll(asset_founded_in_folders.stream().filter(asset -> {
+			return asset.isMasterclip();
+		}).filter(asset -> {
+			return asset.isOnline() == false;
+		}).collect(Collectors.toList()));
+		
+		/**
+		 * Masterclips in relatives sequences in checked folders
+		 */
+		assets_to_restore.addAll(asset_founded_in_folders.stream().filter(asset -> {
+			return asset.isSequence();
+		}).flatMap(getOfflineRelativesFromSequence).filter(asset -> {
+			return asset.isOnline() == false;
+		}).collect(Collectors.toList()));
+		
+		/**
+		 * Global filter for restore todo list
+		 */
+		List<ManageableAsset> m_assets_to_restore = assets_to_restore.stream().distinct().map(asset -> {
+			return new ManageableAsset(asset, asset.getPath());
+		}).filter(asset -> {
+			return asset.getMyDMAMId() != null;
+		}).filter(asset -> {
+			return asset.asset.getAttribute(ac_path_in_interplay) != null;
+		}).collect(Collectors.toList());
+		
+		if (m_assets_to_restore.isEmpty()) {
+			Loggers.AssetsXCross.info("Nothing to restore actually with the category " + pending_restore_category_in_interplay);
+			return null;
+		} else if (m_assets_to_restore.size() == 1) {
+			Loggers.AssetsXCross.info("Start to restore one masterclip");
+		} else {
+			Loggers.AssetsXCross.info("Start to restore " + m_assets_to_restore.size() + " masterclips");
+		}
+		
+		RelativeMasterclips rmc = new RelativeMasterclips(m_assets_to_restore);
+		
+		Consumer<ManageableAsset> onStartDestage = relative_asset -> {
+			Loggers.AssetsXCross.info("Start to restore master clip \"" + relative_asset.asset.getDisplayName() + "\" " + relative_asset.asset.getMyDMAMID());
+		};
+		BiConsumer<ManageableAsset, VantageJob> onCreateVantageJob = (relative_asset, vantage_job) -> {
+			Loggers.AssetsXCross.info("Submit Vantage job " + vantage_job + " for restore master clip \"" + relative_asset.asset.getDisplayName() + "\" " + relative_asset.asset.getMyDMAMID());
+		};
+		BiConsumer<ManageableAsset, Exception> onError = (relative_asset, e) -> {
+			Loggers.AssetsXCross.info("Error during master clip restauration \"" + relative_asset.asset.getDisplayName() + "\" " + relative_asset.asset.getMyDMAMID(), e);
+		};
+		
+		rmc.destageAllAndCreateVantageRestoreJobForEachDestaged("Batch archive restauration", onStartDestage, onCreateVantageJob, onError);
+		
+		return new RestoreJob(rmc).setOnDone(() -> {
+			/**
+			 * Remove category for raw_responses
+			 */
+			Loggers.AssetsXCross.info("Remove categories \"" + pending_restore_category_in_interplay + "\" from " + raw_responses.size() + " asset(s)");
+			
+			raw_responses.forEach(checked_asset -> {
+				try {
+					checked_asset.removeCategories(pending_restore_category_in_interplay);
+				} catch (AssetsFault | IOException e1) {
+					throw new RuntimeException("Can't remove category \"" + pending_restore_category_in_interplay + "\" from " + checked_asset);
+				}
+			});
+		});
 	}
 	
 	/**

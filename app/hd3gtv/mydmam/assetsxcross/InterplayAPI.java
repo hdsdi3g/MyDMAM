@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -39,6 +38,7 @@ import com.avid.interplay.ws.assets.AttributeConditionType;
 import com.avid.interplay.ws.assets.AttributeListType;
 import com.avid.interplay.ws.assets.AttributeType;
 import com.avid.interplay.ws.assets.CategoriesListType;
+import com.avid.interplay.ws.assets.CategoryConditionType;
 import com.avid.interplay.ws.assets.CreateFolderResponseType;
 import com.avid.interplay.ws.assets.CreateFolderType;
 import com.avid.interplay.ws.assets.DeleteAssetsResponseType;
@@ -459,10 +459,7 @@ public class InterplayAPI {
 		return declared_workgoup_categories;
 	}
 	
-	/**
-	 * One-pass update
-	 */
-	public void setCategories(String interplay_uri, Collection<String> actual_categories, Collection<String> new_categories) throws AssetsFault, IOException {
+	public void setCategories(String interplay_uri, Collection<String> new_categories) throws AssetsFault, IOException {
 		/** Check declared categories */
 		if (getDeclaredWorkgoupCategories().containsAll(new_categories) == false) {
 			String bad_cats = new_categories.stream().filter(cat -> {
@@ -473,31 +470,33 @@ public class InterplayAPI {
 		}
 		
 		SetCategoriesType set_cat = new SetCategoriesType();
-		
 		CategoriesListType add_clt = new CategoriesListType();
-		add_clt.getCategory().addAll(new_categories.stream().filter(new_cat -> {
-			return actual_categories.contains(new_cat) == false;
-		}).collect(Collectors.toList()));
+		add_clt.getCategory().addAll(new_categories);
 		set_cat.setCategoriesToAdd(add_clt);
-		
-		CategoriesListType del_clt = new CategoriesListType();
-		del_clt.getCategory().addAll(actual_categories.stream().filter(old_cat -> {
-			return new_categories.contains(old_cat) == false;
-		}).collect(Collectors.toList()));
-		set_cat.setCategoriesToRemove(del_clt);
-		
 		set_cat.setInterplayURI(interplay_uri);
 		
 		SetCategoriesResponseType response = assets.setCategories(set_cat, credentialsHeader);
 		checkError(response.getErrors());
 	}
 	
-	/**
-	 * Two-pass get&update
-	 */
-	public void setCategories(String interplay_uri, Collection<String> new_categories) throws AssetsFault, IOException {
-		Collection<String> actual_categories = getCategories(interplay_uri).getOrDefault(interplay_uri, new ArrayList<>());
-		setCategories(interplay_uri, actual_categories, new_categories);
+	public void removeCategories(String interplay_uri, Collection<String> future_old_categories) throws AssetsFault, IOException {
+		/** Check declared categories */
+		if (getDeclaredWorkgoupCategories().containsAll(future_old_categories) == false) {
+			String bad_cats = future_old_categories.stream().filter(cat -> {
+				return declared_workgoup_categories.contains(cat) == false;
+			}).collect(Collectors.joining(", "));
+			throw new IOException("Unknown categorie(s) \"" + bad_cats + "\" in Interplay workgroup " + workgoup);
+		}
+		
+		SetCategoriesType set_cat = new SetCategoriesType();
+		
+		CategoriesListType del_clt = new CategoriesListType();
+		del_clt.getCategory().addAll(future_old_categories);
+		set_cat.setCategoriesToRemove(del_clt);
+		set_cat.setInterplayURI(interplay_uri);
+		
+		SetCategoriesResponseType response = assets.setCategories(set_cat, credentialsHeader);
+		checkError(response.getErrors());
 	}
 	
 	public static void checkError(ErrorListType errors) throws IOException {
@@ -570,6 +569,12 @@ public class InterplayAPI {
 		attr_type.setCondition(condition.name());
 		attr_type.setAttribute(createAttribute(group, name, value));
 		return attr_type;
+	}
+	
+	public static CategoryConditionType createCategoryCondition(String name) {
+		CategoryConditionType cond_type = new CategoryConditionType();
+		cond_type.setCategory(name);
+		return cond_type;
 	}
 	
 	public static String getAttributeValueFromList(AttributeListType attr_list, String attribute_name) {
