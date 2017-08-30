@@ -43,8 +43,7 @@ public class CLIAssetsXcross implements CLIDefinition {
 				base_task_name = "";
 			}
 			
-			RestoreInterplayVantageAC rivac = RestoreInterplayVantageAC.createFromConfiguration();
-			RestoreJob rj = rivac.restore(mydmam_id, interplay_path, base_task_name);
+			RestoreJob rj = RestoreInterplayVantageAC.createFromConfiguration().restore(mydmam_id, interplay_path, base_task_name);
 			if (rj == null) {
 				System.err.println("Can't found " + mydmam_id + " in " + interplay_path);
 				return;
@@ -57,10 +56,7 @@ public class CLIAssetsXcross implements CLIDefinition {
 				System.out.println();
 				Thread.sleep(3000);
 			}
-			
-			return;
 		} else if (args.getParamExist("-tagfshr")) {
-			RestoreInterplayVantageAC rivac = RestoreInterplayVantageAC.createFromConfiguration();
 			String interplay_path = args.getSimpleParamValue("-tagfshr");
 			int since_update_month = args.getSimpleIntegerParamValue("-upd", 0);
 			if (since_update_month == 0) {
@@ -70,7 +66,39 @@ public class CLIAssetsXcross implements CLIDefinition {
 			if (since_used_month == 0) {
 				throw new IndexOutOfBoundsException("You must provide an -used month count");
 			}
-			rivac.tagForShred(interplay_path, since_update_month, since_used_month);
+			RestoreInterplayVantageAC.createFromConfiguration().tagForShred(interplay_path, since_update_month, since_used_month);
+		} else if (args.getParamExist("-deleteitp")) {
+			String interplay_path = args.getSimpleParamValue("-deleteitp");
+			int since_update_month = args.getSimpleIntegerParamValue("-upd", 0);
+			if (since_update_month == 0) {
+				throw new IndexOutOfBoundsException("You must provide an -upd month count");
+			}
+			RestoreInterplayVantageAC.createFromConfiguration().removeOldAssets(interplay_path, since_update_month);
+		} else if (args.getParamExist("-tagorphans")) {
+			String interplay_path = args.getSimpleParamValue("-tagorphans");
+			int since_created_month = args.getSimpleIntegerParamValue("-crd", 0);
+			if (since_created_month == 0) {
+				throw new IndexOutOfBoundsException("You must provide an -crd month count");
+			}
+			int grace_time_sec_non_archived_since_month = args.getSimpleIntegerParamValue("-grace", 0);
+			if (grace_time_sec_non_archived_since_month == 0) {
+				throw new IndexOutOfBoundsException("You must provide an -grace month count");
+			}
+			RestoreInterplayVantageAC.createFromConfiguration().searchAndTagOrphansInProjectDirectories(interplay_path, since_created_month, grace_time_sec_non_archived_since_month);
+		} else if (args.getParamExist("-tagrecentstatus")) {
+			String interplay_path = args.getSimpleParamValue("-tagrecentstatus");
+			int since_update_month = args.getSimpleIntegerParamValue("-upd", 0);
+			if (since_update_month == 0) {
+				throw new IndexOutOfBoundsException("You must provide an -upd month count");
+			}
+			RestoreInterplayVantageAC.createFromConfiguration().tagArchiveStatusForRecent(interplay_path, since_update_month, args.getParamExist("-seq"));
+		} else if (args.getParamExist("-restartitparch")) {
+			String interplay_path = args.getSimpleParamValue("-restartitparch");
+			int since_update_month = args.getSimpleIntegerParamValue("-upd", 0);
+			if (since_update_month == 0) {
+				throw new IndexOutOfBoundsException("You must provide an -upd month count");
+			}
+			RestoreInterplayVantageAC.createFromConfiguration().restartArchive(interplay_path, since_update_month);
 		}
 		
 		showFullCliModuleHelp();
@@ -80,17 +108,45 @@ public class CLIAssetsXcross implements CLIDefinition {
 		System.out.println("Usage:");
 		System.out.println("* Asset(s) restauration in Interplay database:");
 		System.out.println("  " + getCliModuleName() + " -ar MyDMAMId -path /Interplay/Directory -tn VantageTaskName");
-		System.out.println("with:");
-		System.out.println(" -ar the MyDMAM id to search in the Interplay database");
-		System.out.println(" -path the root path in Interplay database for found the asset");
-		System.out.println(" -tn the vantage task (base) name to use during task creation");
+		System.out.println("    With:");
+		System.out.println("    -ar the MyDMAM id to search in the Interplay database");
+		System.out.println("    -path the root path in Interplay database for found the asset");
+		System.out.println("    -tn the vantage task (base) name to use during task creation");
+		
 		System.out.println("* Tag for shred function in Interplay database:");
 		System.out.println("  " + getCliModuleName() + " -tagfshr /Interplay/Directory -upd 6 -used 3");
-		System.out.println(" with:");
-		System.out.println(" -tagfshr the root path in Interplay database for found the masterclips to scan");
-		System.out.println(" -upd X (since update month) search only masterclip not modified since X months");
-		System.out.println(" -used X (since used month) search only masterclip relatives to sequences not modified since X months");
+		System.out.println("    With:");
+		System.out.println("    -tagfshr the root path in Interplay database for found the masterclips to scan");
+		System.out.println("    -upd X (since update month) search only masterclip not modified since X months");
+		System.out.println("    -used X (since used month) search only masterclip relatives to sequences not modified since X months");
 		
+		System.out.println("* Remove old assets in Interplay database:");
+		System.out.println("  " + getCliModuleName() + " -deleteitp /Interplay/Directory -upd 6");
+		System.out.println("    With:");
+		System.out.println("    -deleteitp the root path in Interplay database for found the assets to scan");
+		System.out.println("    -upd X (since update month) search only assets not modified since X months");
+		
+		System.out.println("* Search and tag orphans in project directories:");
+		System.out.println("  " + getCliModuleName() + " -tagorphans /Interplay/Directory -crd 3 -grace 4");
+		System.out.println("    With:");
+		System.out.println("    -crd X (since created month) search only masterclip created since before X months");
+		System.out.println("    -grace X (grace for non archived since X months) ignore non archived sequence and still recent (needs to wait to be archived)");
+		
+		System.out.println("* Tag archive status for recent sequences/masterclips:");
+		System.out.println("  " + getCliModuleName() + " -tagrecentstatus /Interplay/Directory -upd 3 [-seq]");
+		System.out.println("    With:");
+		System.out.println("    -tagrecentstatus the root path in Interplay database for found the assets to scan");
+		System.out.println("    -upd X (since update month) search only assets not modified since X months");
+		System.out.println("    -seq search sequences (instead masterclips by default)");
+		
+		System.out.println("* Restart archive forgetted masterclips in Interplay :");
+		System.out.println("  " + getCliModuleName() + " -restartitparch /Interplay/Directory -upd 3");
+		System.out.println("    With:");
+		System.out.println("    -restartitparch the root path in Interplay database for found the assets to scan");
+		System.out.println("    -upd X (since update month) search only assets not modified since X months");
+		
+		System.out.println("");
+		System.out.println("Natural operation order: tagForShred, removeOldAssets, searchAndTagOrphansInProjectDirectories, tagArchiveStatusForRecent, restartArchive, searchAssetsToArchive");
 	}
 	
 	// TODO simple file destage + fxp
