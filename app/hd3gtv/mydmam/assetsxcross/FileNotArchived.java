@@ -22,7 +22,6 @@ public class FileNotArchived extends FileNotFoundException {
 	
 	public FileNotArchived(String s) {
 		super(s);
-		// TODO Auto-generated constructor stub
 	}
 	
 }
