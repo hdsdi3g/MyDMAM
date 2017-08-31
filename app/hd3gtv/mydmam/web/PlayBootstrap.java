@@ -140,7 +140,7 @@ public class PlayBootstrap {
 		if (JSSourceManager.isJsDevMode()) {
 			return "24h";
 		} else {
-			return "1h";
+			return "8h";
 		}
 	}
 	
