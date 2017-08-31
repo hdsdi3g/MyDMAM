@@ -58,7 +58,6 @@ import hd3gtv.mydmam.assetsxcross.InterplayAPI.Condition;
 import hd3gtv.mydmam.assetsxcross.RestoreInterplayVantageAC.ManageableAsset.ArchivedAsset;
 import hd3gtv.mydmam.assetsxcross.VantageAPI.VantageJob;
 import hd3gtv.mydmam.assetsxcross.VantageAPI.VariableDefinition;
-import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
@@ -69,8 +68,6 @@ import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileWorkflowDoesNotExistEx
 import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileWorkflowInvalidStateExceptionFaultFaultMessage;
 
 public class RestoreInterplayVantageAC {
-	
-	// TODO create example file conf
 	
 	private String vantage_variable_name_interplay_mastermob;
 	private String vantage_variable_name_interplay_sourcemob;
@@ -95,7 +92,6 @@ public class RestoreInterplayVantageAC {
 	private ArrayList<String> interplay_paths_ignore_during_orphan_projects_dir_search;
 	private ArrayList<String> interplay_paths_tag_to_purge_during_orphan_projects_dir_search;
 	private ArrayList<String> do_not_gather_to_seq_interplay_paths;
-	private int mydmam_id_size;
 	private String vantage_archive_workflow_name;
 	private String vantage_archive_destbasepath;
 	private String pending_restore_category_in_interplay;
@@ -117,13 +113,10 @@ public class RestoreInterplayVantageAC {
 		if (id == null) {
 			return null;
 		}
-		if (id.length() < mydmam_id_size) {
-			return null;
-		}
 		if (Importer.getIdExtractorFileName().isValidId(id) == false) {
 			return null;
 		}
-		return id.substring(0, mydmam_id_size);
+		return Importer.getIdExtractorFileName().getId(id);
 	}
 	
 	private transient Explorer explorer;
@@ -520,7 +513,7 @@ public class RestoreInterplayVantageAC {
 			ACFile ac_file = resolveArchivedVersion(false);
 			Loggers.AssetsXCross.debug("Found archived version for " + getMyDMAMId() + ": " + ac_file.toString() + " and update Interplay database");
 			
-			localized_archived_version = new ArchivedAsset(ac_file);// TODO if file is not in tape ?
+			localized_archived_version = new ArchivedAsset(ac_file);
 		}
 		
 		public String getMyDMAMId() {
@@ -533,15 +526,12 @@ public class RestoreInterplayVantageAC {
 		
 		public class ArchivedAsset {
 			private ACFile acfile;
-			private AJSFileLocationStatus status;
 			
 			private ArchivedAsset(ACFile acfile) {
 				this.acfile = acfile;
 				if (acfile == null) {
 					throw new NullPointerException("\"acfile\" can't to be null");
 				}
-				status = new AJSFileLocationStatus();
-				status.getFromACAPI(acfile);
 			}
 			
 			private FileDestageJob destage_job;
@@ -551,10 +541,11 @@ public class RestoreInterplayVantageAC {
 			 * Async operation
 			 */
 			public void destageAndCreateVantageRestoreJob(String base_job_name, Consumer<VantageJob> onCreateVantageJob, Consumer<Exception> onError) {
-				if (asset.getMyDMAMID() == null) {
+				String mydmam_id = parseMyDMAMID(asset.getMyDMAMID());
+				if (mydmam_id == null) {
 					throw new NullPointerException("No MyDMAM ID for asset " + asset.getDisplayName());
 				}
-				destage_job = destage_manager.addFileToDestage(acfile, asset.getMyDMAMID().substring(0, mydmam_id_size), (acf, id) -> {
+				destage_job = destage_manager.addFileToDestage(acfile, mydmam_id, (acf, id) -> {
 					try {
 						/**
 						 * Get the better node to get file
@@ -1192,6 +1183,9 @@ public class RestoreInterplayVantageAC {
 		});
 	}
 	
+	/**
+	 * NOT TESTED
+	 */
 	public void tagToPurgeOrArchiveIsolatesMClipsInPath(String path, int since_after_update_month) throws Exception {
 		Calendar calendar_update = Calendar.getInstance();
 		calendar_update.add(Calendar.MONTH, -Math.abs(since_after_update_month));
@@ -1207,7 +1201,7 @@ public class RestoreInterplayVantageAC {
 		search_type.setSearchGroup(search_group_type);
 		search_type.setInterplayPathURI(interplay.createURLInterplayPath(path));
 		
-		search_type.setMaxResults(500);// XXX
+		search_type.setMaxResults(500);// REMOVE BEFORE MASTER/PROD ===============================================================================================
 		
 		SearchResponseType response = interplay.search(search_type);
 		InterplayAPI.checkError(response.getErrors());
@@ -1242,7 +1236,7 @@ public class RestoreInterplayVantageAC {
 								 */
 								m_asset.asset.delete(true, false, uri -> {
 									Loggers.AssetsXCross.info("Remove asset " + m_asset);
-								}, null, true);// TODO set false
+								}, null, true);// REMOVE BEFORE MASTER/PROD ===============================================================================================
 							} else {
 								Loggers.AssetsXCross.info("Move to Lost+Found orphan archived asset " + m_asset);
 								m_asset.moveToLostAndFoundInterplayPath();
@@ -1332,7 +1326,7 @@ public class RestoreInterplayVantageAC {
 	}
 	
 	/**
-	 * Sequences don't needs to be archived or have an Id.
+	 * Sequences here don't needs to be archived or have an Id.
 	 * Big time comsuming...
 	 */
 	public void searchForAllSeqsAndGatherToEachSeqDirExternalMClip(String search_root_path, int since_updated_month, String expected_target_sub_folder) throws Exception {
@@ -1355,8 +1349,6 @@ public class RestoreInterplayVantageAC {
 		
 		search_type.setSearchGroup(search_group_type);
 		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
-		
-		search_type.setMaxResults(1000);// XXX
 		
 		SearchResponseType response = interplay.search(search_type);
 		InterplayAPI.checkError(response.getErrors());

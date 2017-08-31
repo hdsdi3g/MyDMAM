@@ -1,0 +1,87 @@
+assetsxcross:
+  # CSV Importer example. Here, CSV file should like:
+  #   "ABC123","My program","04/12/2012","14/07/2017","Yep","TV"
+  #   "DEF456","Another program","08/05/2013","15/08/2017","","Radio"
+  # Use with CLI and -celement assetsxcross -ckey example_csv_ingest
+  example_csv_ingest:
+    -
+      name: dbid
+      index_key: true
+    -
+      name: name
+    -
+      name: create_date
+      type: DATE
+      setup: dd/MM/yyyy
+    -
+      name: update_date
+      type: DATE
+      setup: dd/MM/yyyy
+    -
+      name: is_valid
+      type: BOOLEAN
+      setup: Yep
+    -
+      name: media_use
+
+  # Full definition for RestoreInterplayVantageAC class
+  interplay_restore:
+    # Java variable name <-> Vantage variables
+    vantage_variable_name_interplay_mastermob: Interplay Master_MobID
+    vantage_variable_name_interplay_sourcemob: Interplay Source_MobID
+    vantage_variable_name_interplay_path: Interplay Path
+    vantage_variable_name_interplay_file: File Name
+    vantage_variable_name_audio_ch: Audio tracks
+    vantage_variable_name_tcin: TC-IN
+    vantage_variable_name_filepathaudio: File Path Audio 
+    vantage_variable_name_mediaid: VideoID
+    vantage_variable_name_archivepath: Archive Path
+    fps: 25
+    archive_storagename: ARCHIVES_LOUISE # A storage indexed name
+    ac_unc_host: acnode-ha-1.mydomain # Archive node name
+    vantage_workflow_name: ArchivesGoBack # AC > Vantage Workflow > Interplay/Avid storages
+    vantage_archive_workflow_name: SendToArchives # Interplay/Avid storages > Vantage Workflow > AC
+    # User definited property names declared in Interplay database
+    ac_locations_in_interplay: ac_tapes_locations # For tape names
+    ac_path_in_interplay: ac_full_path # For archive path name
+    seq_check_rel_orphan_in_interplay: seq_check_rel_orphan # For store the asset status relative orphan check
+    last_check_shred_in_interplay: last_check_shred  # For store the asset status shreding
+    last_check_outside_gather_seq_in_interplay: last_check_outside_gather_seq # This is mental
+    # Interplay folders (full paths, no relative). Only admin should see this folders.
+    purge_interplay_folder: /Catalogs/MyDMAM/wait_to_purge
+    todoarchives_interplay_folder: /Catalogs/MyDMAM/wait_to_archive
+    lostandfound_base_interplay_folder: "/Catalogs/MyDMAM/LOST AND FOUND"
+    # Full dest for specific archive target (in AC) if item as not a global Id.
+    vantage_archive_destbasepath: ftp://mydmam:password@acnode-ha-1.mydomain/archive/othersassets
+    # User definited Interplay category declared in Interplay database
+    pending_restore_category_in_interplay: "to restore by mydmam"
+    # Interplay folders, white list.
+    do_not_touch_interplay_paths:
+      - /Archives
+      - /My/Secret/Project
+      - /Templates
+    # Interplay folders, white list.
+    interplay_paths_ignore_during_orphan_projects_dir_search:
+      - /Crew1
+      - /Mix/Protools
+    # Interplay folders, white list.
+    interplay_paths_tag_to_purge_during_orphan_projects_dir_search:
+      - /Crew0
+      - /Ads/done
+      - /RawIngest
+    # Interplay folders, black list.
+    do_not_gather_to_seq_interplay_paths:
+      - /Archives
+      - /Catalogs
+      - /Incoming Media
+      - /Sent to Playback
+      - /Templates
+
+vantage:
+  host: lightspeed.mydomain.local
+
+assetsxcross_internalid: # Engine for make Ids from nowhere
+  es_index: mysystemname
+  es_type: external
+  first_letter: X
+  id_size: 12
