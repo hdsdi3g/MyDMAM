@@ -256,6 +256,6 @@ public class CLIAssetsXcross implements CLIDefinition {
 		}
 	}
 	
-	// TODO simple file destage + fxp
+	// T O D O simple file destage + fxp >> See TransferJob
 	
 }
