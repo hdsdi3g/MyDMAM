@@ -25,7 +25,14 @@ import hd3gtv.tools.TableList.Row;
 
 public class RestoreJob {
 	
+	/**
+	 * Can be null
+	 */
 	private InterplayAsset base_asset;
+	/**
+	 * Can be null
+	 */
+	private Runnable onDone;
 	private Collection<ManageableAsset> manageable_assets;
 	
 	RestoreJob(InterplayAsset base_asset, Collection<ManageableAsset> manageable_assets) {
@@ -33,23 +40,40 @@ public class RestoreJob {
 		this.manageable_assets = manageable_assets;
 	}
 	
+	RestoreJob(Collection<ManageableAsset> manageable_assets) {
+		this.manageable_assets = manageable_assets;
+	}
+	
+	RestoreJob setOnDone(Runnable onDone) {
+		this.onDone = onDone;
+		return this;
+	}
+	
 	public void globalStatus(TableList table) {
 		final Row row_base = table.createRow();
-		row_base.addCell(base_asset.getType().getShortName());
-		if (base_asset.getMyDMAMID() != null) {
-			row_base.addCell(base_asset.getMyDMAMID());
-		} else {
-			row_base.addEmptyCell();
-		}
-		row_base.addCell(base_asset.getDisplayName().substring(0, Math.min(base_asset.getDisplayName().length(), 15)));
-		if (base_asset.isOnline()) {
-			row_base.addCell("online");
-			return;
+		if (base_asset != null) {
+			row_base.addCell(base_asset.getType().getShortName());
+			if (base_asset.getMyDMAMID() != null) {
+				row_base.addCell(base_asset.getMyDMAMID());
+			} else {
+				row_base.addEmptyCell();
+			}
+			row_base.addCell(base_asset.getDisplayName().substring(0, Math.min(base_asset.getDisplayName().length(), 15)));
+			if (base_asset.isOnline()) {
+				row_base.addCell("online");
+				return;
+			}
 		}
 		
 		manageable_assets.stream().forEach(m_asset -> {
 			Row row_line = row_base;
-			if (base_asset.interplay_uri != m_asset.getAsset().interplay_uri) {
+			
+			boolean show_col = false;
+			if (base_asset != null) {
+				show_col = base_asset.interplay_uri != m_asset.getAsset().interplay_uri;
+			}
+			
+			if (show_col) {
 				row_line = table.createRow();
 				
 				if (m_asset.getAsset().isOnline()) {
@@ -89,21 +113,31 @@ public class RestoreJob {
 	}
 	
 	public boolean isDone() {
-		if (base_asset.isOnline()) {
-			return true;
+		boolean is_done = false;
+		
+		if (base_asset != null) {
+			is_done = base_asset.isOnline();
 		}
-		return manageable_assets.stream().allMatch(m_asset -> {
-			if (m_asset.getAsset().isOnline()) {
-				return true;
-			}
-			if (m_asset.getLocalizedArchivedVersion() != null) {
-				ArchivedAsset arch = m_asset.getLocalizedArchivedVersion();
-				if (arch.getVantageJob() != null) {
+		
+		if (is_done == false) {
+			is_done = manageable_assets.stream().allMatch(m_asset -> {
+				if (m_asset.getAsset().isOnline()) {
 					return true;
 				}
-			}
-			return false;
-		});
+				if (m_asset.getLocalizedArchivedVersion() != null) {
+					ArchivedAsset arch = m_asset.getLocalizedArchivedVersion();
+					if (arch.getVantageJob() != null) {
+						return true;
+					}
+				}
+				return false;
+			});
+		}
+		
+		if (is_done & onDone != null) {
+			onDone.run();
+		}
+		return is_done;
 	}
 	
 }

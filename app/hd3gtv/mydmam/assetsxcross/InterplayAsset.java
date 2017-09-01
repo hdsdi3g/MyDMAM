@@ -216,6 +216,10 @@ public class InterplayAsset {
 		return AssetType.group.equals(getType());
 	}
 	
+	public boolean isFolder() {
+		return AssetType.folder.equals(getType());
+	}
+	
 	/**
 	 * @param attributes can be null/empty
 	 * @return it never return attribute Path
@@ -357,6 +361,20 @@ public class InterplayAsset {
 			return false;
 		}
 		return true;
+	}
+	
+	public void addCategories(String... names) throws AssetsFault, IOException {
+		if (names == null) {
+			throw new NullPointerException("\"names\" can't to be null");
+		}
+		interplay_api.setCategories(interplay_uri, Arrays.asList(names));
+	}
+	
+	public void removeCategories(String... names) throws AssetsFault, IOException {
+		if (names == null) {
+			throw new NullPointerException("\"names\" can't to be null");
+		}
+		interplay_api.removeCategories(interplay_uri, Arrays.asList(names));
 	}
 	
 	/*	public String get() {

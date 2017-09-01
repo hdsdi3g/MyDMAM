@@ -146,26 +146,6 @@ public class DestageManager {
 			return max_date;
 		}
 		
-		/*public synchronized String getDestageJobStatus() {
-			if (destage_job == null) {
-				return null;
-			}
-			
-			StringBuilder sb = new StringBuilder();
-			if (destage_job.running) {
-				sb.append("Running ");
-			}
-			
-			sb.append(destage_job.status + " ");
-			
-			try {
-				sb.append(destage_job.files.get(0).status);
-			} catch (Exception e) {
-			}
-			
-			return sb.toString();
-		}*/
-		
 		public synchronized String toString() {
 			if (file.accessibility == ACAccessibility.ONLINE) {
 				return "File " + external_id + ", " + file + " is online on archive system";
