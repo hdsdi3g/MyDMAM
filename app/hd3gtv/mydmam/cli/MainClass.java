@@ -26,6 +26,7 @@ import org.apache.log4j.PatternLayout;
 import hd3gtv.configuration.CLIProject;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.accesscontrol.CLIAccessControl;
+import hd3gtv.mydmam.assetsxcross.CLIAssetsXcross;
 import hd3gtv.mydmam.auth.CLIAuth;
 import hd3gtv.mydmam.bcastautomation.CLIBCA;
 import hd3gtv.mydmam.db.CLIOperateDatabase;
@@ -100,6 +101,7 @@ public class MainClass {
 		modules.add(new CLIBCA());
 		modules.add(new CLIJS());
 		modules.add(new CLIProject());
+		modules.add(new CLIAssetsXcross());
 		
 		String modulename = appargs.getFirstAction();
 		

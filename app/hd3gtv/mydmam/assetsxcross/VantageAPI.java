@@ -140,6 +140,8 @@ public class VantageAPI {
 		return new VantageJob(job_id, source_file_unc, workflow_name, job_name);
 	}
 	
+	// T O D O (postponed) Watch Vantage job during restore
+	
 	public class VantageJob {
 		private String job_id;
 		private String source_file_unc;
@@ -152,7 +154,6 @@ public class VantageAPI {
 			this.workflow_name = workflow_name;
 			this.job_name = job_name;
 		}
-		// TODO (postponed) Watch Vantage job during restore
 		
 		public String toString() {
 			return "Job " + job_id + " in workflow " + workflow_name + " \"" + job_name + "\", for source " + source_file_unc;
