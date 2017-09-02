@@ -79,10 +79,12 @@ public class EmbDDB {
 	
 	private final Protocol protocol;
 	public final PoolManager poolmanager;
+	private final LockEngine lock_engine;
 	
 	private EmbDDB(String master_password_key, int thread_pool_queue_size) throws GeneralSecurityException, IOException {
 		protocol = new Protocol(master_password_key);
 		poolmanager = new PoolManager(protocol, thread_pool_queue_size);
+		lock_engine = new LockEngine(poolmanager);
 	}
 	
 	public void startServers() throws IOException {
@@ -141,6 +143,10 @@ public class EmbDDB {
 		public boolean isFunctionnal() {
 			return Configuration.global.isElementKeyExists("embddb", "master_password_key");
 		}
+	}
+	
+	public LockEngine getLockEngine() {
+		return lock_engine;
 	}
 	
 }

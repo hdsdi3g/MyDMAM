@@ -30,16 +30,10 @@ public abstract class RequestHandler<T> {
 		this.pool_manager = pool_manager;
 	}
 	
-	/**
-	 * @return must equals to first createRequest RequestBlock.name result
-	 */
 	public abstract String getHandleName();
 	
 	public abstract void onRequest(DataBlock block, Node source_node);
 	
-	/**
-	 * @return first RequestBlock.name must equals to getHandleName()
-	 */
 	public abstract DataBlock createRequest(T options);
 	
 	public final void sendRequest(T options, Node dest_node) throws NullPointerException, IndexOutOfBoundsException {

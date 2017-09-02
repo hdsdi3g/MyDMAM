@@ -794,6 +794,16 @@ public class PoolManager {
 		}
 	}
 	
+	/**
+	 * Register new tricks to EmbDDB
+	 */
+	public void addRequestHandler(RequestHandler<?> rh) {
+		try {
+			all_request_handlers.addRequest(rh);
+		} catch (IndexOutOfBoundsException e) {
+		}
+	}
+	
 	public class AllRequestHandlers {
 		private PoolManager referer;
 		private HashMap<String, RequestHandler<?>> requestHandler;
@@ -809,7 +819,7 @@ public class PoolManager {
 			addRequest(new RequestPoke(referer));
 		}
 		
-		private void addRequest(RequestHandler<?> r) {
+		private synchronized void addRequest(RequestHandler<?> r) {
 			String name = r.getHandleName();
 			if (name == null) {
 				throw new NullPointerException("Request getHandleName can't to be null");
@@ -851,7 +861,9 @@ public class PoolManager {
 			}
 			
 			if (requestHandler.containsKey(block.getRequestName()) == false) {
-				log.error("Can't handle block name \"" + block.getRequestName() + "\" from " + node);
+				if (log.isTraceEnabled()) {
+					log.trace("Can't handle block name \"" + block.getRequestName() + "\" from " + node);
+				}
 				return;
 			}
 			
