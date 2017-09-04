@@ -18,7 +18,7 @@ package hd3gtv.mydmam.embddb;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -26,11 +26,9 @@ import java.util.function.Predicate;
 
 import org.apache.log4j.Logger;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.embddb.network.DataBlock;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
@@ -41,9 +39,9 @@ public final class LockEngine {
 	private static final long GRACE_TIME_FOR_GET_LOCK = TimeUnit.SECONDS.toMillis(2);
 	private static Logger log = Logger.getLogger(LockEngine.class);
 	
-	private final ArrayList<DistributedLock> active_locks;// TODO replace by ConcurrentHashMap ?
+	private final ArrayList<DistributedLock> active_locks;
 	private final PoolManager poolmanager;
-	private final LoadingCache<String, ArrayList<NodeEvent>> node_events_by_target_id;
+	private final ConcurrentHashMap<String, ArrayList<NodeEvent>> node_events_by_target_id;// TODO gc for this
 	
 	private ScheduledExecutorService scheduled_ex_service;
 	
@@ -54,6 +52,7 @@ public final class LockEngine {
 		}
 		
 		active_locks = new ArrayList<>();
+		node_events_by_target_id = new ConcurrentHashMap<>();
 		
 		poolmanager.addRequestHandler(new RequestLockAcquire(poolmanager));
 		poolmanager.addRequestHandler(new RequestLockRelease(poolmanager));
@@ -63,7 +62,11 @@ public final class LockEngine {
 		poolmanager.addRemoveNodeCallback(node -> {
 			synchronized (active_locks) {
 				active_locks.removeIf(lock -> {
-					return node.equals(lock.node);
+					if (node.equals(lock.node)) {
+						node_events_by_target_id.remove(lock.target_id);
+						return true;
+					}
+					return false;
 				});
 			}
 		});
@@ -73,17 +76,15 @@ public final class LockEngine {
 			synchronized (active_locks) {
 				log.debug("Start GC expired locks for " + active_locks.size() + " lock(s)");
 				active_locks.removeIf(lock -> {
-					return lock.hasExpired();
+					if (lock.hasExpired()) {
+						node_events_by_target_id.remove(lock.target_id);
+						return true;
+					}
+					return false;
 				});
 			}
 		}, 60, 60, TimeUnit.SECONDS);
 		
-		CacheLoader<String, ArrayList<NodeEvent>> c = new CacheLoader<String, ArrayList<NodeEvent>>() {
-			public ArrayList<NodeEvent> load(String target_id) throws Exception {
-				return new ArrayList<>();
-			}
-		};
-		node_events_by_target_id = CacheBuilder.newBuilder().weakKeys().maximumSize(10000).expireAfterWrite(GRACE_TIME_FOR_GET_LOCK * 2, TimeUnit.MILLISECONDS).build(c);
 	}
 	
 	enum NodeEventType {
@@ -132,15 +133,17 @@ public final class LockEngine {
 			DistributedLock actual_lock = o_lock.get();
 			if (actual_lock.isAlreadyForMe()) {
 				if (actual_lock.hasExpired()) {
-					actual_lock.setNewTTL(unit.toMillis(duration));
+					active_locks.remove(actual_lock);
+					node_events_by_target_id.remove(actual_lock.target_id);
+				} else {
+					return actual_lock;
 				}
-				log.trace("Wanted a lock already locked by me " + actual_lock);
-				return actual_lock;
 			} else {
 				if (actual_lock.hasExpired() == false) {
 					log.trace("Wanted an actually busy lock " + actual_lock + " is this host");
 					throw actual_lock.createBusyException();
 				} else {
+					node_events_by_target_id.remove(actual_lock.target_id);
 					active_locks.remove(actual_lock);
 				}
 			}
@@ -149,12 +152,14 @@ public final class LockEngine {
 		DistributedLock new_lock = new DistributedLock(target_id, unit.toMillis(duration));
 		
 		Predicate<Node> notForOuttimeNodes = node -> {
-			return node.isOutOfTime(unit.toMillis(duration), unit.toMillis(duration)) == false;
+			return node.isOutOfTime(unit.toMillis(duration)) == false;
 		};
+		
+		node_events_by_target_id.remove(target_id);
 		
 		ArrayList<Node> requested_nodes = new ArrayList<>(poolmanager.sayToAllNodes(RequestLockAcquire.class, new_lock, notForOuttimeNodes));
 		if (requested_nodes.isEmpty()) {
-			// log.warn("No nodes for get lock " + target_id); //TODO re set
+			log.debug("No nodes for get lock " + target_id);
 			active_locks.add(new_lock);
 			return new_lock;
 		}
@@ -163,10 +168,26 @@ public final class LockEngine {
 		
 		try {
 			while (true) {
-				ArrayList<NodeEvent> responded_nodes = node_events_by_target_id.getIfPresent(target_id);
+				ArrayList<NodeEvent> responded_nodes = node_events_by_target_id.get(target_id);
+				
+				if (end_time_to_wait < System.currentTimeMillis()) {
+					if (log.isDebugEnabled()) {
+						String rsp = "0";
+						if (responded_nodes != null) {
+							rsp = String.valueOf(responded_nodes.size());
+						}
+						log.debug("Wait too long time for get all responses for \"" + target_id + "\". Responded: " + rsp + ", last requested nodes: " + requested_nodes.size());
+					}
+					break;
+				}
+				
 				if (responded_nodes == null) {
-					Thread.sleep(10);
+					Thread.sleep(200);// TODO set to 10
+					log.trace("Loop wait first response for \"" + target_id + "\"... until " + Loggers.dateLog(end_time_to_wait));
 					continue;
+				}
+				if (log.isTraceEnabled()) {
+					log.trace("Loop wait all response for \"" + target_id + "\". Responded: " + responded_nodes.size() + ", last requested nodes: " + requested_nodes.size() + " until " + Loggers.dateLog(end_time_to_wait));
 				}
 				
 				Optional<NodeEvent> refuse_node = responded_nodes.stream().filter(ne -> {
@@ -180,19 +201,13 @@ public final class LockEngine {
 					throw new_lock.createBusyException();
 				}
 				
-				requested_nodes.removeIf(node -> {
-					return responded_nodes.stream().anyMatch(n -> {
-						return n.equals(node);
-					});
+				responded_nodes.forEach(n -> {
+					requested_nodes.remove(n.node);
 				});
 				if (requested_nodes.isEmpty()) {
 					break;
 				}
-				
-				if (end_time_to_wait < System.currentTimeMillis()) {
-					break;
-				}
-				Thread.sleep(50);
+				Thread.sleep(200);// TODO set to 20
 			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -204,6 +219,7 @@ public final class LockEngine {
 	
 	private synchronized void externalAcquireLock(String target_id, long expiration_date, Node locker_node) throws AlreadyBusyLock {
 		if (expiration_date < System.currentTimeMillis()) {
+			log.debug(locker_node + " try to push an expired lock \"" + target_id + "\" the " + Loggers.dateLog(expiration_date));
 			return;
 		}
 		
@@ -214,6 +230,7 @@ public final class LockEngine {
 			if (actual_lock.local_locker != null) {
 				if (actual_lock.hasExpired()) {
 					active_locks.remove(actual_lock);
+					node_events_by_target_id.remove(actual_lock.target_id);
 				} else {
 					log.debug(locker_node + " want to lock a target already locked by me (" + actual_lock + "). It's not possible");
 					throw actual_lock.createBusyException();
@@ -254,11 +271,6 @@ public final class LockEngine {
 			}
 			local_locker = Thread.currentThread();
 			node = null;
-		}
-		
-		private DistributedLock setNewTTL(long ttl) {
-			expiration_date = System.currentTimeMillis() + ttl;
-			return this;
 		}
 		
 		/**
@@ -306,6 +318,7 @@ public final class LockEngine {
 			if (hasExpired() == false) {
 				expiration_date = System.currentTimeMillis();
 			}
+			node_events_by_target_id.remove(target_id);
 			active_locks.remove(this);
 		}
 		
@@ -395,13 +408,13 @@ public final class LockEngine {
 			String target_id = jo.get("target_id").getAsString();
 			long expiration_date = jo.get("expiration_date").getAsLong();
 			
-			try {
-				node_events_by_target_id.get(target_id, () -> {
-					return new ArrayList<>();
-				}).add(new NodeEvent(source_node, expiration_date));
-			} catch (ExecutionException e) {
-				log.error("Can't get target lock " + target_id, e);
+			if (log.isTraceEnabled()) {
+				log.trace("Receive an Already busy for \"" + target_id + "\" until " + Loggers.dateLog(expiration_date) + " by " + source_node);
 			}
+			
+			node_events_by_target_id.computeIfAbsent(target_id, _id -> {
+				return new ArrayList<>(1);
+			}).add(new NodeEvent(source_node, expiration_date));
 		}
 		
 		public DataBlock createRequest(AlreadyBusyLock busy_lock) {
@@ -431,7 +444,7 @@ public final class LockEngine {
 				}
 			});
 			
-			node_events_by_target_id.invalidate(target_id);
+			node_events_by_target_id.remove(target_id);
 		}
 		
 		public DataBlock createRequest(DistributedLock lock) {
@@ -452,13 +465,13 @@ public final class LockEngine {
 		
 		public void onRequest(DataBlock block, Node source_node) {
 			String target_id = block.getStringDatas();
-			try {
-				node_events_by_target_id.get(target_id, () -> {
-					return new ArrayList<>();
-				}).add(new NodeEvent(source_node));
-			} catch (ExecutionException e) {
-				log.error("Can't get target lock " + target_id, e);
+			if (log.isTraceEnabled()) {
+				log.trace("Receive an Accept for \"" + target_id + "\" by " + source_node);
 			}
+			
+			node_events_by_target_id.computeIfAbsent(target_id, _id -> {
+				return new ArrayList<>(1);
+			}).add(new NodeEvent(source_node));
 		}
 		
 		public DataBlock createRequest(String target_id) {

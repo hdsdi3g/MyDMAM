@@ -834,20 +834,33 @@ public class PoolManager {
 	 * @return result / all nodes
 	 */
 	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option, Predicate<Node> filter) {
+		if (request_class == null) {
+			throw new NullPointerException("\"request_class\" can't to be null");
+		}
+		
 		DataBlock to_send = all_request_handlers.getRequestByClass(request_class).createRequest(option);
 		
 		Predicate<Node> filterActiveNodes = node -> {
 			return node.isUUIDSet() && node.isOpenSocket();
 		};
 		
-		return nodes.stream().filter(node -> {
+		List<Node> nodes_to_send = nodes.stream().filter(node -> {
 			if (filter != null) {
 				return filterActiveNodes.and(filter).test(node);
 			}
 			return filterActiveNodes.test(node);
-		}).peek(n -> {
-			n.sendBlock(to_send);
 		}).collect(Collectors.toList());
+		
+		if (log.isTraceEnabled()) {
+			log.trace("Send a " + request_class.getSimpleName() + " request (" + to_send.getDatas().length + " bytes) to " + nodes_to_send.size() + " node(s): " + nodes_to_send);
+		} else if (log.isDebugEnabled()) {
+			log.debug("Send a " + request_class.getSimpleName() + " request to " + nodes_to_send.size() + " node(s)");
+		}
+		
+		nodes_to_send.forEach(n -> {
+			n.sendBlock(to_send);
+		});
+		return nodes_to_send;
 	}
 	
 	/**

@@ -118,18 +118,19 @@ public class Node {
 	 * Plot twist: this current host may be out of time and the node can be at the right date.
 	 * @return false the case if you should not communicate with it if you needs date accuracy.
 	 */
-	public boolean isOutOfTime(long min_delta_time, long max_delta_time) {
-		if (server_delta_time < min_delta_time | server_delta_time > max_delta_time) {
-			return true;
-		}
-		return false;
+	public boolean isOutOfTime(long max_delta_time) {
+		return Math.abs(server_delta_time) > Math.abs(max_delta_time);
+	}
+	
+	public long getLastDeltaTime() {
+		return server_delta_time;
 	}
 	
 	public String toString() {
 		if (uuid_ref == null) {
-			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " (no uuid)," + " [" + provider.getTypeName() + "]";
+			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " " + " [" + provider.getTypeName() + "]";
 		} else {
-			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " " + uuid_ref.toString().substring(0, 6) + " [" + provider.getTypeName() + "]";
+			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " #" + uuid_ref.toString().substring(0, 6) + " [" + provider.getTypeName() + "]";
 		}
 	}
 	
