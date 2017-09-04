@@ -130,65 +130,74 @@ public final class LockEngine {
 		if (o_lock.isPresent()) {
 			DistributedLock actual_lock = o_lock.get();
 			if (actual_lock.isAlreadyForMe()) {
+				if (actual_lock.hasExpired()) {
+					actual_lock.setNewTTL(unit.toMillis(duration));
+				}
+				log.trace("Wanted a lock already locked by me " + actual_lock);
 				return actual_lock;
 			} else {
-				throw actual_lock.createBusyException();
-			}
-		} else {
-			DistributedLock new_lock = new DistributedLock(target_id, unit.toMillis(duration));
-			
-			Predicate<Node> notForOuttimeNodes = node -> {
-				return node.isOutOfTime(unit.toMillis(duration), unit.toMillis(duration)) == false;
-			};
-			
-			ArrayList<Node> requested_nodes = new ArrayList<>(poolmanager.sayToAllNodes(RequestLockAcquire.class, new_lock, notForOuttimeNodes));
-			if (requested_nodes.isEmpty()) {
-				log.warn("No nodes for get lock " + target_id);
-				active_locks.add(new_lock);
-				return new_lock;
-			}
-			
-			long end_time_to_wait = System.currentTimeMillis() + GRACE_TIME_FOR_GET_LOCK;
-			
-			try {
-				while (true) {
-					ArrayList<NodeEvent> responded_nodes = node_events_by_target_id.getIfPresent(target_id);
-					if (responded_nodes == null) {
-						Thread.sleep(10);
-						continue;
-					}
-					
-					Optional<NodeEvent> refuse_node = responded_nodes.stream().filter(ne -> {
-						return ne.refuse();
-					}).findFirst();
-					
-					if (refuse_node.isPresent()) {
-						new_lock = refuse_node.get().createLock(target_id);
-						active_locks.add(new_lock);
-						throw new_lock.createBusyException();
-					}
-					
-					requested_nodes.removeIf(node -> {
-						return responded_nodes.stream().anyMatch(n -> {
-							return n.equals(node);
-						});
-					});
-					if (requested_nodes.isEmpty()) {
-						break;
-					}
-					
-					if (end_time_to_wait < System.currentTimeMillis()) {
-						break;
-					}
-					Thread.sleep(50);
+				if (actual_lock.hasExpired() == false) {
+					log.trace("Wanted an actually busy lock " + actual_lock + " is this host");
+					throw actual_lock.createBusyException();
+				} else {
+					active_locks.remove(actual_lock);
 				}
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
 			}
-			
+		}
+		
+		DistributedLock new_lock = new DistributedLock(target_id, unit.toMillis(duration));
+		
+		Predicate<Node> notForOuttimeNodes = node -> {
+			return node.isOutOfTime(unit.toMillis(duration), unit.toMillis(duration)) == false;
+		};
+		
+		ArrayList<Node> requested_nodes = new ArrayList<>(poolmanager.sayToAllNodes(RequestLockAcquire.class, new_lock, notForOuttimeNodes));
+		if (requested_nodes.isEmpty()) {
+			// log.warn("No nodes for get lock " + target_id); //TODO re set
 			active_locks.add(new_lock);
 			return new_lock;
 		}
+		
+		long end_time_to_wait = System.currentTimeMillis() + GRACE_TIME_FOR_GET_LOCK;
+		
+		try {
+			while (true) {
+				ArrayList<NodeEvent> responded_nodes = node_events_by_target_id.getIfPresent(target_id);
+				if (responded_nodes == null) {
+					Thread.sleep(10);
+					continue;
+				}
+				
+				Optional<NodeEvent> refuse_node = responded_nodes.stream().filter(ne -> {
+					return ne.refuse();
+				}).findFirst();
+				
+				if (refuse_node.isPresent()) {
+					new_lock = refuse_node.get().createLock(target_id);
+					active_locks.add(new_lock);
+					throw new_lock.createBusyException();
+				}
+				
+				requested_nodes.removeIf(node -> {
+					return responded_nodes.stream().anyMatch(n -> {
+						return n.equals(node);
+					});
+				});
+				if (requested_nodes.isEmpty()) {
+					break;
+				}
+				
+				if (end_time_to_wait < System.currentTimeMillis()) {
+					break;
+				}
+				Thread.sleep(50);
+			}
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+		
+		active_locks.add(new_lock);
+		return new_lock;
 	}
 	
 	private synchronized void externalAcquireLock(String target_id, long expiration_date, Node locker_node) throws AlreadyBusyLock {
@@ -241,6 +250,11 @@ public final class LockEngine {
 			node = null;
 		}
 		
+		private DistributedLock setNewTTL(long ttl) {
+			expiration_date = System.currentTimeMillis() + ttl;
+			return this;
+		}
+		
 		/**
 		 * For external
 		 */
@@ -260,10 +274,10 @@ public final class LockEngine {
 			local_locker = null;
 		}
 		
+		/**
+		 * Warning: lock has maybe expired !
+		 */
 		public boolean isAlreadyForMe() {
-			if (hasExpired()) {
-				return false;
-			}
 			if (node != null) {
 				return false;
 			}
@@ -302,6 +316,30 @@ public final class LockEngine {
 				return null;
 			}
 		}
+		
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("\"");
+			sb.append(target_id);
+			sb.append("\" by ");
+			if (local_locker != null) {
+				sb.append(local_locker.getName());
+				sb.append("#");
+				sb.append(local_locker.getId());
+			}
+			if (node != null) {
+				sb.append(node);
+			}
+			if (hasExpired()) {
+				sb.append(" EXPIRED");
+			} else {
+				sb.append(" up to ");
+				sb.append(expiration_date - System.currentTimeMillis());
+				sb.append(" ms");
+			}
+			return sb.toString();
+		}
+		
 	}
 	
 	public class RequestLockAcquire extends RequestHandler<DistributedLock> {
