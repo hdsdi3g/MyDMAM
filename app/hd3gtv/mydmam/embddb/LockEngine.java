@@ -41,7 +41,7 @@ public final class LockEngine {
 	
 	private final ArrayList<DistributedLock> active_locks;
 	private final PoolManager poolmanager;
-	private final ConcurrentHashMap<String, ArrayList<NodeEvent>> node_events_by_target_id;// TODO gc for this
+	private final ConcurrentHashMap<String, ArrayList<NodeEvent>> node_events_by_target_id;
 	
 	private ScheduledExecutorService scheduled_ex_service;
 	
@@ -182,7 +182,7 @@ public final class LockEngine {
 				}
 				
 				if (responded_nodes == null) {
-					Thread.sleep(200);// TODO set to 10
+					Thread.sleep(10);
 					log.trace("Loop wait first response for \"" + target_id + "\"... until " + Loggers.dateLog(end_time_to_wait));
 					continue;
 				}
@@ -207,7 +207,7 @@ public final class LockEngine {
 				if (requested_nodes.isEmpty()) {
 					break;
 				}
-				Thread.sleep(200);// TODO set to 20
+				Thread.sleep(20);
 			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
