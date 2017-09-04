@@ -71,6 +71,7 @@ public final class LockEngine {
 		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor();
 		scheduled_ex_service.scheduleAtFixedRate(() -> {
 			synchronized (active_locks) {
+				log.debug("Start GC expired locks for " + active_locks.size() + " lock(s)");
 				active_locks.removeIf(lock -> {
 					return lock.hasExpired();
 				});
@@ -175,6 +176,7 @@ public final class LockEngine {
 				if (refuse_node.isPresent()) {
 					new_lock = refuse_node.get().createLock(target_id);
 					active_locks.add(new_lock);
+					log.debug("I want to lock a target \"" + new_lock.target_id + "\" already locked by " + new_lock.node);
 					throw new_lock.createBusyException();
 				}
 				
@@ -213,17 +215,21 @@ public final class LockEngine {
 				if (actual_lock.hasExpired()) {
 					active_locks.remove(actual_lock);
 				} else {
+					log.debug(locker_node + " want to lock a target already locked by me (" + actual_lock + "). It's not possible");
 					throw actual_lock.createBusyException();
 				}
 			} else if (locker_node.equalsThisUUID(actual_lock.node)) {
 				actual_lock.expiration_date = expiration_date;
 			} else {
+				log.trace(locker_node + " try to get a lock previously acquired by another node (" + actual_lock + ")");
 				/**
-				 * Somebody try to get a lock previously acquired by another node... but it not our problem.
+				 * But it not our problem.
 				 */
 			}
 		} else {
-			active_locks.add(new DistributedLock(target_id, expiration_date, locker_node));
+			DistributedLock new_external_lock = new DistributedLock(target_id, expiration_date, locker_node);
+			log.trace("Store an external lock (" + new_external_lock + ")");
+			active_locks.add(new_external_lock);
 		}
 	}
 	
