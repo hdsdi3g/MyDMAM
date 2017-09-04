@@ -18,13 +18,17 @@ package hd3gtv.mydmam.embddb;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.log4j.Logger;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.embddb.network.DataBlock;
@@ -37,19 +41,32 @@ public final class LockEngine {
 	private static final long GRACE_TIME_FOR_GET_LOCK = TimeUnit.SECONDS.toMillis(2);
 	private static Logger log = Logger.getLogger(LockEngine.class);
 	
-	private ArrayList<DistributedLock> active_locks;// TODO replace by hashmap ?
-	private ConcurrentHashMap<String, Node> node_by_already_busy_lock_target_id;
+	private final ArrayList<DistributedLock> active_locks;// TODO replace by ConcurrentHashMap ?
+	private final PoolManager poolmanager;
+	private final LoadingCache<String, ArrayList<NodeEvent>> node_events_by_target_id;
 	
 	private ScheduledExecutorService scheduled_ex_service;
 	
 	LockEngine(PoolManager poolmanager) {
+		this.poolmanager = poolmanager;
+		if (poolmanager == null) {
+			throw new NullPointerException("\"poolmanager\" can't to be null");
+		}
+		
 		active_locks = new ArrayList<>();
-		node_by_already_busy_lock_target_id = new ConcurrentHashMap<>(1);
 		
 		poolmanager.addRequestHandler(new RequestLockAcquire(poolmanager));
 		poolmanager.addRequestHandler(new RequestLockRelease(poolmanager));
 		poolmanager.addRequestHandler(new RequestLockAlreadyBusy(poolmanager));
-		// TODO + create a callback if a node is disconnected >> gc it here
+		poolmanager.addRequestHandler(new RequestLockAccept(poolmanager));
+		
+		poolmanager.addRemoveNodeCallback(node -> {
+			synchronized (active_locks) {
+				active_locks.removeIf(lock -> {
+					return node.equals(lock.node);
+				});
+			}
+		});
 		
 		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor();
 		scheduled_ex_service.scheduleAtFixedRate(() -> {
@@ -59,6 +76,43 @@ public final class LockEngine {
 				});
 			}
 		}, 60, 60, TimeUnit.SECONDS);
+		
+		CacheLoader<String, ArrayList<NodeEvent>> c = new CacheLoader<String, ArrayList<NodeEvent>>() {
+			public ArrayList<NodeEvent> load(String target_id) throws Exception {
+				return new ArrayList<>();
+			}
+		};
+		node_events_by_target_id = CacheBuilder.newBuilder().weakKeys().maximumSize(10000).expireAfterWrite(GRACE_TIME_FOR_GET_LOCK * 2, TimeUnit.MILLISECONDS).build(c);
+	}
+	
+	enum NodeEventType {
+		ACCEPT, REFUSE
+	};
+	
+	private class NodeEvent {
+		Node node;
+		NodeEventType type;
+		long expiration_date;
+		
+		private NodeEvent(Node node) {
+			this.node = node;
+			this.type = NodeEventType.ACCEPT;
+			this.expiration_date = 0;
+		}
+		
+		private NodeEvent(Node node, long expiration_date) {
+			this.node = node;
+			this.type = NodeEventType.REFUSE;
+			this.expiration_date = expiration_date;
+		}
+		
+		boolean refuse() {
+			return type == NodeEventType.REFUSE;
+		}
+		
+		DistributedLock createLock(String target_id) {
+			return new DistributedLock(target_id, expiration_date, node);
+		}
 	}
 	
 	private synchronized Optional<DistributedLock> getLockByTarget(String target_id) {
@@ -82,28 +136,54 @@ public final class LockEngine {
 			}
 		} else {
 			DistributedLock new_lock = new DistributedLock(target_id, unit.toMillis(duration));
-			// TODO send to all nodes
-			// source_node.isOutOfTime(min_delta_time, max_delta_time)
-			// source_node.isUUIDSet()
-			// source_node.isOpenSocket()
 			
-			/**
-			 * Start to wait some bad responses...
-			 */
-			Node current_locker;
-			long end_time_to_wait = System.currentTimeMillis() + GRACE_TIME_FOR_GET_LOCK;
-			while (((current_locker = node_by_already_busy_lock_target_id.get(target_id)) == null)) {
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
-				if (end_time_to_wait < System.currentTimeMillis()) {
-					break;
-				}
+			Predicate<Node> notForOuttimeNodes = node -> {
+				return node.isOutOfTime(unit.toMillis(duration), unit.toMillis(duration)) == false;
+			};
+			
+			ArrayList<Node> requested_nodes = new ArrayList<>(poolmanager.sayToAllNodes(RequestLockAcquire.class, new_lock, notForOuttimeNodes));
+			if (requested_nodes.isEmpty()) {
+				log.warn("No nodes for get lock " + target_id);
+				active_locks.add(new_lock);
+				return new_lock;
 			}
-			if (current_locker != null) {
-				throw new AlreadyBusyLock(target_id, end_time_to_wait, current_locker.toString());
+			
+			long end_time_to_wait = System.currentTimeMillis() + GRACE_TIME_FOR_GET_LOCK;
+			
+			try {
+				while (true) {
+					ArrayList<NodeEvent> responded_nodes = node_events_by_target_id.getIfPresent(target_id);
+					if (responded_nodes == null) {
+						Thread.sleep(10);
+						continue;
+					}
+					
+					Optional<NodeEvent> refuse_node = responded_nodes.stream().filter(ne -> {
+						return ne.refuse();
+					}).findFirst();
+					
+					if (refuse_node.isPresent()) {
+						new_lock = refuse_node.get().createLock(target_id);
+						active_locks.add(new_lock);
+						throw new_lock.createBusyException();
+					}
+					
+					requested_nodes.removeIf(node -> {
+						return responded_nodes.stream().anyMatch(n -> {
+							return n.equals(node);
+						});
+					});
+					if (requested_nodes.isEmpty()) {
+						break;
+					}
+					
+					if (end_time_to_wait < System.currentTimeMillis()) {
+						break;
+					}
+					Thread.sleep(50);
+				}
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
 			}
 			
 			active_locks.add(new_lock);
@@ -199,7 +279,7 @@ public final class LockEngine {
 				return;
 			}
 			expiration_date = System.currentTimeMillis();
-			// TODO send to all the lock ends
+			poolmanager.sayToAllNodes(RequestLockRelease.class, this, null);
 		}
 		
 		private synchronized void externalRelease() {
@@ -234,10 +314,6 @@ public final class LockEngine {
 			return "lock-acquire";
 		}
 		
-		protected boolean isCloseChannelRequest(DistributedLock options) {
-			return false;
-		}
-		
 		public void onRequest(DataBlock block, Node source_node) {
 			JsonObject jo = block.getJsonDatas().getAsJsonObject();
 			String target_id = jo.get("target_id").getAsString();
@@ -245,6 +321,7 @@ public final class LockEngine {
 			
 			try {
 				externalAcquireLock(target_id, expiration_date, source_node);
+				source_node.sendRequest(RequestLockAccept.class, target_id);
 			} catch (AlreadyBusyLock e) {
 				source_node.sendRequest(RequestLockAlreadyBusy.class, e);
 			}
@@ -269,22 +346,25 @@ public final class LockEngine {
 			return "lock-alreadybusy";
 		}
 		
-		protected boolean isCloseChannelRequest(AlreadyBusyLock options) {
-			return false;
-		}
-		
 		public void onRequest(DataBlock block, Node source_node) {
-			String target_id = block.getStringDatas();
+			JsonObject jo = block.getJsonDatas().getAsJsonObject();
+			String target_id = jo.get("target_id").getAsString();
+			long expiration_date = jo.get("expiration_date").getAsLong();
 			
-			node_by_already_busy_lock_target_id.put(target_id, source_node);
-			
-			scheduled_ex_service.schedule(() -> {
-				node_by_already_busy_lock_target_id.remove(target_id);
-			}, GRACE_TIME_FOR_GET_LOCK, TimeUnit.MILLISECONDS);
+			try {
+				node_events_by_target_id.get(target_id, () -> {
+					return new ArrayList<>();
+				}).add(new NodeEvent(source_node, expiration_date));
+			} catch (ExecutionException e) {
+				log.error("Can't get target lock " + target_id, e);
+			}
 		}
 		
 		public DataBlock createRequest(AlreadyBusyLock busy_lock) {
-			return new DataBlock(this, busy_lock.target_id);
+			JsonObject jo = new JsonObject();
+			jo.addProperty("target_id", busy_lock.target_id);
+			jo.addProperty("expiration_date", busy_lock.expiration_date);
+			return new DataBlock(this, jo);
 		}
 		
 	}
@@ -299,10 +379,6 @@ public final class LockEngine {
 			return "lock-release";
 		}
 		
-		protected boolean isCloseChannelRequest(DistributedLock options) {
-			return false;
-		}
-		
 		public void onRequest(DataBlock block, Node source_node) {
 			String target_id = block.getStringDatas();
 			getLockByTarget(target_id).ifPresent(lock -> {
@@ -310,10 +386,39 @@ public final class LockEngine {
 					lock.externalRelease();
 				}
 			});
+			
+			node_events_by_target_id.invalidate(target_id);
 		}
 		
 		public DataBlock createRequest(DistributedLock lock) {
 			return new DataBlock(this, lock.getTargetId());
+		}
+		
+	}
+	
+	public class RequestLockAccept extends RequestHandler<String> {
+		
+		public RequestLockAccept(PoolManager pool_manager) {
+			super(pool_manager);
+		}
+		
+		public String getHandleName() {
+			return "lock-accept";
+		}
+		
+		public void onRequest(DataBlock block, Node source_node) {
+			String target_id = block.getStringDatas();
+			try {
+				node_events_by_target_id.get(target_id, () -> {
+					return new ArrayList<>();
+				}).add(new NodeEvent(source_node));
+			} catch (ExecutionException e) {
+				log.error("Can't get target lock " + target_id, e);
+			}
+		}
+		
+		public DataBlock createRequest(String target_id) {
+			return new DataBlock(this, target_id);
 		}
 		
 	}

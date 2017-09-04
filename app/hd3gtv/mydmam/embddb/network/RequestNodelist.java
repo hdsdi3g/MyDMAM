@@ -231,8 +231,4 @@ public class RequestNodelist extends RequestHandler<Void> {
 		return new DataBlock(this, pool_manager.makeAutodiscoverList());
 	}
 	
-	protected boolean isCloseChannelRequest(Void options) {
-		return false;
-	}
-	
 }

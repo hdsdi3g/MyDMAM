@@ -44,6 +44,8 @@ public abstract class RequestHandler<T> {
 		dest_node.sendBlock(block, isCloseChannelRequest(options));
 	}
 	
-	protected abstract boolean isCloseChannelRequest(T options);
+	protected boolean isCloseChannelRequest(T options) {
+		return false;
+	}
 	
 }

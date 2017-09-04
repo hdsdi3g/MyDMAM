@@ -61,8 +61,4 @@ public class RequestHello extends RequestHandler<Void> {
 		return new DataBlock(this, jo);
 	}
 	
-	protected boolean isCloseChannelRequest(Void options) {
-		return false;
-	}
-	
 }

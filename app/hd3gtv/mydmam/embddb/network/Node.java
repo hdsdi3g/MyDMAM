@@ -190,6 +190,13 @@ public class Node {
 		}
 	}
 	
+	/**
+	 * It will add to queue
+	 */
+	public void sendBlock(DataBlock to_send) {
+		sendBlock(to_send, false);
+	}
+	
 	void setUUIDRef(UUID uuid) throws IOException {
 		if (uuid == null) {
 			throw new NullPointerException("\"uuid_ref\" can't to be null");

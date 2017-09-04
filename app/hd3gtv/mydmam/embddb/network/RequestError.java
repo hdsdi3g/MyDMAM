@@ -41,8 +41,4 @@ public class RequestError extends RequestHandler<ErrorReturn> {
 		er.sendRequest(error, node);
 	}
 	
-	protected boolean isCloseChannelRequest(ErrorReturn options) {
-		return false;
-	}
-	
 }

@@ -51,8 +51,4 @@ public class RequestPoke extends RequestHandler<Void> {
 		return false;
 	}
 	
-	protected boolean isCloseChannelRequest(Void options) {
-		return false;
-	}
-	
 }

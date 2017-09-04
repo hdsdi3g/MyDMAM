@@ -33,6 +33,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -81,6 +83,10 @@ public class PoolManager {
 	 */
 	private List<Node> nodes;
 	private AtomicBoolean autodiscover_can_be_remake = null;
+	/**
+	 * synchronizedList
+	 */
+	private List<Consumer<Node>> onRemoveNodeCallbackList;
 	
 	public PoolManager(Protocol protocol, int thread_pool_queue_size) throws GeneralSecurityException, IOException {
 		this.protocol = protocol;
@@ -106,6 +112,7 @@ public class PoolManager {
 		pressure_measurement_netdiscover = new PressureMeasurement();
 		
 		nodes = Collections.synchronizedList(new ArrayList<>());
+		onRemoveNodeCallbackList = Collections.synchronizedList(new ArrayList<>());
 		autodiscover_can_be_remake = new AtomicBoolean(true);
 		uuid_ref = UUID.randomUUID();
 		addr_master = new AddressMaster();
@@ -666,11 +673,24 @@ public class PoolManager {
 		}).findFirst().isPresent();
 	}
 	
+	/**
+	 * Async
+	 */
+	private void callbackAllListOnRemoveNode(Node node) {
+		this.executeInThePool(() -> {
+			onRemoveNodeCallbackList.forEach(h -> {
+				h.accept(node);
+			});
+		});
+	}
+	
 	public void purgeClosedNodes() {
 		nodes.removeIf(n -> {
 			if (n.isOpenSocket()) {
 				return false;
 			}
+			
+			callbackAllListOnRemoveNode(n);
 			autodiscover_can_be_remake.set(true);
 			return true;
 		});
@@ -684,6 +704,7 @@ public class PoolManager {
 		log.info("Remove node " + node);
 		
 		autodiscover_can_be_remake.set(true);
+		callbackAllListOnRemoveNode(node);
 		nodes.remove(node);
 		
 		if (log.isDebugEnabled()) {
@@ -778,7 +799,21 @@ public class PoolManager {
 		};
 	}
 	
-	public void sayToAllNodesToDisconnectMe(boolean blocking) {
+	public void addRemoveNodeCallback(Consumer<Node> h) {
+		if (h == null) {
+			throw new NullPointerException("\"h\" can't to be null");
+		}
+		onRemoveNodeCallbackList.add(h);
+	}
+	
+	public void removeRemoveNodeCallback(Consumer<Node> h) {
+		if (h == null) {
+			throw new NullPointerException("\"h\" can't to be null");
+		}
+		onRemoveNodeCallbackList.remove(h);
+	}
+	
+	private void sayToAllNodesToDisconnectMe(boolean blocking) {
 		DataBlock to_send = all_request_handlers.getRequestByClass(RequestDisconnect.class).createRequest("All nodes instance shutdown");
 		nodes.forEach(n -> {
 			n.sendBlock(to_send, true);
@@ -792,6 +827,27 @@ public class PoolManager {
 			} catch (InterruptedException e1) {
 			}
 		}
+	}
+	
+	/**
+	 * @param filter for select some nodes, can be null (all nodes)
+	 * @return result / all nodes
+	 */
+	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option, Predicate<Node> filter) {
+		DataBlock to_send = all_request_handlers.getRequestByClass(request_class).createRequest(option);
+		
+		Predicate<Node> filterActiveNodes = node -> {
+			return node.isUUIDSet() && node.isOpenSocket();
+		};
+		
+		return nodes.stream().filter(node -> {
+			if (filter != null) {
+				return filterActiveNodes.and(filter).test(node);
+			}
+			return filterActiveNodes.test(node);
+		}).peek(n -> {
+			n.sendBlock(to_send);
+		}).collect(Collectors.toList());
 	}
 	
 	/**
