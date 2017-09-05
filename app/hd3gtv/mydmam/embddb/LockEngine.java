@@ -77,6 +77,9 @@ public final class LockEngine {
 		
 		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor();
 		scheduled_ex_service.scheduleAtFixedRate(() -> {
+			if (active_locks.isEmpty()) {
+				return;
+			}
 			synchronized (active_locks) {
 				log.debug("Start GC expired locks for " + active_locks.size() + " lock(s)");
 				active_locks.removeIf(lock -> {
