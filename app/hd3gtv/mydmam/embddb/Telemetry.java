@@ -78,7 +78,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		if (nodes.isEmpty()) {
 			return;
 		}
-		log.info("Ask to " + nodes.size() + "node(s) their last telemetry reports");
+		log.info("Ask to " + nodes.size() + " node(s) their last telemetry reports");
 	}
 	
 	/**
@@ -161,8 +161,13 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 				break;
 			case "l":
 			case "last":
+				String this_uuid = embddb.poolmanager.getUUIDRef().toString();
 				getLastTelemetryReportsSendedFromAllNodes().forEach((uuid, report) -> {
-					out.println("HOST UUID: " + uuid);
+					if (this_uuid.equalsIgnoreCase(uuid)) {
+						out.println("INSTANCE UUID: " + uuid + " (THIS INSTANCE)");
+					} else {
+						out.println("INSTANCE UUID: " + uuid);
+					}
 					out.println(MyDMAM.gson_kit.getGsonPretty().toJson(report));
 				});
 				break;

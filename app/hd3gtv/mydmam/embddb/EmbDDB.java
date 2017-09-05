@@ -138,7 +138,14 @@ public class EmbDDB {
 				embddb.poolmanager.startNetDiscover(multicast_groups);
 			}
 			if (args.getParamExist("-bootstrap")) {
-				embddb.poolmanager.connectToBootstrapPotentialNodes("Local configuration, via CLI");
+				List<InetSocketAddress> bootstrap_addrs = Configuration.global.getClusterConfiguration("embddb", "bootstrap_nodes", null, embddb.protocol.getDefaultTCPPort()).stream().map(item -> {
+					return item.getSocketAddress();
+				}).collect(Collectors.toList());
+				
+				if (bootstrap_addrs.isEmpty() == false) {
+					embddb.poolmanager.setBootstrapPotentialNodes(bootstrap_addrs);
+					embddb.poolmanager.connectToBootstrapPotentialNodes("Loaded from configuration, with CLI");
+				}
 			}
 			
 			embddb.poolmanager.setConsoleActions(embddb.console);
