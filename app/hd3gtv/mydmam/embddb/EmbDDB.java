@@ -30,6 +30,7 @@ import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.Protocol;
 import hd3gtv.tools.ApplicationArgs;
+import hd3gtv.tools.InteractiveConsole;
 
 /**
  * Embedded and distributed and database
@@ -80,11 +81,15 @@ public class EmbDDB {
 	private final Protocol protocol;
 	public final PoolManager poolmanager;
 	private final LockEngine lock_engine;
+	private final Telemetry telemetry;
+	private final InteractiveConsole console;
 	
 	private EmbDDB(String master_password_key, int thread_pool_queue_size) throws GeneralSecurityException, IOException {
+		console = new InteractiveConsole();
 		protocol = new Protocol(master_password_key);
 		poolmanager = new PoolManager(protocol, thread_pool_queue_size);
 		lock_engine = new LockEngine(poolmanager);
+		telemetry = new Telemetry(this);
 	}
 	
 	public void startServers() throws IOException {
@@ -93,6 +98,13 @@ public class EmbDDB {
 		}).collect(Collectors.toList());
 		
 		poolmanager.startLocalServers(listen_addrs);
+	}
+	
+	/**
+	 * Blocking !
+	 */
+	public void startConsole() {
+		console.waitActions();
 	}
 	
 	public static class CLI implements CLIDefinition {
@@ -128,7 +140,10 @@ public class EmbDDB {
 			if (args.getParamExist("-bootstrap")) {
 				embddb.poolmanager.connectToBootstrapPotentialNodes("Local configuration, via CLI");
 			}
-			embddb.poolmanager.startConsole();
+			
+			embddb.poolmanager.setConsoleActions(embddb.console);
+			embddb.telemetry.setConsoleActions(embddb.console);
+			embddb.startConsole();
 		}
 		
 		public void showFullCliModuleHelp() {

@@ -19,24 +19,28 @@ package hd3gtv.tools;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import org.apache.log4j.Logger;
 
-public class InteractiveConsoleMode {
+import hd3gtv.mydmam.gson.GsonIgnore;
+
+@GsonIgnore
+public class InteractiveConsole implements InteractiveConsoleOrder {
 	
-	private static Logger log = Logger.getLogger(InteractiveConsoleMode.class);
+	private static Logger log = Logger.getLogger(InteractiveConsole.class);
 	
 	private LinkedHashMap<String, Action> controller;
 	
-	public InteractiveConsoleMode() throws NullPointerException {
+	public InteractiveConsole() throws NullPointerException {
 		controller = new LinkedHashMap<>();
 		
-		Action a = new Action("quit", "Exit application.", InteractiveConsoleMode.class, line -> {
-			System.out.println("Exit now");
+		Action a = new Action("quit", "Exit application.", InteractiveConsole.class, (line, out) -> {
+			out.println("Exit now");
 			System.exit(0);
 		});
 		controller.put("q", a);
@@ -44,8 +48,8 @@ public class InteractiveConsoleMode {
 		controller.put("exit", a);
 		controller.put("bye", a);
 		
-		a = new Action("help", "Show help.", InteractiveConsoleMode.class, line -> {
-			System.out.println("Show help:");
+		a = new Action("help", "Show help.", InteractiveConsole.class, (line, out) -> {
+			out.println("Show help:");
 			
 			HashSet<Action> actual_actions = new HashSet<>(controller.size());
 			
@@ -57,9 +61,9 @@ public class InteractiveConsoleMode {
 				}
 			});
 			table.print();
-			System.out.println();
-			System.out.println("If you prefix the action by \"l\" like \"l action\", it will be execute in loop.");
-			System.out.println();
+			out.println();
+			out.println("If you prefix the action by \"l\" like \"l action\", it will be execute in loop.");
+			out.println();
 		});
 		controller.put("h", a);
 		controller.put("?", a);
@@ -67,12 +71,12 @@ public class InteractiveConsoleMode {
 	}
 	
 	private class Action {
-		private Consumer<String> procedure;
+		private BiConsumer<String, PrintStream> procedure;
 		private String name;
 		private String description;
 		private Class<?> creator;
 		
-		Action(String name, String description, Class<?> creator, Consumer<String> procedure) {
+		Action(String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
 			this.procedure = procedure;
 			if (procedure == null) {
 				throw new NullPointerException("\"procedure\" can't to be null");
@@ -91,23 +95,6 @@ public class InteractiveConsoleMode {
 			}
 		}
 		
-	}
-	
-	/**
-	 * @param order
-	 * @param name
-	 * @param description
-	 * @param creator
-	 * @param procedure callbacked param maybe null.
-	 */
-	public void addOrder(String order, String name, String description, Class<?> creator, Consumer<String> procedure) {
-		synchronized (controller) {
-			if (controller.containsKey(order)) {
-				log.warn("Action " + order + " already exists. Added by " + controller.get(order).creator + " and in conflict with " + creator);
-				return;
-			}
-			controller.put(order.toLowerCase(), new Action(name, description, creator, procedure));
-		}
 	}
 	
 	/**
@@ -164,7 +151,7 @@ public class InteractiveConsoleMode {
 							System.out.println("Enter \"q\" for end loop.");
 							Thread.sleep(200);
 							while (in_loop.get()) {
-								f_order.procedure.accept(parameter);
+								f_order.procedure.accept(parameter, System.out);
 								Thread.sleep(1000);
 								System.out.println();
 							}
@@ -179,7 +166,7 @@ public class InteractiveConsoleMode {
 				}
 				
 				try {
-					controller.get(order).procedure.accept(param);
+					controller.get(order).procedure.accept(param, System.out);
 				} catch (Exception e) {
 					System.out.println("Error during " + order);
 					e.printStackTrace(System.out);
@@ -188,6 +175,16 @@ public class InteractiveConsoleMode {
 			}
 		} catch (IOException e) {
 			log.error("Exit Console mode", e);
+		}
+	}
+	
+	public void addOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
+		synchronized (controller) {
+			if (controller.containsKey(order)) {
+				log.warn("Action " + order + " already exists. Added by " + controller.get(order).creator + " and in conflict with " + creator);
+				return;
+			}
+			controller.put(order.toLowerCase(), new Action(name, description, creator, procedure));
 		}
 	}
 	
