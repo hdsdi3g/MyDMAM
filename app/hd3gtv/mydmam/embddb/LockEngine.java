@@ -33,6 +33,7 @@ import hd3gtv.mydmam.embddb.network.DataBlock;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class LockEngine {
 	
@@ -40,9 +41,12 @@ public final class LockEngine {
 	private static Logger log = Logger.getLogger(LockEngine.class);
 	
 	private final ArrayList<DistributedLock> active_locks;
-	private final PoolManager poolmanager;
+	@GsonIgnore
 	private final ConcurrentHashMap<String, ArrayList<NodeEvent>> node_events_by_target_id;
 	
+	@GsonIgnore
+	private final PoolManager poolmanager;
+	@GsonIgnore
 	private ScheduledExecutorService scheduled_ex_service;
 	
 	LockEngine(PoolManager poolmanager) {
@@ -254,8 +258,17 @@ public final class LockEngine {
 		
 		private final String target_id;
 		private long expiration_date;
+		
+		@GsonIgnore
 		private final Thread local_locker;
+		@GsonIgnore
 		private final Node node;
+		
+		/**
+		 * For Gson serializable
+		 */
+		@SuppressWarnings("unused")
+		private final String source;
 		
 		/**
 		 * For me
@@ -271,6 +284,7 @@ public final class LockEngine {
 			}
 			local_locker = Thread.currentThread();
 			node = null;
+			source = local_locker.getName() + "#" + local_locker.getId() + " (" + local_locker.getClass().getSimpleName() + ")";
 		}
 		
 		/**
@@ -290,6 +304,7 @@ public final class LockEngine {
 				throw new NullPointerException("\"node\" can't to be null");
 			}
 			local_locker = null;
+			source = node.toString();
 		}
 		
 		/**

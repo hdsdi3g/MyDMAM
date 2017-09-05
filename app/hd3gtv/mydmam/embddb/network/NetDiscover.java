@@ -44,6 +44,7 @@ import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 import hd3gtv.tools.PressureMeasurement;
 
@@ -54,14 +55,22 @@ class NetDiscover {
 	
 	private static final Logger log = Logger.getLogger(NetDiscover.class);
 	
+	@GsonIgnore
 	private final PoolManager pool_manager;
+	
 	private final ArrayList<InetSocketAddress> declared_groups;
 	private List<Engine> engines;
+	
+	@GsonIgnore
 	private ScheduledFuture<?> sch_future;
+	@GsonIgnore
 	private transient byte[] datagram_to_send;
 	
+	@GsonIgnore
 	private final String hashed_password_key;
+	@GsonIgnore
 	private final UUID uuid;
+	@GsonIgnore
 	private final PressureMeasurement pressure_measurement;
 	
 	NetDiscover(PoolManager pool_manager, List<InetSocketAddress> multicast_groups, PressureMeasurement pressure_measurement) {
@@ -465,8 +474,11 @@ class NetDiscover {
 			final InetSocketAddress group_socket;
 			InetSocketAddress bind_to;
 			ProtocolFamily pf;
+			@GsonIgnore
 			Thread receiver;
+			@GsonIgnore
 			DatagramChannel channel;
+			@GsonIgnore
 			MembershipKey key;
 			
 			Group(InetSocketAddress group_socket) throws IOException {
@@ -553,6 +565,7 @@ class NetDiscover {
 		}
 	}
 	
+	@GsonIgnore
 	private Runnable regular_send = () -> {
 		if (datagram_to_send == null) {
 			return;

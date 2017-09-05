@@ -16,9 +16,12 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
+import hd3gtv.mydmam.gson.GsonIgnore;
+
 /**
  * @param T Send T to dest_node
  */
+@GsonIgnore
 public abstract class RequestHandler<T> {
 	
 	protected PoolManager pool_manager;

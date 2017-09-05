@@ -54,10 +54,10 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
+import hd3gtv.archivecircleapi.ACFileLocationTapeSupport;
 import hd3gtv.archivecircleapi.ACFileLocations;
 import hd3gtv.archivecircleapi.ACNodesEntry;
 import hd3gtv.archivecircleapi.ACPartition;
-import hd3gtv.archivecircleapi.ACFileLocationTapeSupport;
 import hd3gtv.configuration.GithubIssue;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -76,6 +76,7 @@ import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.auth.asyncjs.UserViewList;
 import hd3gtv.mydmam.bcastautomation.BCAEventCatched;
+import hd3gtv.mydmam.embddb.network.SocketServer;
 import hd3gtv.mydmam.ftpserver.AJSResponseActivities;
 import hd3gtv.mydmam.ftpserver.AJSResponseUserList;
 import hd3gtv.mydmam.ftpserver.AJSUser;
@@ -533,6 +534,8 @@ public class GsonKit {
 		gson_full_serializator.add(new De_Serializator(FFProbeChapter.class, new FFProbeChapter.Serializer()));
 		gson_full_serializator.add(new De_Serializator(FFProbeFormat.class, new FFProbeFormat.Serializer()));
 		gson_full_serializator.add(new De_Serializator(BBCBmx.class, new BBCBmx.Serializer()));
+		
+		gson_full_serializator.add(new De_Serializator(SocketServer.class, new SocketServer.Serializer()));
 		
 		/*
 		 * 	public class Serializer implements JsonSerializer<SelfSerializing> {

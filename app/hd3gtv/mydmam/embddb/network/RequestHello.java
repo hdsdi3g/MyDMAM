@@ -49,7 +49,7 @@ public class RequestHello extends RequestHandler<Void> {
 			
 			pool_manager.getNode_scheduler().add(source_node, source_node.getScheduledAction());
 		} catch (IOException e) {
-			log.error("Node " + source_node + " return invalid hello request... disconnect it", e);
+			log.warn(e.getMessage() + ". Disconnect it.");
 			source_node.close(getClass());
 		}
 	}

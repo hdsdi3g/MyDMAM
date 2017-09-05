@@ -43,6 +43,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.ActivityScheduledAction;
 import hd3gtv.tools.ActivityScheduler;
 import hd3gtv.tools.AddressMaster;
@@ -55,22 +56,34 @@ public class PoolManager {
 	private static Logger log = Logger.getLogger(PoolManager.class);
 	
 	private ArrayList<SocketServer> local_servers;
+	
+	@GsonIgnore
 	private AllRequestHandlers all_request_handlers;
 	
+	@GsonIgnore
 	private Protocol protocol;
 	
+	@GsonIgnore
 	private AsynchronousChannelGroup channel_group;
+	@GsonIgnore
 	private BlockingQueue<Runnable> executor_pool_queue;
+	@GsonIgnore
 	private ThreadPoolExecutor executor_pool;
 	
+	@GsonIgnore
 	private ShutdownHook shutdown_hook;
 	
+	@GsonIgnore
 	private InteractiveConsoleMode console;
+	
+	@GsonIgnore
 	private AddressMaster addr_master;
 	
 	private final UUID uuid_ref;
 	
+	@GsonIgnore
 	private ActivityScheduler<Node> node_scheduler;
+	@GsonIgnore
 	private ActivityScheduler<PoolManager> pool_scheduler;
 	
 	private PressureMeasurement pressure_measurement_sended;
@@ -79,13 +92,21 @@ public class PoolManager {
 	private List<InetSocketAddress> bootstrap_servers;
 	
 	/**
+	 * Can be null.
+	 */
+	private NetDiscover net_discover;
+	
+	/**
 	 * synchronizedList
 	 */
 	private List<Node> nodes;
+	
+	@GsonIgnore
 	private AtomicBoolean autodiscover_can_be_remake = null;
 	/**
 	 * synchronizedList
 	 */
+	@GsonIgnore
 	private List<Consumer<Node>> onRemoveNodeCallbackList;
 	
 	public PoolManager(Protocol protocol, int thread_pool_queue_size) throws GeneralSecurityException, IOException {
@@ -322,11 +343,6 @@ public class PoolManager {
 			list.print();
 		});
 	}
-	
-	/**
-	 * Can be null.
-	 */
-	private NetDiscover net_discover;
 	
 	public void startNetDiscover(List<InetSocketAddress> multicast_groups) throws IOException {
 		if (net_discover == null) {

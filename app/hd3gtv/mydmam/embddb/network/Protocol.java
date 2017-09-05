@@ -45,8 +45,10 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 
+@GsonIgnore
 public final class Protocol {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	

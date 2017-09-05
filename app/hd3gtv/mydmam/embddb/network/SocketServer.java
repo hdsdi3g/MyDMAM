@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
@@ -26,15 +27,35 @@ import java.nio.channels.ClosedChannelException;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.StoppableThread;
 
 public class SocketServer extends StoppableThread implements SocketProvider {
 	
 	private static final Logger log = Logger.getLogger(SocketServer.class);
 	
+	@GsonIgnore
 	private AsynchronousServerSocketChannel server;
+	@GsonIgnore
 	private PoolManager pool_manager;
 	private InetSocketAddress listen;
+	
+	public static class Serializer implements JsonSerializer<SocketServer> {
+		
+		public JsonElement serialize(SocketServer src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject jo = new JsonObject();
+			jo.add("listen", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.listen));
+			jo.addProperty("server_open", src.server.isOpen());
+			return jo;
+		}
+		
+	}
 	
 	public SocketServer(PoolManager pool_manager, InetSocketAddress listen) throws IOException {
 		super("SocketServer");

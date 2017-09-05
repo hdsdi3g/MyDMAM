@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.ActivityScheduledAction;
 import hd3gtv.tools.PressureMeasurement;
@@ -43,22 +44,33 @@ public class Node {
 	
 	private static final Logger log = Logger.getLogger(Node.class);
 	
+	@GsonIgnore
 	private PoolManager pool_manager;
 	
 	/**
 	 * Can be empty
 	 */
+	@GsonIgnore // boring...
 	private ArrayList<InetSocketAddress> local_server_node_addr;
 	
 	private UUID uuid_ref;
 	private long server_delta_time;
+	@SuppressWarnings("unused")
+	private final long create_date;
 	private InetSocketAddress socket_addr;
+	private final String provider_type;
 	
+	@GsonIgnore
 	private final SocketProvider provider;
+	@GsonIgnore
 	private final ByteBuffer read_buffer;
+	@GsonIgnore
 	private final ByteBuffer write_buffer;
+	@GsonIgnore
 	private final AsynchronousSocketChannel channel;
+	@GsonIgnore
 	private final PressureMeasurement pressure_measurement_sended;
+	@GsonIgnore
 	private final PressureMeasurement pressure_measurement_recevied;
 	private final AtomicLong last_activity;
 	
@@ -94,6 +106,8 @@ public class Node {
 		} catch (IOException e) {
 		}
 		server_delta_time = 0;
+		create_date = System.currentTimeMillis();
+		provider_type = provider.getTypeName();
 	}
 	
 	public InetSocketAddress getSocketAddr() {
@@ -128,9 +142,9 @@ public class Node {
 	
 	public String toString() {
 		if (uuid_ref == null) {
-			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " " + " [" + provider.getTypeName() + "]";
+			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " [" + provider_type + "]";
 		} else {
-			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " #" + uuid_ref.toString().substring(0, 6) + " [" + provider.getTypeName() + "]";
+			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " #" + uuid_ref.toString().substring(0, 6) + " [" + provider_type + "]";
 		}
 	}
 	
@@ -261,10 +275,10 @@ public class Node {
 		return uuid_ref;
 	}
 	
-	void setLocalServerNodeAddresses(ArrayList<InetSocketAddress> local_server_node_addr) throws IOException {
+	void setLocalServerNodeAddresses(ArrayList<InetSocketAddress> local_server_node_addr) {
 		this.local_server_node_addr = local_server_node_addr;
 		if (local_server_node_addr == null) {
-			throw new IOException("\"local_server_node_addr\" can't to be null");
+			throw new NullPointerException("\"local_server_node_addr\" can't to be null");
 		}
 		if (local_server_node_addr.isEmpty()) {
 			log.info("Node " + toString() + " hasn't sockets addresses for its local server (client only node, maybe a console)");
