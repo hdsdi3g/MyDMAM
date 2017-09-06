@@ -50,7 +50,9 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		embddb.poolmanager.addRequestHandler(new RequestTelemetryReport(embddb.poolmanager));
 		
 		embddb.poolmanager.addRemoveNodeCallback(n -> {
-			last_reports_by_node_uuid.remove(n.getUUID().toString());
+			if (n.isUUIDSet()) {
+				last_reports_by_node_uuid.remove(n.getUUID().toString());
+			}
 		});
 	}
 	
@@ -59,7 +61,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 	 * Sync
 	 * @return never null
 	 */
-	public TelemetryReport createReport() {
+	public TelemetryReport createNodeReport() {
 		TelemetryReport report = new TelemetryReport();
 		report.embddb = MyDMAM.gson_kit.getGson().toJsonTree(embddb).getAsJsonObject();
 		report.creation_date = System.currentTimeMillis();
@@ -72,7 +74,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 	 */
 	public void askToAllNodesATelemetryReport() {
 		last_reports_by_node_uuid.clear();
-		last_reports_by_node_uuid.put(embddb.poolmanager.getUUIDRef().toString(), createReport());
+		last_reports_by_node_uuid.put(embddb.poolmanager.getUUIDRef().toString(), createNodeReport());
 		
 		List<Node> nodes = embddb.poolmanager.sayToAllNodes(RequestSendTelemetryReport.class, null, null);
 		if (nodes.isEmpty()) {
@@ -102,7 +104,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		
 		public void onRequest(DataBlock block, Node source_node) {
 			log.debug("Send report request to " + source_node);
-			source_node.sendRequest(RequestTelemetryReport.class, createReport());
+			source_node.sendRequest(RequestTelemetryReport.class, createNodeReport());
 		}
 		
 		public DataBlock createRequest(Void options) {
@@ -123,7 +125,9 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		public void onRequest(DataBlock block, Node source_node) {
 			log.debug("Get report from " + source_node);
 			TelemetryReport report = MyDMAM.gson_kit.getGsonSimple().fromJson(block.getJsonDatas(), TelemetryReport.class);
-			last_reports_by_node_uuid.put(source_node.getUUID().toString(), report);
+			if (source_node.isUUIDSet()) {
+				last_reports_by_node_uuid.put(source_node.getUUID().toString(), report);
+			}
 		}
 		
 		public DataBlock createRequest(TelemetryReport report) {
@@ -152,7 +156,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 			switch (param) {
 			case "g":
 			case "get":
-				out.println(MyDMAM.gson_kit.getGsonPretty().toJson(createReport()));
+				out.println(MyDMAM.gson_kit.getGsonPretty().toJson(createNodeReport()));
 				break;
 			case "r":
 			case "retrieve":

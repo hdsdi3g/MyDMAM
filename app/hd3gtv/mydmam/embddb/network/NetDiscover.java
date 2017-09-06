@@ -209,6 +209,8 @@ class NetDiscover {
 		}
 	}
 	
+	// TODO split net hw and public ip addr (to all for all)
+	
 	void updatePayload() {
 		try {
 			List<InetSocketAddress> addrs = pool_manager.getListenedServerAddress().filter(socket -> {

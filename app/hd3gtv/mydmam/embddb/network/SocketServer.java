@@ -126,7 +126,7 @@ public class SocketServer extends StoppableThread implements SocketProvider {
 			try {
 				AsynchronousSocketChannel channel = server.accept().get();
 				Node node = new Node(this, pool_manager, channel);
-				log.info("Client connect " + node);
+				log.info("Client connect " + node + " to local " + listen);
 				node.asyncRead();
 				pool_manager.add(node);
 				

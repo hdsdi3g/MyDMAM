@@ -38,7 +38,7 @@ public class RequestPoke extends RequestHandler<Void> {
 			source_node.setDistantDate(block.getCreateDate());
 			source_node.setUUIDRef(UUID.fromString(block.getStringDatas()));
 		} catch (IOException e) {
-			log.error("Node return invalid response... disconnect it", e);
+			log.warn(e.getMessage() + ". Disconnect it.");
 			source_node.close(getClass());
 		}
 	}

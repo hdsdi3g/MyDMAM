@@ -100,6 +100,10 @@ public class EmbDDB {
 		poolmanager.startLocalServers(listen_addrs);
 	}
 	
+	public Telemetry getTelemetry() {
+		return telemetry;
+	}
+	
 	/**
 	 * Blocking !
 	 */
