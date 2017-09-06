@@ -261,7 +261,7 @@ public final class Protocol {
 		
 		public void completed(Integer size, Node node) {
 			showLogs(size, node);
-			log.info("Manual close socket after send datas to other node " + node.toString());
+			log.debug("Manual close socket after send datas to other node " + node.toString());
 			node.close(getClass());
 		}
 		

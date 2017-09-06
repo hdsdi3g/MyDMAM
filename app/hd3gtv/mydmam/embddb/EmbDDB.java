@@ -17,9 +17,11 @@
 package hd3gtv.mydmam.embddb;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
@@ -31,11 +33,12 @@ import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.Protocol;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.InteractiveConsole;
+import hd3gtv.tools.InteractiveConsoleOrder;
 
 /**
  * Embedded and distributed and database
  */
-public class EmbDDB {
+public class EmbDDB implements InteractiveConsoleOrder {
 	
 	private static Logger log = Logger.getLogger(EmbDDB.class);
 	
@@ -104,10 +107,16 @@ public class EmbDDB {
 		return telemetry;
 	}
 	
+	public void addOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
+		console.addOrder(order, name, description, creator, procedure);
+	}
+	
 	/**
 	 * Blocking !
 	 */
 	public void startConsole() {
+		poolmanager.addConsoleAction(console);
+		telemetry.addConsoleAction(console);
 		console.waitActions();
 	}
 	
@@ -152,8 +161,6 @@ public class EmbDDB {
 				}
 			}
 			
-			embddb.poolmanager.setConsoleActions(embddb.console);
-			embddb.telemetry.setConsoleActions(embddb.console);
 			embddb.startConsole();
 		}
 		

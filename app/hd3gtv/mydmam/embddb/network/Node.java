@@ -33,6 +33,7 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
@@ -55,7 +56,6 @@ public class Node {
 	
 	private UUID uuid_ref;
 	private long server_delta_time;
-	@SuppressWarnings("unused")
 	private final long create_date;
 	private InetSocketAddress socket_addr;
 	private final String provider_type;
@@ -349,7 +349,9 @@ public class Node {
 			uuid = uuid_ref.toString();
 		}
 		
-		table.addRow(host, provider, isopen, deltatime, uuid);
+		String _create_date = Loggers.dateLog(create_date);
+		
+		table.addRow(host, provider, isopen, deltatime, uuid, _create_date);
 	}
 	
 	ActivityScheduledAction<Node> getScheduledAction() {

@@ -19,6 +19,6 @@ package hd3gtv.tools;
 @FunctionalInterface
 public interface InteractiveConsoleOrderProducer {
 	
-	void setConsoleActions(InteractiveConsoleOrder console);
+	void addConsoleAction(InteractiveConsoleOrder console);
 	
 }

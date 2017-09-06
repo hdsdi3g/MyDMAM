@@ -63,8 +63,6 @@ class NetDiscover {
 	
 	@GsonIgnore
 	private ScheduledFuture<?> sch_future;
-	@GsonIgnore
-	private transient byte[] datagram_to_send;
 	
 	@GsonIgnore
 	private final String hashed_password_key;
@@ -100,7 +98,7 @@ class NetDiscover {
 		hashed_password_key = pool_manager.getProtocol().getHashedPasswordKey();
 		uuid = pool_manager.getUUIDRef();
 		
-		updatePayload();
+		updateAllPayloads();
 	}
 	
 	private static class Payload {
@@ -209,45 +207,10 @@ class NetDiscover {
 		}
 	}
 	
-	// TODO split net hw and public ip addr (to all for all)
-	
-	void updatePayload() {
-		try {
-			List<InetSocketAddress> addrs = pool_manager.getListenedServerAddress().filter(socket -> {
-				return pool_manager.getAddressMaster().isPublicAndPhysicalAddress(socket.getAddress());
-			}).collect(Collectors.toList());
-			if (addrs.isEmpty()) {
-				datagram_to_send = null;
-				return;
-			}
-			
-			Payload payload = new Payload();
-			payload.u = uuid;
-			payload.hk = hashed_password_key;
-			payload.a = new ArrayList<>(addrs);
-			
-			byte[] json_byted_payload = MyDMAM.gson_kit.getGsonSimple().toJson(payload).getBytes(MyDMAM.UTF8);
-			
-			ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
-			DataOutputStream dos = new DataOutputStream(byte_array_out_stream);
-			
-			dos.write(Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG);
-			dos.writeInt(Protocol.VERSION);
-			dos.writeByte(0);
-			dos.writeInt(json_byted_payload.length);
-			dos.write(json_byted_payload);
-			dos.flush();
-			
-			datagram_to_send = byte_array_out_stream.toByteArray();
-			
-			if (log.isTraceEnabled()) {
-				log.trace("Create Payload" + Hexview.LINESEPARATOR + Hexview.tracelog(datagram_to_send));
-			}
-			
-		} catch (Exception e) {
-			log.error("Can't create Payload", e);
-			datagram_to_send = null;
-		}
+	void updateAllPayloads() {
+		engines.forEach(engine -> {
+			engine.updatePayload();
+		});
 	}
 	
 	private void logBadPayload(byte[] content, InetAddress source, String reason) {
@@ -411,6 +374,9 @@ class NetDiscover {
 		final List<Group> groups;
 		final NetworkInterface network_interface;
 		
+		@GsonIgnore
+		transient byte[] datagram_to_send;
+		
 		Engine(NetworkInterface network_interface) {
 			this.network_interface = network_interface;
 			
@@ -471,6 +437,47 @@ class NetDiscover {
 			});
 		}
 		
+		void updatePayload() {
+			try {
+				List<InetSocketAddress> addrs = pool_manager.getListenedServerAddress().filter(socket -> {
+					return pool_manager.getAddressMaster().isPublicAndPhysicalAddress(socket.getAddress());
+				}).filter(socket -> {
+					return pool_manager.getAddressMaster().isInNetworkRange(network_interface, socket.getAddress());
+				}).collect(Collectors.toList());
+				
+				if (addrs.isEmpty()) {
+					datagram_to_send = null;
+					return;
+				}
+				
+				Payload payload = new Payload();
+				payload.u = uuid;
+				payload.hk = hashed_password_key;
+				payload.a = new ArrayList<>(addrs);
+				
+				byte[] json_byted_payload = MyDMAM.gson_kit.getGsonSimple().toJson(payload).getBytes(MyDMAM.UTF8);
+				
+				ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
+				DataOutputStream dos = new DataOutputStream(byte_array_out_stream);
+				
+				dos.write(Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG);
+				dos.writeInt(Protocol.VERSION);
+				dos.writeByte(0);
+				dos.writeInt(json_byted_payload.length);
+				dos.write(json_byted_payload);
+				dos.flush();
+				
+				datagram_to_send = byte_array_out_stream.toByteArray();
+				
+				if (log.isTraceEnabled()) {
+					log.trace("Create Payload for " + network_interface.getName() + Hexview.LINESEPARATOR + Hexview.tracelog(datagram_to_send));
+				}
+			} catch (Exception e) {
+				log.error("Can't create Payload for " + network_interface.getName(), e);
+				datagram_to_send = null;
+			}
+		}
+		
 		private class Group {
 			
 			final InetSocketAddress group_socket;
@@ -502,6 +509,10 @@ class NetDiscover {
 				if (SystemUtils.IS_OS_WINDOWS) {
 					bind_to = new InetSocketAddress(first_addrnetwork_interface, group_socket.getPort());
 				}
+			}
+			
+			byte[] getGroupDatagramToSend() {
+				return datagram_to_send;
 			}
 			
 			public String toString() {
@@ -569,18 +580,17 @@ class NetDiscover {
 	
 	@GsonIgnore
 	private Runnable regular_send = () -> {
-		if (datagram_to_send == null) {
-			return;
-		}
 		engines.stream().flatMap(engine -> {
 			return engine.groups.stream();
 		}).filter(group -> {
 			return group.channel != null;
 		}).filter(group -> {
 			return group.channel.isOpen();
+		}).filter(group -> {
+			return group.getGroupDatagramToSend() != null;
 		}).forEach(group -> {
 			try {
-				ByteBuffer to_send = ByteBuffer.wrap(datagram_to_send);
+				ByteBuffer to_send = ByteBuffer.wrap(group.getGroupDatagramToSend());
 				int size_sended = group.channel.send(to_send, group.group_socket);
 				if (size_sended == 0) {
 					throw new IOException("Send empty packet");

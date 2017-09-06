@@ -29,6 +29,9 @@ import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
+import hd3gtv.mydmam.gson.GsonIgnore;
+
+@GsonIgnore
 public class AddressMaster {
 	
 	private static final Logger log = Logger.getLogger(AddressMaster.class);
@@ -295,6 +298,29 @@ public class AddressMaster {
 				return false;
 			}
 		});
+	}
+	
+	public boolean isInNetworkRange(NetworkInterface net_interface, InetAddress candidate) {
+		if (net_interface == null) {
+			throw new NullPointerException("\"net_interface\" can't to be null");
+		}
+		if (candidate == null) {
+			throw new NullPointerException("\"candidate\" can't to be null");
+		}
+		
+		AddressEntry addr_entry = all_addresses.stream().filter(addr -> {
+			return addr.current_interface.equals(net_interface);
+		}).findFirst().orElse(null);
+		
+		if (addr_entry == null) {
+			return false;
+		}
+		try {
+			return addr_entry.isInNetworkRange(candidate);
+		} catch (Exception e) {
+			log.error("Can't create CIDR for " + candidate.toString(), e);
+			return false;
+		}
 	}
 	
 }

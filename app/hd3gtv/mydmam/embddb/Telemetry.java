@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.embddb;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
@@ -138,15 +141,37 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 	
 	// TODO AJS
 	
-	public void setConsoleActions(InteractiveConsoleOrder console) {
+	public void dumpLastResultsToFile() throws IOException {
+		final String this_uuid = embddb.poolmanager.getUUIDRef().toString();
+		
+		HashMap<String, TelemetryReport> jo = new HashMap<>();
+		
+		getLastTelemetryReportsSendedFromAllNodes().forEach((uuid, report) -> {
+			if (this_uuid.equalsIgnoreCase(uuid)) {
+				jo.put(uuid + " (THIS INSTANCE)", report);
+			} else {
+				jo.put(uuid, report);
+			}
+		});
+		
+		FileWriter fw = new FileWriter(new File("telemetry.json"), false);
+		fw.write(MyDMAM.gson_kit.getGsonPretty().toJson(jo));
+		fw.close();
+	}
+	
+	public void addConsoleAction(InteractiveConsoleOrder console) {
 		
 		Consumer<PrintStream> help = out -> {
-			out.println("Usage: telemetry [g|get]|[r|retrieve]|[l|last]");
+			out.println("Usage: telemetry [g|get]|[r|retrieve]|[l|last]|[lf|lasttofile]");
 			out.println("With:");
 			out.println("  g, get:       display the actual generated report for this node");
 			out.println("  r, retrieve:  send to all connected nodes a request for get a report");
 			out.println("  l, last:      display the last generated report for all connected nodes");
+			out.println("  lf,");
+			out.println("  lasttofile:   write a file the last generated report for all connected nodes");
 		};
+		
+		final String this_uuid = embddb.poolmanager.getUUIDRef().toString();
 		
 		console.addOrder("telemetry", "Cluster telemetry", "Generate and retrieve telemetry reports", Telemetry.class, (param, out) -> {
 			if (param == null) {
@@ -165,7 +190,6 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 				break;
 			case "l":
 			case "last":
-				String this_uuid = embddb.poolmanager.getUUIDRef().toString();
 				getLastTelemetryReportsSendedFromAllNodes().forEach((uuid, report) -> {
 					if (this_uuid.equalsIgnoreCase(uuid)) {
 						out.println("INSTANCE UUID: " + uuid + " (THIS INSTANCE)");
@@ -174,6 +198,14 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 					}
 					out.println(MyDMAM.gson_kit.getGsonPretty().toJson(report));
 				});
+				break;
+			case "lf":
+			case "lasttofile":
+				try {
+					dumpLastResultsToFile();
+				} catch (IOException e) {
+					log.error("Can't write file", e);
+				}
 				break;
 			default:
 				out.println("Invalid \"" + param + "\"...");

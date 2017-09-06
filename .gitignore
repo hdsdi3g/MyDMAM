@@ -39,3 +39,4 @@ pack/
 databaseredist/
 archive/
 .cache/
+telemetry.json

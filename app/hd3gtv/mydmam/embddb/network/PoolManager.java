@@ -258,7 +258,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
 			}
-			net_discover.updatePayload();
+			net_discover.updateAllPayloads();
 		}
 		
 		// T O D O manage white/black range addr list for node discover
@@ -719,7 +719,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		
 	}
 	
-	public void setConsoleActions(InteractiveConsoleOrder console) {
+	public void addConsoleAction(InteractiveConsoleOrder console) {
 		console.addOrder("ql", "Queue list", "Display actual queue list", getClass(), (param, out) -> {
 			out.println("Executor status:");
 			TableList table = new TableList();
