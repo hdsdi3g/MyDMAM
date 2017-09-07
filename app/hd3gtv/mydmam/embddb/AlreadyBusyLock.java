@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.embddb;
 
+import java.util.UUID;
+
 import hd3gtv.mydmam.Loggers;
 
 public class AlreadyBusyLock extends Exception {
@@ -33,7 +35,9 @@ public class AlreadyBusyLock extends Exception {
 	 */
 	final String owner;
 	
-	AlreadyBusyLock(String target_id, long expiration_date, String owner) {
+	final UUID locker_node;
+	
+	AlreadyBusyLock(String target_id, long expiration_date, String owner, UUID locker_node) {
 		this.target_id = target_id;
 		if (target_id == null) {
 			throw new NullPointerException("\"target_id\" can't to be null");
@@ -45,6 +49,10 @@ public class AlreadyBusyLock extends Exception {
 		this.owner = owner;
 		if (owner == null) {
 			throw new NullPointerException("\"owner\" can't to be null");
+		}
+		this.locker_node = locker_node;
+		if (locker_node == null) {
+			throw new NullPointerException("\"locker_node\" can't to be null");
 		}
 	}
 	

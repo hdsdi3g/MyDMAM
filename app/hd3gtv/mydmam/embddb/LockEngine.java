@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,7 +38,7 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class LockEngine {
 	
-	private static final long GRACE_TIME_FOR_GET_LOCK = TimeUnit.SECONDS.toMillis(2);
+	private static final long GRACE_TIME_FOR_GET_LOCK = TimeUnit.SECONDS.toMillis(5);
 	private static Logger log = Logger.getLogger(LockEngine.class);
 	
 	private final ArrayList<DistributedLock> active_locks;
@@ -246,9 +247,7 @@ public final class LockEngine {
 				actual_lock.expiration_date = expiration_date;
 			} else {
 				log.trace(locker_node + " try to get a lock previously acquired by another node (" + actual_lock + ")");
-				/**
-				 * But it not our problem.
-				 */
+				throw actual_lock.createBusyException();
 			}
 		} else {
 			DistributedLock new_external_lock = new DistributedLock(target_id, expiration_date, locker_node);
@@ -346,9 +345,9 @@ public final class LockEngine {
 		
 		private AlreadyBusyLock createBusyException() {
 			if (local_locker != null) {
-				return new AlreadyBusyLock(target_id, expiration_date, local_locker.getName() + " [" + local_locker.getId() + "]");
+				return new AlreadyBusyLock(target_id, expiration_date, local_locker.getName() + " [" + local_locker.getId() + "]", poolmanager.getUUIDRef());
 			} else if (node != null) {
-				return new AlreadyBusyLock(target_id, expiration_date, node.toString());
+				return new AlreadyBusyLock(target_id, expiration_date, node.toString(), node.getUUID());
 			} else {
 				return null;
 			}
@@ -425,20 +424,30 @@ public final class LockEngine {
 			JsonObject jo = block.getJsonDatas().getAsJsonObject();
 			String target_id = jo.get("target_id").getAsString();
 			long expiration_date = jo.get("expiration_date").getAsLong();
+			String external_node_uuid = jo.get("external_node_uuid").getAsString();
+			
+			Node locker_node = source_node;
+			if (external_node_uuid != null) {
+				locker_node = pool_manager.get(UUID.fromString(external_node_uuid));
+				if (locker_node == null) {
+					locker_node = source_node;
+				}
+			}
 			
 			if (log.isTraceEnabled()) {
-				log.trace("Receive an Already busy for \"" + target_id + "\" until " + Loggers.dateLog(expiration_date) + " by " + source_node);
+				log.trace("Receive an Already busy for \"" + target_id + "\" until " + Loggers.dateLog(expiration_date) + " by " + locker_node);
 			}
 			
 			node_events_by_target_id.computeIfAbsent(target_id, _id -> {
 				return new ArrayList<>(1);
-			}).add(new NodeEvent(source_node, expiration_date));
+			}).add(new NodeEvent(locker_node, expiration_date));
 		}
 		
 		public DataBlock createRequest(AlreadyBusyLock busy_lock) {
 			JsonObject jo = new JsonObject();
 			jo.addProperty("target_id", busy_lock.target_id);
 			jo.addProperty("expiration_date", busy_lock.expiration_date);
+			jo.addProperty("external_node_uuid", busy_lock.locker_node.toString());
 			return new DataBlock(this, jo);
 		}
 		
