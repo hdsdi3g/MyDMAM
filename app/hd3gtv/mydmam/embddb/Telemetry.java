@@ -139,8 +139,6 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		
 	}
 	
-	// TODO AJS
-	
 	public void dumpLastResultsToFile() throws IOException {
 		final String this_uuid = embddb.poolmanager.getUUIDRef().toString();
 		

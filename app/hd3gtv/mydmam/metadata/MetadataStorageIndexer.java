@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -46,7 +44,9 @@ import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.tools.FunctionWithException;
 import hd3gtv.tools.StoppableProcessing;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 public class MetadataStorageIndexer implements StoppableProcessing {
 	
@@ -62,12 +62,15 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 	private boolean cancel_if_not_found_reprocess;
 	private boolean skip_if_found_reprocess;
 	
+	private ThreadPoolExecutorFactory executor;
+	
 	public MetadataStorageIndexer(boolean force_refresh, boolean no_parallelized) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
 		process_list = new ArrayList<SourcePathIndexerElement>();
 		this.no_parallelized = no_parallelized;
 		metadata_extractor_to_reprocess = null;
+		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), 1000);
 	}
 	
 	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
@@ -145,39 +148,40 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			es_bulk.setWindowUpdateSize(process_count);
 		}
 		
-		ThreadPoolExecutor executor_pool = new ThreadPoolExecutor(process_count, process_count, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(process_list.size()));
+		final String STOP = "Stop process";
 		
-		process_list.forEach(item_to_analyst -> {
-			executor_pool.execute(() -> {
-				try {
-					if (isWantToStopCurrentProcessing()) {
-						executor_pool.getQueue().clear();
-						return;
-					}
-					
-					if (processFoundedElement(item_to_analyst, es_bulk, current_create_job_list) == false) {
-						executor_pool.getQueue().clear();
-						return;
-					}
-					
-					if (progression != null) {
-						synchronized (lock) {
-							progression.updateProgress(pos.getAndIncrement(), process_list.size());
-						}
-					}
-				} catch (Exception e) {
-					Loggers.Metadata.warn("Can't analyst metadatas for " + item_to_analyst.toString(), e);
+		FunctionWithException<SourcePathIndexerElement, Void> processor = item_to_analyst -> {
+			if (isWantToStopCurrentProcessing()) {
+				throw new Exception(STOP);
+			}
+			
+			if (processFoundedElement(item_to_analyst, es_bulk, current_create_job_list) == false) {
+				throw new Exception(STOP);
+			}
+			
+			if (progression != null) {
+				synchronized (lock) {
+					progression.updateProgress(pos.getAndIncrement(), process_list.size());
 				}
-			});
+			}
+			return null;
+		};
+		
+		boolean is_stopped = executor.multipleProcessing(process_list.stream(), processor, 0, TimeUnit.SECONDS).filter(result -> {
+			return result.error != null;
+		}).peek(result -> {
+			if (result.error.getMessage().equalsIgnoreCase(STOP) == false) {
+				Loggers.Metadata.warn("Can't analyst metadatas for " + result.source.toString(), result.error);
+			}
+		}).anyMatch(result -> {
+			return result.error.getMessage().equalsIgnoreCase(STOP);
 		});
 		
-		executor_pool.shutdown();
-		try {
-			executor_pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-		} catch (InterruptedException e) {
+		if (is_stopped) {
+			return null;
 		}
-		es_bulk.terminateBulk();
 		
+		es_bulk.terminateBulk();
 		return createJobs(current_create_job_list);
 	}
 	

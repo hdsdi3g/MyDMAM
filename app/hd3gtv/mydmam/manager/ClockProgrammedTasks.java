@@ -21,18 +21,16 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
  * Execute tasks daily.
@@ -41,8 +39,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	
 	private static final int MAX_QUEUED_TASKS = 100;
 	private ScheduledExecutorService scheduled_ex_service;
-	private ThreadPoolExecutor executor_pool;
-	private BlockingQueue<Runnable> executor_pool_queue;
+	private ThreadPoolExecutorFactory executor;
 	private AppManager manager;
 	private List<TaskWrapper> all_tasks;
 	
@@ -51,18 +48,13 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		all_tasks = Collections.synchronizedList(new ArrayList<>());
 		
 		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor();
-		executor_pool_queue = new LinkedBlockingQueue<Runnable>(MAX_QUEUED_TASKS);
 		initThreadPoolExecutor();
 		
 		manager.registerInstanceStatusAction(this);
 	}
 	
 	private void initThreadPoolExecutor() {
-		executor_pool_queue.clear();
-		executor_pool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, executor_pool_queue);
-		executor_pool.setRejectedExecutionHandler((r, executor) -> {
-			Loggers.Manager.warn("Too many tasks to be executed on the ClockProgrammedTasks at the same time ! This will not proceed: " + r);
-		});
+		executor = new ThreadPoolExecutorFactory("ClockProgrammedTask", MAX_QUEUED_TASKS);
 	}
 	
 	public String getReferenceKey() {
@@ -80,21 +72,11 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			task.stopNextScheduling();
 		});
 		
-		if (executor_pool.isShutdown()) {
-			return;
-		}
-		
-		executor_pool.shutdown();
-		try {
-			executor_pool.awaitTermination(timeout, unit);
-		} catch (InterruptedException e) {
-			Loggers.Manager.error("Can't stop executor", e);
-			executor_pool.shutdownNow();
-		}
+		executor.awaitTerminationAndShutdown(timeout, unit);
 	}
 	
 	boolean isActive() {
-		return executor_pool.isShutdown() == false;
+		return executor.isRunning();
 	}
 	
 	void startAllProgrammed() {
@@ -115,7 +97,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		all_tasks.forEach(task -> {
 			jo_tasks.add(task.key, task.toJson());
 		});
-		result.add("executor", InstanceStatus.getExecutorStatus(executor_pool, executor_pool_queue));
+		result.add("executor", executor.actualStatustoJson());
 		result.add("tasks", jo_tasks);
 		return result;
 	}
@@ -231,12 +213,12 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		
 		private void doAnAction(String order) throws Exception {
 			if (order.equalsIgnoreCase("start_now")) {
-				if (executor_pool.isShutdown()) {
+				if (executor.isRunning() == false) {
 					return;
 				}
 				Loggers.ClkPrgmTsk.info("Manual start task \"" + name + "\" via InstanceAction");
 				
-				executor_pool.execute(() -> {
+				executor.waitForRun(() -> {
 					executeAndSetNext();
 				});
 			} else if (order.equalsIgnoreCase("unschedule")) {
@@ -290,7 +272,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		}
 		
 		private void setNextScheduling(boolean add_retry_after) {
-			if (executor_pool.isShutdown()) {
+			if (executor.isRunning() == false) {
 				return;
 			}
 			
@@ -303,12 +285,12 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			Loggers.ClkPrgmTsk.debug("Create the next scheduling for \"" + name + "\" in " + (time_to_wait / 1000l) + " seconds");
 			
 			next_scheduled = scheduled_ex_service.schedule(() -> {
-				if (executor_pool.isShutdown()) {
+				if (executor.isRunning() == false) {
 					return;
 				}
 				Loggers.ClkPrgmTsk.debug("The time to wait is done for \"" + name + "\", it's start to queue the task in executor.");
 				
-				executor_pool.execute(() -> {
+				executor.waitForRun(() -> {
 					executeAndSetNext();
 				});
 			}, time_to_wait, TimeUnit.MILLISECONDS);

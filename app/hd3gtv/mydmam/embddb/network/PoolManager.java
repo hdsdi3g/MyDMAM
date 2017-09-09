@@ -28,9 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -51,6 +48,7 @@ import hd3gtv.tools.InteractiveConsoleOrder;
 import hd3gtv.tools.InteractiveConsoleOrderProducer;
 import hd3gtv.tools.PressureMeasurement;
 import hd3gtv.tools.TableList;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 public class PoolManager implements InteractiveConsoleOrderProducer {
 	
@@ -67,9 +65,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	@GsonIgnore
 	private AsynchronousChannelGroup channel_group;
 	@GsonIgnore
-	private BlockingQueue<Runnable> executor_pool_queue;
-	@GsonIgnore
-	private ThreadPoolExecutor executor_pool;
+	private ThreadPoolExecutorFactory executor;
 	
 	@GsonIgnore
 	private ShutdownHook shutdown_hook;
@@ -118,12 +114,8 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		
 		local_servers = new ArrayList<>();
 		
-		executor_pool_queue = new LinkedBlockingQueue<Runnable>(thread_pool_queue_size);
-		executor_pool = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), thread_pool_queue_size, TimeUnit.MILLISECONDS, executor_pool_queue);
-		executor_pool.setRejectedExecutionHandler((r, executor) -> {
-			log.warn("Too many task to be executed at the same time ! This will not proceed: " + r);
-		});
-		channel_group = AsynchronousChannelGroup.withThreadPool(executor_pool);
+		executor = new ThreadPoolExecutorFactory("PoolManager", Thread.MAX_PRIORITY - 1, thread_pool_queue_size);
+		channel_group = AsynchronousChannelGroup.withThreadPool(executor.getThreadPoolExecutor());
 		
 		pressure_measurement_sended = new PressureMeasurement();
 		pressure_measurement_recevied = new PressureMeasurement();
@@ -286,14 +278,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			s.waitToStop();
 		});
 		
-		executor_pool.shutdown();
-		
-		try {
-			executor_pool.awaitTermination(500, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException e) {
-			log.error("Can't wait to stop executor waiting list", e);
-			executor_pool.shutdownNow();
-		}
+		executor.awaitTerminationAndShutdown(500, TimeUnit.MILLISECONDS);
 		
 		try {
 			Runtime.getRuntime().removeShutdownHook(shutdown_hook);
@@ -302,13 +287,10 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	}
 	
 	void executeInThePool(Runnable r) {
-		if (executor_pool == null) {
+		if (executor == null) {
 			return;
 		}
-		if (executor_pool.isShutdown() | executor_pool.isTerminated() | executor_pool.isTerminated()) {
-			return;
-		}
-		executor_pool.execute(r);
+		executor.waitForRun(r);
 	}
 	
 	public boolean isListenToThis(InetSocketAddress server) {
@@ -723,21 +705,16 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		console.addOrder("ql", "Queue list", "Display actual queue list", getClass(), (param, out) -> {
 			out.println("Executor status:");
 			TableList table = new TableList();
-			table.addRow("Active", String.valueOf(executor_pool.getActiveCount()));
-			table.addRow("Max capacity", String.valueOf(executor_pool_queue.remainingCapacity()));
-			table.addRow("Completed", String.valueOf(executor_pool.getCompletedTaskCount()));
-			table.addRow("Core pool", String.valueOf(executor_pool.getCorePoolSize()));
-			table.addRow("Pool", String.valueOf(executor_pool.getPoolSize()));
-			table.addRow("Largest pool", String.valueOf(executor_pool.getLargestPoolSize()));
-			table.addRow("Maximum pool", String.valueOf(executor_pool.getMaximumPoolSize()));
+			executor.toTableList(table);
 			table.print(out);
 			out.println();
 			
-			if (executor_pool_queue.isEmpty()) {
+			List<Runnable> queue = executor.getActualQueue();
+			if (queue.isEmpty()) {
 				out.println("No waiting task to display in queue.");
 			} else {
-				out.println("Display " + executor_pool_queue.size() + " waiting tasks.");
-				executor_pool_queue.stream().forEach(r -> {
+				out.println("Display " + queue.size() + " waiting tasks.");
+				queue.forEach(r -> {
 					out.println(" * " + r.toString() + " in " + r.getClass().getName());
 				});
 			}

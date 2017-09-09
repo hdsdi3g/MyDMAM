@@ -20,12 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
@@ -39,6 +34,8 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.web.NodeJSBabel.Operation;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.FunctionWithException;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 import play.exceptions.NoRouteFoundException;
 import play.libs.IO;
 import play.mvc.Router;
@@ -51,7 +48,7 @@ public class JSSourceModule {
 	private String module_name;
 	private File module_path;
 	
-	private ThreadPoolExecutor global_executor_pool;
+	private ThreadPoolExecutorFactory executor;
 	
 	private ArrayList<JSSourceDatabaseEntry> altered_source_files;
 	private ArrayList<JSSourceDatabaseEntry> new_source_files;
@@ -99,7 +96,7 @@ public class JSSourceModule {
 		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "_" + module_name + "_" + "concated.js.gz");
 		reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 		
-		global_executor_pool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100));
+		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), 100);
 		
 		Loggers.Play_JSSource.debug("Init source module, module_name: " + module_name + ", module_path: " + module_path + ", transformed_directory: " + transformed_directory + ", reduced_directory: " + reduced_directory + ", allfiles_concated_file: " + allfiles_concated_file + ", reduced_declaration_file: " + reduced_declaration_file);
 	}
@@ -203,86 +200,67 @@ public class JSSourceModule {
 				Loggers.Play_JSSource.info("Start Babel processing for " + file_count + " JS files, in module " + module_name);
 			}
 			
-			int core_pool_size = Math.min(file_count, Runtime.getRuntime().availableProcessors());
-			ThreadPoolExecutor executor_pool = new ThreadPoolExecutor(core_pool_size, Runtime.getRuntime().availableProcessors(), 100, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(must_process_source_files.size()));
-			
-			final Map<JSSourceDatabaseEntry, Exception> failed_list = Collections.synchronizedMap(new LinkedHashMap<JSSourceDatabaseEntry, Exception>(file_count));
-			
-			must_process_source_files.forEach(jsentry -> {
-				Runnable r = () -> {
-					long start_time = System.currentTimeMillis();
-					
-					String source_scope = jsentry.computeJSScope();
-					File source_file = jsentry.getRealFile(module_path);
-					
-					Loggers.Play_JSSource.trace("Prepare processing for " + jsentry + ", with source_scope: " + source_scope + ", source_file: " + source_file);
-					
+			final FunctionWithException<JSSourceDatabaseEntry, String> jsFileProcessing = jsentry -> {
+				long start_time = System.currentTimeMillis();
+				
+				String source_scope = jsentry.computeJSScope();
+				File source_file = jsentry.getRealFile(module_path);
+				
+				Loggers.Play_JSSource.trace("Prepare processing for " + jsentry + ", with source_scope: " + source_scope + ", source_file: " + source_file);
+				
+				JSProcessor processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath(), node_js_babel);
+				
+				if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
 					try {
-						JSProcessor processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath(), node_js_babel);
-						
-						if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
-							try {
-								/**
-								 * Process file JSX -> vanilla JS
-								 */
-								Loggers.Play_JSSource.trace("Transform JSX processing for " + jsentry);
-								processor.transformJSX();
-							} catch (BabelException e) {
-								processor.wrapTransformationError(e);
-							}
-						}
-						
-						if (source_scope != null) {
-							/**
-							 * Add JS wrapper for place source file in a scope
-							 */
-							processor.wrapScopeDeclaration(source_scope, jsentry.getHash());
-						}
-						
 						/**
-						 * Write current processed file. If this file is not processed, it will be a simple copy here.
+						 * Process file JSX -> vanilla JS
 						 */
-						processor.writeTo(jsentry.computeTransformedFilepath(module_path, transformed_directory), Operation.TRANSFORM);
-						
-						try {
-							/**
-							 * Reduce the JS to a production standard.
-							 */
-							Loggers.Play_JSSource.trace("Reduce JS processing for " + jsentry);
-							processor.reduceJS();
-						} catch (BabelException e) {
-							processor.wrapTransformationError(e);
-						}
-						
-						processor.writeTo(jsentry.computeReducedFilepath(module_path, reduced_directory), Operation.REDUCE);
-					} catch (Exception e) {
-						failed_list.put(jsentry, e);
+						Loggers.Play_JSSource.trace("Transform JSX processing for " + jsentry);
+						processor.transformJSX();
+					} catch (BabelException e) {
+						processor.wrapTransformationError(e);
 					}
-					
-					if (play_bootstrap.getJSRessourceProcessTimeLog() != null) {
-						play_bootstrap.getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
-					}
-				};
-				executor_pool.execute(r);
-			});
-			
-			try {
-				executor_pool.shutdown();
+				}
+				
+				if (source_scope != null) {
+					/**
+					 * Add JS wrapper for place source file in a scope
+					 */
+					processor.wrapScopeDeclaration(source_scope, jsentry.getHash());
+				}
 				
 				/**
-				 * Wait 3 seconds for all tasks (+1), one by one, is a very low time tolerance...
+				 * Write current processed file. If this file is not processed, it will be a simple copy here.
 				 */
-				executor_pool.awaitTermination(3 * (file_count + 1), TimeUnit.SECONDS);
-			} catch (InterruptedException e) {
-				throw new IOException("Babel processing is blocked (too long time for do all jobs)", e);
-			}
-			
-			if (failed_list.isEmpty() == false) {
-				failed_list.forEach((jsentry, e) -> {
-					Loggers.Play_JSSource.error("Can't process with babel " + jsentry.getRealFile(module_path).getAbsolutePath(), e);
-				});
+				processor.writeTo(jsentry.computeTransformedFilepath(module_path, transformed_directory), Operation.TRANSFORM);
 				
-				throw new IOException("Babel processing exception for " + failed_list.size() + " problematic file(s)");
+				try {
+					/**
+					 * Reduce the JS to a production standard.
+					 */
+					Loggers.Play_JSSource.trace("Reduce JS processing for " + jsentry);
+					processor.reduceJS();
+				} catch (BabelException e) {
+					processor.wrapTransformationError(e);
+				}
+				
+				processor.writeTo(jsentry.computeReducedFilepath(module_path, reduced_directory), Operation.REDUCE);
+				
+				if (play_bootstrap.getJSRessourceProcessTimeLog() != null) {
+					play_bootstrap.getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
+				}
+				
+				return jsentry.getRealFile(module_path).getPath();
+			};
+			
+			long fail_count = executor.multipleProcessing(must_process_source_files.stream(), jsFileProcessing, 3, TimeUnit.SECONDS).filter(result -> {
+				return result.error != null;
+			}).peek(result -> {
+				Loggers.Play_JSSource.error("Can't process with babel " + result.source.getRealFile(module_path).getAbsolutePath(), result.error);
+			}).count();
+			
+			if (fail_count > 0) {
+				throw new IOException("Babel processing exception for " + fail_count + " problematic file(s)");
 			}
 		}
 		
@@ -349,7 +327,7 @@ public class JSSourceModule {
 		/**
 		 * Concate all reduced files, in async mode
 		 */
-		global_executor_pool.execute(() -> {
+		executor.waitForRun(() -> {
 			Loggers.Play_JSSource.info("Concate all reduced files to a GZip file, allfiles_concated_file: " + allfiles_concated_file + ", module_name: " + module_name);
 			
 			FileOutputStream concated_out_stream_gzipped = null;
@@ -392,7 +370,7 @@ public class JSSourceModule {
 			/**
 			 * After that, save the internal database.
 			 */
-			global_executor_pool.execute(() -> {
+			executor.waitForRun(() -> {
 				try {
 					getDatabase().save();
 				} catch (IOException e) {
