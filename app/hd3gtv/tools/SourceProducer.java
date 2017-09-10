@@ -11,14 +11,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 9 sept. 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 10 sept. 2017
  * 
 */
 package hd3gtv.tools;
 
+/**
+ * @param This produce <T>
+ */
 @FunctionalInterface
-public interface FunctionWithException<T, R> {
+public interface SourceProducer<T> {
 	
-	public R get(T item) throws Throwable;
+	void onAfterDistribute(T item);
+	
+	default void ifCantDistribute(T item) {
+	}
 	
 }

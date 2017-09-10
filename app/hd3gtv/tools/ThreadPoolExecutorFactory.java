@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
@@ -64,9 +65,9 @@ public class ThreadPoolExecutorFactory {
 		queue = new LinkedBlockingQueue<Runnable>(queue_max_size);
 		
 		executor = new ThreadPoolExecutor(MAX_POOL_SIZE, MAX_POOL_SIZE, 0L, TimeUnit.MILLISECONDS, queue);
-		/*executor.setRejectedExecutionHandler((r, executor) -> {
+		executor.setRejectedExecutionHandler((r, executor) -> {
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
-		});*/
+		});
 		executor.setThreadFactory(runnable -> {
 			Thread t = new Thread(runnable);
 			t.setDaemon(true);
@@ -105,7 +106,7 @@ public class ThreadPoolExecutorFactory {
 		return executor;
 	}
 	
-	public boolean waitForRun(Runnable r) {// TODO rename waitForRun
+	public boolean waitForRun(Runnable r) {
 		if (r == null) {
 			return false;
 		}
@@ -134,6 +135,87 @@ public class ThreadPoolExecutorFactory {
 			log.error("Can't wait to stop executor...", e);
 			executor.shutdownNow();
 		}
+	}
+	
+	public class SourcedCompletableFuture<T, R> {
+		public final T processed_item;
+		public final CompletableFuture<R> c_future;
+		public final long queuing_date;
+		private long start_date;
+		private long end_date;
+		private Throwable processing_error;
+		
+		private SourcedCompletableFuture(T processed_item, FunctionWithException<T, R> processor) {
+			this.processed_item = processed_item;
+			this.c_future = CompletableFuture.supplyAsync(() -> {
+				try {
+					start_date = System.currentTimeMillis();
+					R result = processor.get(processed_item);
+					end_date = System.currentTimeMillis();
+					return result;
+				} catch (Throwable e) {
+					end_date = System.currentTimeMillis();
+					processing_error = e;
+					return null;
+				}
+			}, executor);
+			queuing_date = System.currentTimeMillis();
+		}
+		
+		/**
+		 * queuing + processing
+		 * @return -1 if no process
+		 */
+		public long getTotalProcessTime() {
+			if (end_date > 0) {
+				return end_date - queuing_date;
+			} else {
+				return -1;
+			}
+		}
+		
+		/**
+		 * Only processing
+		 * @return -1 if no process
+		 */
+		public long getProcessTime() {
+			if (end_date > 0) {
+				return end_date - start_date;
+			} else {
+				return -1;
+			}
+		}
+		
+		public boolean hasProcessingError() {
+			if (c_future.isDone() == false) {
+				return false;
+			}
+			return processing_error != null;
+		}
+		
+		public Throwable getProcessingError() {
+			return processing_error;
+		}
+	}
+	
+	/**
+	 * @param items_to_process called by the CompletableFuture return.
+	 * @return the CompletableFuture for preparation (queue stream processing)
+	 * @throws RejectedExecutionException if the initial preparation can't to be done.
+	 */
+	public <T, R> CompletableFuture<Void> asyncProcessing(Supplier<Stream<T>> items_to_process, FunctionWithException<T, R> processor, Consumer<Stream<SourcedCompletableFuture<T, R>>> allProcess) {
+		return CompletableFuture.supplyAsync(() -> {
+			allProcess.accept(items_to_process.get().map(item -> {
+				while (true) {
+					try {
+						return new SourcedCompletableFuture<T, R>(item, processor);
+					} catch (RejectedExecutionException e) {
+						waitToCanToAdd();
+					}
+				}
+			}));
+			return null;
+		}, executor);
 	}
 	
 	private class IntermediateProcessor<T, R> {
@@ -197,6 +279,15 @@ public class ThreadPoolExecutorFactory {
 		}).map(c -> {
 			return c.get(timeout_for_each_task, unit);
 		});
+	}
+	
+	/**
+	 * Blocking !
+	 * @param timeout_for_each_task can be null
+	 * @return all results, never null.
+	 */
+	public <T, R> Stream<ProcessingResult<T, R>> multipleProcessing(Stream<T> items_to_process, FunctionWithException<T, R> processor) {
+		return multipleProcessing(items_to_process, processor, 0, TimeUnit.SECONDS);
 	}
 	
 	public void toTableList(TableList table) {

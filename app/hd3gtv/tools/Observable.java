@@ -11,14 +11,17 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 9 sept. 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 10 sept. 2017
  * 
 */
 package hd3gtv.tools;
 
 @FunctionalInterface
-public interface FunctionWithException<T, R> {
+/**
+ * @param This consume <T> from SourceProducer<T>
+ */
+public interface Observable<T, S extends SourceProducer<T>> {
 	
-	public R get(T item) throws Throwable;
+	public void onChange(S source, T new_value);
 	
 }
