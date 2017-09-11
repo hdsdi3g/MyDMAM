@@ -193,7 +193,7 @@ public final class InstanceStatus {
 			user_language = System.getProperty("user.language", "(No set)");
 			user_name = System.getProperty("user.name", "(No set)");
 			user_timezone = System.getProperty("user.timezone", "(No set)");
-			cpucount = Runtime.getRuntime().availableProcessors();
+			cpucount = MyDMAM.CPU_COUNT;
 			starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
 			
 			host_addresses = new ArrayList<String>();

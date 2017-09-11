@@ -35,6 +35,7 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 
 @GsonIgnore
@@ -43,7 +44,6 @@ public class ThreadPoolExecutorFactory {
 	private static Logger log = Logger.getLogger(ThreadPoolExecutorFactory.class);
 	private final LinkedBlockingQueue<Runnable> queue;
 	private final ThreadPoolExecutor executor;
-	private final static int MAX_POOL_SIZE = Runtime.getRuntime().availableProcessors();
 	
 	/**
 	 * @param thread_priority @see Thread.MIN_PRIORITY and Thread.MAX_PRIORITY
@@ -60,11 +60,11 @@ public class ThreadPoolExecutorFactory {
 			throw new IndexOutOfBoundsException("thread_priority can be < " + Thread.MIN_PRIORITY);
 		}
 		if (queue_max_size < 1) {
-			queue_max_size = MAX_POOL_SIZE;
+			queue_max_size = MyDMAM.CPU_COUNT;
 		}
 		queue = new LinkedBlockingQueue<Runnable>(queue_max_size);
 		
-		executor = new ThreadPoolExecutor(MAX_POOL_SIZE, MAX_POOL_SIZE, 0L, TimeUnit.MILLISECONDS, queue);
+		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, queue);
 		executor.setRejectedExecutionHandler((r, executor) -> {
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
 		});
@@ -247,7 +247,7 @@ public class ThreadPoolExecutorFactory {
 	 * Blocking
 	 */
 	private void waitToCanToAdd() {
-		while (queue.remainingCapacity() < MAX_POOL_SIZE | executor.isTerminated()) {
+		while (queue.remainingCapacity() < MyDMAM.CPU_COUNT | executor.isTerminated()) {
 			try {
 				Thread.sleep(1);
 			} catch (InterruptedException e) {
