@@ -44,15 +44,13 @@ public final class StoreItem {
 	private long updated;
 	private long deleted;
 	
-	/**
-	 * MurmurHash3_x64_128 (Murmur3F) on _id
-	 */
-	byte[] getKey() {
-		return computeKey(_id);
-	}
+	private transient StoreItemKey key;
 	
-	static byte[] computeKey(String _id) {
-		return Hashing.murmur3_128().hashString(_id).asBytes();
+	StoreItemKey getKey() {
+		if (key == null) {
+			key = new StoreItemKey(_id);
+		}
+		return key;
 	}
 	
 	/**
@@ -78,13 +76,17 @@ public final class StoreItem {
 	
 	public static void writeNextBlock(DataOutputStream daos, byte[] value) throws IOException {
 		daos.writeInt(value.length);
-		daos.write(value);
+		if (value.length > 0) {
+			daos.write(value);
+		}
 	}
 	
 	public static byte[] readNextBlock(DataInputStream dis) throws IOException {
 		int size = dis.readInt();
 		byte[] b = new byte[size];
-		dis.read(b);
+		if (size > 0) {
+			dis.read(b);
+		}
 		return b;
 	}
 	
@@ -151,7 +153,7 @@ public final class StoreItem {
 	}
 	
 	public StoreItem setPayload(byte[] payload) {
-		this.payload = requireNonEmpty(Objects.requireNonNull(payload, "\"payload\" can't to be null"), "\"payload\" can't to be empty");
+		this.payload = Objects.requireNonNull(payload, "\"payload\" can't to be null");
 		updated = System.currentTimeMillis();
 		return this;
 	}
@@ -190,25 +192,32 @@ public final class StoreItem {
 		return updated;
 	}
 	
-	/**
-	 * Or Long.MAX if not TTL, or Long.MIN if totally expired
-	 */
-	public long getRemainingTTL() {// TODO badly used !!
-		if (deleted == 0) {
-			return Long.MAX_VALUE;
-		}
-		long rem = deleted - System.currentTimeMillis();
-		if (rem > 0) {
-			return rem;
-		} else {
-			return Long.MIN_VALUE;
-		}
+	public boolean isDeleted() {
+		return isDeletedPurgable(0);
 	}
 	
-	long getDeleted() {
+	boolean isDeletedPurgable(long grace_time) {
+		return ((deleted + grace_time) - System.currentTimeMillis()) < 0;
+	}
+	
+	long getDeleteDate() {
 		return deleted;
 	}
 	
+	/**
+	 * @return 0 if deleted
+	 */
+	long getActualTTL() {
+		if (isDeleted()) {
+			return 0;
+		}
+		
+		return deleted - System.currentTimeMillis();
+	}
+	
+	/**
+	 * @param ttl if 0, no TTL, else real TTL (positive or negative)
+	 */
 	void setTTL(long ttl) {
 		if (ttl != 0) {
 			deleted = System.currentTimeMillis() + ttl;
@@ -223,14 +232,46 @@ public final class StoreItem {
 		sb.append(_id);
 		sb.append(":");
 		sb.append(path);
-		sb.append(" (");
-		sb.append(payload.length);
-		sb.append(" bytes)");
+		if (isDeleted()) {
+			sb.append(" DELETED");
+		} else {
+			sb.append(" (");
+			sb.append(payload.length);
+			sb.append(" bytes)");
+		}
 		return sb.toString();
 	}
 	
 	public String getPayloadHexview() {
 		return Hexview.tracelog(payload);
+	}
+	
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((_id == null) ? 0 : _id.hashCode());
+		return result;
+	}
+	
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		StoreItem other = (StoreItem) obj;
+		if (_id == null) {
+			if (other._id != null) {
+				return false;
+			}
+		} else if (!_id.equals(other._id)) {
+			return false;
+		}
+		return true;
 	}
 	
 }

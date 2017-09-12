@@ -39,33 +39,23 @@ public final class Store<T> {
 		}
 	}
 	
-	public Store<T> put(T item) {
+	public Store<T> put(T item) throws IOException {
 		if (item == null) {
 			throw new NullPointerException("\"item\" can't to be null");
 		}
-		try {
-			backend.put(item_factory.toItem(item), 0);
-		} catch (IOException e) {
-			// TODO thown general error
-			log.error("Can't put item", e);
-		}
+		backend.put(item_factory.toItem(item), 0);
 		return this;
 	}
 	
-	public Store<T> put(T item, long ttl, TimeUnit unit) {
+	public Store<T> put(T item, long ttl, TimeUnit unit) throws IOException {
 		if (item == null) {
 			throw new NullPointerException("\"item\" can't to be null");
 		}
-		try {
-			backend.put(item_factory.toItem(item), unit.toMillis(ttl));
-		} catch (IOException e) {
-			// TODO thown general error
-			log.error("Can't put item", e);
-		}
+		backend.put(item_factory.toItem(item), unit.toMillis(ttl));
 		return this;
 	}
 	
-	public Store<T> removeById(String _id) {
+	public Store<T> removeById(String _id) throws IOException {
 		if (_id == null) {
 			throw new NullPointerException("\"_id\" can't to be null");
 		}
@@ -73,7 +63,7 @@ public final class Store<T> {
 		return this;
 	}
 	
-	public Store<T> removeAllByPath(String path) {
+	public Store<T> removeAllByPath(String path) throws IOException {
 		if (path == null) {
 			throw new NullPointerException("\"path\" can't to be null");
 		}
@@ -81,43 +71,32 @@ public final class Store<T> {
 		return this;
 	}
 	
-	public Store<T> truncateDatabase() {
+	public Store<T> truncateDatabase() throws IOException {
 		backend.truncateDatabase();
 		return this;
 	}
 	
-	public Stream<String> listAll() {
-		return backend.listAll();
-	}
-	
-	public Stream<String> listByPath(String path) {
-		if (path == null) {
-			throw new NullPointerException("\"path\" can't to be null");
-		}
-		return backend.listByPath(path);
-	}
-	
-	public boolean exists(String _id) {
+	public boolean exists(String _id) throws IOException {
 		if (_id == null) {
 			throw new NullPointerException("\"_id\" can't to be null");
 		}
 		return backend.exists(_id);
 	}
 	
-	public Stream<T> getAll() {
+	public Stream<T> getAll() throws IOException {
 		return backend.getAll().map(item -> {
 			return item_factory.getFromItem(item);
 		});
 	}
 	
-	public T get(String _id) {
+	public T get(String _id) throws IOException {
 		if (_id == null) {
 			throw new NullPointerException("\"_id\" can't to be null");
 		}
 		return item_factory.getFromItem(backend.get(_id));
 	}
 	
-	public Stream<T> getByPath(String path) {
+	public Stream<T> getByPath(String path) throws IOException {
 		if (path == null) {
 			throw new NullPointerException("\"path\" can't to be null");
 		}

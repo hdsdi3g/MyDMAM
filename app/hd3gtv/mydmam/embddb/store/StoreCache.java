@@ -18,15 +18,15 @@ package hd3gtv.mydmam.embddb.store;
 
 public interface StoreCache {
 	
-	public void put(String name, byte[] datas, long ttl);
+	public void put(StoreItemKey key, byte[] datas, long ttl);
 	
-	public void putIfExists(String name, byte[] datas, long ttl);
+	public void putIfExists(StoreItemKey key, byte[] datas, long ttl);
 	
-	public byte[] get(String name);
+	public byte[] get(StoreItemKey key);
 	
-	public boolean has(String name);
+	public boolean has(StoreItemKey key);
 	
-	public void remove(String name);
+	public void remove(StoreItemKey key);
 	
 	public void purgeAll();
 	

@@ -17,10 +17,16 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
+import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
@@ -36,10 +42,7 @@ public abstract class StoreBackend {
 	protected final String database_name;
 	private StoreCache read_cache;
 	
-	/**
-	 * key -> Item
-	 */
-	private final ConcurrentHashMap<byte[], StoreItem> commit_log_cache;
+	private ConcurrentHashMap<StoreItemKey, StoreItem> commit_log_cache;
 	private long max_size_for_cached_commit_log;
 	private long grace_period_for_expired_items;
 	
@@ -65,8 +68,8 @@ public abstract class StoreBackend {
 			throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1");
 		}
 		
-		rotateAndReadCommitlog(injectCurrentRawDatasInDatabase);
-		removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
+		_rotateAndReadCommitlog(injectCurrentRawDatasInDatabase);
+		_removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
 	}
 	
 	private long getEstimateCommitLogCacheSize() {
@@ -81,63 +84,136 @@ public abstract class StoreBackend {
 		return commit_log_cache.reduceValuesToLong(MyDMAM.CPU_COUNT, transformer, 0, reducer);
 	}
 	
-	// TODO use cache
-	// TODO grace period with no store in commit log
-	
 	/**
 	 * @param ttl in ms
 	 * @throws IOException
 	 */
 	void put(StoreItem item, long ttl) throws IOException {
 		item.setTTL(ttl);
-		byte[] key = item.getKey();
+		StoreItemKey key = item.getKey();
 		commit_log_cache.put(key, item);
+		read_cache.remove(key);
 		
-		writeInCommitlog(key, item.toRawContent());
+		_writeInCommitlog(key, item.toRawContent());
 		if (getEstimateCommitLogCacheSize() > max_size_for_cached_commit_log) {
 			doDurableWrite();
 		}
 	}
 	
-	void removeById(String _id) {
-		// TODO
+	StoreItem get(String _id) throws IOException {
+		StoreItemKey key = new StoreItemKey(_id);
+		
+		StoreItem item = commit_log_cache.get(key);
+		if (item != null) {
+			if (item.isDeleted() == false) {
+				return item;
+			} else {
+				return null;
+			}
+		}
+		
+		byte[] datas = read_cache.get(key);
+		if (datas != null) {
+			return StoreItem.fromRawContent(datas);
+		}
+		
+		datas = _read(key);
+		if (datas != null) {
+			item = StoreItem.fromRawContent(datas);
+			read_cache.put(key, datas, item.getActualTTL());
+			return item;
+		}
+		
+		return null;
 	}
 	
-	void removeAllByPath(String path) {
-		// TODO
+	boolean exists(String _id) throws IOException {
+		StoreItemKey key = new StoreItemKey(_id);
+		
+		if (commit_log_cache.containsKey(key)) {
+			return true;
+		}
+		if (read_cache.has(key)) {
+			return true;
+		}
+		if (_contain(key)) {
+			return true;
+		}
+		return false;
 	}
 	
-	void truncateDatabase() {
-		// TODO
+	void removeById(String _id) throws IOException {
+		StoreItemKey key = new StoreItemKey(_id);
+		
+		if (commit_log_cache.containsKey(key)) {
+			StoreItem actual_item = commit_log_cache.get(key);
+			if (actual_item.isDeleted() == false) {
+				put(actual_item.setPayload(new byte[0]), -1);
+			}
+		} else {
+			StoreItem actual_item = get(_id);
+			if (actual_item != null) {
+				put(actual_item.setPayload(new byte[0]), -1);
+			}
+		}
+	}
+	
+	private Function<byte[], StoreItem> mapToStoreItemAndPushToReadCache = datas -> {
+		StoreItem item = StoreItem.fromRawContent(datas);
+		read_cache.put(item.getKey(), datas, item.getActualTTL());
+		return item;
+	};
+	
+	private Predicate<StoreItem> isActuallyNotExistsInCommitLog = item -> {
+		return commit_log_cache.containsKey(item.getKey()) == false;
+	};
+	
+	Stream<StoreItem> getAll() throws IOException {
+		List<StoreItem> stored_items = _getAllDatas().map(mapToStoreItemAndPushToReadCache).filter(isActuallyNotExistsInCommitLog).collect(Collectors.toList());
+		
+		ArrayList<StoreItem> items = new ArrayList<>(commit_log_cache.values());
+		items.addAll(stored_items);
+		
+		return items.stream().distinct();
+	}
+	
+	Stream<StoreItem> getByPath(String path) throws IOException {
+		List<StoreItem> stored_items = _getDatasByPath(path).map(mapToStoreItemAndPushToReadCache).filter(isActuallyNotExistsInCommitLog).collect(Collectors.toList());
+		
+		List<StoreItem> commited_items = commit_log_cache.values().stream().filter(item -> {
+			return item.getPath().startsWith(path);
+		}).collect(Collectors.toList());
+		
+		ArrayList<StoreItem> items = new ArrayList<>(commited_items);
+		items.addAll(stored_items);
+		
+		return items.stream().distinct();
+	}
+	
+	void removeAllByPath(String path) throws IOException {
+		getByPath(path).forEach(item -> {
+			try {
+				removeById(item.getId());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+	
+	private Consumer<StoreItem> removeItem = item -> {
+		try {
+			put(item, -1);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	};
+	
+	void truncateDatabase() throws IOException {
+		List<StoreItem> stored_items = _getAllDatas().map(mapToStoreItemAndPushToReadCache).filter(isActuallyNotExistsInCommitLog).collect(Collectors.toList());
+		stored_items.forEach(removeItem);
+		commit_log_cache.values().forEach(removeItem);
 		read_cache.purgeAll();
-	}
-	
-	Stream<String> listAll() {
-		return null;// TODO
-	}
-	
-	Stream<String> listByPath(String path) {
-		return null;// TODO
-	}
-	
-	boolean exists(String _id) {
-		return false;// TODO
-	}
-	
-	Stream<StoreItem> getAll() {
-		return null;// TODO
-	}
-	
-	StoreItem get(String _id) {
-		return null;// TODO
-	}
-	
-	Stream<StoreItem> getByPath(String path) {
-		return null;// TODO
-	}
-	
-	void checkConsistency() {
-		// TODO
+		doDurableWrite();
 	}
 	
 	/**
@@ -145,16 +221,16 @@ public abstract class StoreBackend {
 	 */
 	void doDurableWrite() throws IOException {
 		// TODO semaphore "Stop the world"
-		
+		// TODO semaphore "I works now, don't do a durable write"
 		/**
 		 * commit_log_cache >> writeInDatabase
 		 */
 		commit_log_cache.forEach((key, item) -> {
-			if (item.getRemainingTTL() < grace_period_for_expired_items) {
+			if (item.isDeletedPurgable(grace_period_for_expired_items)) {
 				return;
 			}
 			try {
-				writeInDatabase(key, item.toRawContent(), item.getId(), item.getPath(), item.getDeleted());
+				_writeInDatabase(key, item.toRawContent(), item.getId(), item.getPath(), item.getDeleteDate());
 			} catch (IOException e) {
 				throw new RuntimeException("Can't write in database", e);
 			}
@@ -163,7 +239,7 @@ public abstract class StoreBackend {
 		/**
 		 * rotateAndReadCommitlog >> remove commit_log_cache item | writeInDatabase
 		 */
-		rotateAndReadCommitlog((key, content) -> {
+		_rotateAndReadCommitlog((key, content) -> {
 			if (commit_log_cache.remove(key) != null) {
 				return;
 			}
@@ -172,49 +248,49 @@ public abstract class StoreBackend {
 		
 		commit_log_cache.clear();
 		
-		removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
+		_removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
 	}
 	
-	private BiConsumer<byte[], byte[]> injectCurrentRawDatasInDatabase = (key, content) -> {
+	private BiConsumer<StoreItemKey, byte[]> injectCurrentRawDatasInDatabase = (key, content) -> {
 		StoreItem item = StoreItem.fromRawContent(content);
-		if (item.getRemainingTTL() < grace_period_for_expired_items) {
+		if (item.isDeletedPurgable(grace_period_for_expired_items) == false) {
 			try {
-				writeInDatabase(key, content, item.getId(), item.getPath(), item.getDeleted());
+				_writeInDatabase(key, content, item.getId(), item.getPath(), item.getDeleteDate());
 			} catch (IOException e) {
 				throw new RuntimeException("Can't write in database", e);
 			}
 		}
 	};
 	
-	protected abstract void writeInCommitlog(byte[] key, byte[] content) throws IOException;
+	protected abstract void _writeInCommitlog(StoreItemKey key, byte[] content) throws IOException;
 	
-	protected abstract void rotateAndReadCommitlog(BiConsumer<byte[], byte[]> all_reader) throws IOException;
+	protected abstract void _rotateAndReadCommitlog(BiConsumer<StoreItemKey, byte[]> all_reader) throws IOException;
 	
-	protected abstract void writeInDatabase(byte[] key, byte[] content, String _id, String path, long delete_date) throws IOException;
+	protected abstract void _writeInDatabase(StoreItemKey key, byte[] content, String _id, String path, long delete_date) throws IOException;
 	
 	/**
 	 * Remove all for delete_date < Now - grace_period
 	 */
-	protected abstract void removeOutdatedRecordsInDatabase(long grace_period) throws IOException;
+	protected abstract void _removeOutdatedRecordsInDatabase(long grace_period) throws IOException;
 	
 	/**
 	 * @return raw content
 	 */
-	protected abstract byte[] read(byte[] key) throws IOException;
+	protected abstract byte[] _read(StoreItemKey key) throws IOException;
+	
+	protected abstract boolean _contain(StoreItemKey key) throws IOException;
 	
 	/**
 	 * @return raw content
 	 */
-	protected abstract Stream<byte[]> readAll() throws IOException;
-	
-	/**
-	 * @return data key
-	 */
-	protected abstract byte[] getKeyById(String _id) throws IOException;
+	protected abstract Stream<byte[]> _getAllDatas() throws IOException;
 	
 	/**
 	 * @return raw content
 	 */
-	protected abstract Stream<byte[]> getKeysByPath(String path) throws IOException;
+	protected abstract Stream<byte[]> _getDatasByPath(String path) throws IOException;
 	
+	public String getDatabaseName() {
+		return database_name;
+	}
 }
