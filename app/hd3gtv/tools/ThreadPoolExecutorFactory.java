@@ -16,9 +16,6 @@
 */
 package hd3gtv.tools;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -42,14 +39,13 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 public class ThreadPoolExecutorFactory {
 	
 	private static Logger log = Logger.getLogger(ThreadPoolExecutorFactory.class);
-	private final LinkedBlockingQueue<Runnable> queue;
 	private final ThreadPoolExecutor executor;
 	
 	/**
 	 * @param thread_priority @see Thread.MIN_PRIORITY and Thread.MAX_PRIORITY
 	 * @param uncaughtException can be null
 	 */
-	public ThreadPoolExecutorFactory(String base_thread_name, int thread_priority, int queue_max_size, Consumer<Throwable> uncaughtException) {
+	public ThreadPoolExecutorFactory(String base_thread_name, int thread_priority, Consumer<Throwable> uncaughtException) {
 		if (base_thread_name == null) {
 			throw new NullPointerException("\"base_thread_name\" can't to be null");
 		}
@@ -59,12 +55,7 @@ public class ThreadPoolExecutorFactory {
 		if (thread_priority < Thread.MIN_PRIORITY) {
 			throw new IndexOutOfBoundsException("thread_priority can be < " + Thread.MIN_PRIORITY);
 		}
-		if (queue_max_size < 1) {
-			queue_max_size = MyDMAM.CPU_COUNT;
-		}
-		queue = new LinkedBlockingQueue<Runnable>(queue_max_size);
-		
-		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, queue);
+		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(10000));
 		executor.setRejectedExecutionHandler((r, executor) -> {
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
 		});
@@ -84,43 +75,26 @@ public class ThreadPoolExecutorFactory {
 		});
 	}
 	
-	public ThreadPoolExecutorFactory(String base_thread_name, int queue_max_size) {
-		this(base_thread_name, Thread.NORM_PRIORITY, queue_max_size, null);
+	public ThreadPoolExecutorFactory(String base_thread_name) {
+		this(base_thread_name, Thread.NORM_PRIORITY, null);
 	}
 	
 	/**
 	 * @param uncaughtException can be null
 	 */
-	public ThreadPoolExecutorFactory(String base_thread_name, int queue_max_size, Consumer<Throwable> uncaughtException) {
-		this(base_thread_name, Thread.NORM_PRIORITY, queue_max_size, uncaughtException);
+	public ThreadPoolExecutorFactory(String base_thread_name, Consumer<Throwable> uncaughtException) {
+		this(base_thread_name, Thread.NORM_PRIORITY, uncaughtException);
 	}
 	
 	/**
 	 * @param thread_priority @see Thread.MIN_PRIORITY and Thread.MAX_PRIORITY
 	 */
-	public ThreadPoolExecutorFactory(String base_thread_name, int thread_priority, int queue_max_size) {
-		this(base_thread_name, thread_priority, queue_max_size, null);
+	public ThreadPoolExecutorFactory(String base_thread_name, int thread_priority) {
+		this(base_thread_name, thread_priority, null);
 	}
 	
 	public ThreadPoolExecutor getThreadPoolExecutor() {
 		return executor;
-	}
-	
-	public boolean waitForRun(Runnable r) {
-		if (r == null) {
-			return false;
-		}
-		if (executor.isShutdown() | executor.isTerminating() | executor.isTerminated()) {
-			return false;
-		}
-		waitToCanToAdd();
-		try {
-			executor.execute(r);
-			return true;
-		} catch (RejectedExecutionException e) {
-			log.error("Rejected execution for " + r);
-			return false;
-		}
 	}
 	
 	public boolean isRunning() {
@@ -198,6 +172,10 @@ public class ThreadPoolExecutorFactory {
 		}
 	}
 	
+	public void execute(Runnable r) {
+		executor.execute(r);
+	}
+	
 	/**
 	 * @param items_to_process called by the CompletableFuture return.
 	 * @return the CompletableFuture for preparation (queue stream processing)
@@ -206,13 +184,7 @@ public class ThreadPoolExecutorFactory {
 	public <T, R> CompletableFuture<Void> asyncProcessing(Supplier<Stream<T>> items_to_process, FunctionWithException<T, R> processor, Consumer<Stream<SourcedCompletableFuture<T, R>>> allProcess) {
 		return CompletableFuture.supplyAsync(() -> {
 			allProcess.accept(items_to_process.get().map(item -> {
-				while (true) {
-					try {
-						return new SourcedCompletableFuture<T, R>(item, processor);
-					} catch (RejectedExecutionException e) {
-						waitToCanToAdd();
-					}
-				}
+				return new SourcedCompletableFuture<T, R>(item, processor);
 			}));
 			return null;
 		}, executor);
@@ -244,22 +216,6 @@ public class ThreadPoolExecutorFactory {
 	}
 	
 	/**
-	 * Blocking
-	 */
-	private void waitToCanToAdd() {
-		while (queue.remainingCapacity() < MyDMAM.CPU_COUNT | executor.isTerminated()) {
-			try {
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
-				throw new RuntimeException("Can't insert items in executor", e);
-			}
-			if (executor.isTerminated()) {
-				return;
-			}
-		}
-	}
-	
-	/**
 	 * Blocking !
 	 * @param timeout_for_each_task can be null
 	 * @return all results, never null.
@@ -274,7 +230,6 @@ public class ThreadPoolExecutorFactory {
 		};
 		
 		return items_to_process.parallel().map(item -> {
-			waitToCanToAdd();
 			return new IntermediateProcessor<T, R>(item, doProcess);
 		}).map(c -> {
 			return c.get(timeout_for_each_task, unit);
@@ -292,21 +247,12 @@ public class ThreadPoolExecutorFactory {
 	
 	public void toTableList(TableList table) {
 		table.addRow("Active", String.valueOf(executor.getActiveCount()));
-		table.addRow("Max capacity", String.valueOf(queue.remainingCapacity()));
+		table.addRow("Max capacity", String.valueOf(executor.getQueue().remainingCapacity()));
 		table.addRow("Completed", String.valueOf(executor.getCompletedTaskCount()));
 		table.addRow("Core pool", String.valueOf(executor.getCorePoolSize()));
 		table.addRow("Pool", String.valueOf(executor.getPoolSize()));
 		table.addRow("Largest pool", String.valueOf(executor.getLargestPoolSize()));
 		table.addRow("Maximum pool", String.valueOf(executor.getMaximumPoolSize()));
-	}
-	
-	/**
-	 * @return a copy (unmodifiable queue list), never null
-	 */
-	public List<Runnable> getActualQueue() {
-		synchronized (queue) {
-			return Collections.unmodifiableList(new ArrayList<Runnable>(queue));
-		}
 	}
 	
 	public JsonObject actualStatustoJson() {
@@ -315,12 +261,7 @@ public class ThreadPoolExecutorFactory {
 		jo_executor_pool.addProperty("shutdown", executor.isShutdown());
 		jo_executor_pool.addProperty("terminating", executor.isTerminating());
 		jo_executor_pool.addProperty("terminated", executor.isTerminated());
-		
-		if (queue != null) {
-			jo_executor_pool.addProperty("max_capacity", String.valueOf(queue.remainingCapacity()));
-		} else {
-			jo_executor_pool.addProperty("max_capacity", -1);
-		}
+		jo_executor_pool.addProperty("max_capacity", String.valueOf(executor.getQueue().remainingCapacity()));
 		jo_executor_pool.addProperty("completed", String.valueOf(executor.getCompletedTaskCount()));
 		jo_executor_pool.addProperty("core_pool", String.valueOf(executor.getCorePoolSize()));
 		jo_executor_pool.addProperty("pool", String.valueOf(executor.getPoolSize()));

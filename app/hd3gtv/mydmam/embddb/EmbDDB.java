@@ -61,7 +61,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 			return null;
 		}
 		
-		EmbDDB result = new EmbDDB(getMasterPasswordKey(), Configuration.global.getValue("embddb", "thread_pool_queue_size", 100));
+		EmbDDB result = new EmbDDB(getMasterPasswordKey());
 		List<InetSocketAddress> bootstrap_addrs = Configuration.global.getClusterConfiguration("embddb", "bootstrap_nodes", null, result.protocol.getDefaultTCPPort()).stream().map(item -> {
 			return item.getSocketAddress();
 		}).collect(Collectors.toList());
@@ -87,10 +87,10 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	private final Telemetry telemetry;
 	private final InteractiveConsole console;
 	
-	private EmbDDB(String master_password_key, int thread_pool_queue_size) throws GeneralSecurityException, IOException {
+	private EmbDDB(String master_password_key) throws GeneralSecurityException, IOException {
 		console = new InteractiveConsole();
 		protocol = new Protocol(master_password_key);
-		poolmanager = new PoolManager(protocol, thread_pool_queue_size);
+		poolmanager = new PoolManager(protocol);
 		lock_engine = new LockEngine(poolmanager);
 		telemetry = new Telemetry(this);
 	}
@@ -131,7 +131,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		}
 		
 		public void execCliModule(ApplicationArgs args) throws Exception {
-			EmbDDB embddb = new EmbDDB(getMasterPasswordKey(), Configuration.global.getValue("embddb", "thread_pool_queue_size", 100));
+			EmbDDB embddb = new EmbDDB(getMasterPasswordKey());
 			
 			if (args.getParamExist("-listen")) {
 				String specific_listen = args.getSimpleParamValue("-listen");

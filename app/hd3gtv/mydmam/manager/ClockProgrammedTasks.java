@@ -218,7 +218,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				}
 				Loggers.ClkPrgmTsk.info("Manual start task \"" + name + "\" via InstanceAction");
 				
-				executor.waitForRun(() -> {
+				executor.execute(() -> {
 					executeAndSetNext();
 				});
 			} else if (order.equalsIgnoreCase("unschedule")) {
@@ -290,7 +290,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				}
 				Loggers.ClkPrgmTsk.debug("The time to wait is done for \"" + name + "\", it's start to queue the task in executor.");
 				
-				executor.waitForRun(() -> {
+				executor.execute(() -> {
 					executeAndSetNext();
 				});
 			}, time_to_wait, TimeUnit.MILLISECONDS);

@@ -103,18 +103,15 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	@GsonIgnore
 	private List<Consumer<Node>> onRemoveNodeCallbackList;
 	
-	public PoolManager(Protocol protocol, int thread_pool_queue_size) throws GeneralSecurityException, IOException {
+	public PoolManager(Protocol protocol) throws GeneralSecurityException, IOException {
 		this.protocol = protocol;
 		if (protocol == null) {
 			throw new NullPointerException("\"protocol\" can't to be null");
 		}
-		if (thread_pool_queue_size < 1) {
-			throw new IOException("Can't set thread_pool_queue_size to " + thread_pool_queue_size);
-		}
 		
 		local_servers = new ArrayList<>();
 		
-		executor = new ThreadPoolExecutorFactory("PoolManager", Thread.MAX_PRIORITY - 1, thread_pool_queue_size);
+		executor = new ThreadPoolExecutorFactory("PoolManager", Thread.MAX_PRIORITY - 1);
 		channel_group = AsynchronousChannelGroup.withThreadPool(executor.getThreadPoolExecutor());
 		
 		pressure_measurement_sended = new PressureMeasurement();
@@ -290,7 +287,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		if (executor == null) {
 			return;
 		}
-		executor.waitForRun(r);
+		executor.execute(r);
 	}
 	
 	public boolean isListenToThis(InetSocketAddress server) {
@@ -702,24 +699,6 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	}
 	
 	public void addConsoleAction(InteractiveConsoleOrder console) {
-		console.addOrder("ql", "Queue list", "Display actual queue list", getClass(), (param, out) -> {
-			out.println("Executor status:");
-			TableList table = new TableList();
-			executor.toTableList(table);
-			table.print(out);
-			out.println();
-			
-			List<Runnable> queue = executor.getActualQueue();
-			if (queue.isEmpty()) {
-				out.println("No waiting task to display in queue.");
-			} else {
-				out.println("Display " + queue.size() + " waiting tasks.");
-				queue.forEach(r -> {
-					out.println(" * " + r.toString() + " in " + r.getClass().getName());
-				});
-			}
-		});
-		
 		console.addOrder("nl", "Node list", "Display actual connected node", getClass(), (param, out) -> {
 			TableList table = new TableList();
 			nodes.stream().forEach(node -> {

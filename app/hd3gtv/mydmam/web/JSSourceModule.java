@@ -327,7 +327,7 @@ public class JSSourceModule {
 		/**
 		 * Concate all reduced files, in async mode
 		 */
-		executor.waitForRun(() -> {
+		executor.execute(() -> {
 			Loggers.Play_JSSource.info("Concate all reduced files to a GZip file, allfiles_concated_file: " + allfiles_concated_file + ", module_name: " + module_name);
 			
 			FileOutputStream concated_out_stream_gzipped = null;
@@ -370,7 +370,7 @@ public class JSSourceModule {
 			/**
 			 * After that, save the internal database.
 			 */
-			executor.waitForRun(() -> {
+			executor.execute(() -> {
 				try {
 					getDatabase().save();
 				} catch (IOException e) {
