@@ -25,18 +25,18 @@ import hd3gtv.mydmam.MyDMAM;
 /**
  * A byte[] wrapper
  */
-final class StoreItemKey {
+final class ItemKey {
 	
 	final byte[] key;
 	
-	StoreItemKey(byte[] key) {
+	ItemKey(byte[] key) {
 		this.key = key;
 	}
 	
 	/**
 	 * MurmurHash3_x64_128 (Murmur3F) on _id
 	 */
-	StoreItemKey(String _id) {
+	ItemKey(String _id) {
 		this.key = Hashing.murmur3_128().hashString(_id).asBytes();
 	}
 	
@@ -61,7 +61,7 @@ final class StoreItemKey {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		StoreItemKey other = (StoreItemKey) obj;
+		ItemKey other = (ItemKey) obj;
 		if (!Arrays.equals(key, other.key)) {
 			return false;
 		}

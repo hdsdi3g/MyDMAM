@@ -16,10 +16,18 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
-public interface StoreItemFactory<T> {
+public interface Cache {
 	
-	public T getFromItem(StoreItem item);
+	public void put(ItemKey key, byte[] datas, long ttl);
 	
-	public StoreItem toItem(T element);
+	public void putIfExists(ItemKey key, byte[] datas, long ttl);
+	
+	public byte[] get(ItemKey key);
+	
+	public boolean has(ItemKey key);
+	
+	public void remove(ItemKey key);
+	
+	public void purgeAll();
 	
 }

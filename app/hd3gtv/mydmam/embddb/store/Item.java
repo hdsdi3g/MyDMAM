@@ -33,9 +33,9 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 
 @GsonIgnore
-public final class StoreItem {
+public final class Item {
 	
-	private static Logger log = Logger.getLogger(StoreItem.class);
+	private static Logger log = Logger.getLogger(Item.class);
 	
 	private String path;
 	private String _id;
@@ -44,11 +44,11 @@ public final class StoreItem {
 	private long updated;
 	private long deleted;
 	
-	private transient StoreItemKey key;
+	private transient ItemKey key;
 	
-	StoreItemKey getKey() {
+	ItemKey getKey() {
 		if (key == null) {
-			key = new StoreItemKey(_id);
+			key = new ItemKey(_id);
 		}
 		return key;
 	}
@@ -110,14 +110,14 @@ public final class StoreItem {
 		return baos.toByteArray();
 	}
 	
-	private StoreItem() {
+	private Item() {
 	}
 	
-	static StoreItem fromRawContent(byte[] data) {
+	static Item fromRawContent(byte[] data) {
 		ByteArrayInputStream bias = new ByteArrayInputStream(data);
 		DataInputStream dis = new DataInputStream(bias);
 		
-		StoreItem item = new StoreItem();
+		Item item = new Item();
 		try {
 			item._id = new String(readNextBlock(dis), MyDMAM.UTF8);
 			item.path = new String(readNextBlock(dis), MyDMAM.UTF8);
@@ -134,25 +134,25 @@ public final class StoreItem {
 		return item;
 	}
 	
-	public StoreItem(String path, String _id, byte[] payload) {
+	public Item(String path, String _id, byte[] payload) {
 		setId(_id).setPath(path).setPayload(payload);
 		created = System.currentTimeMillis();
 		deleted = 0;
 	}
 	
-	public StoreItem setId(String _id) {
+	public Item setId(String _id) {
 		this._id = requireNonEmpty(Objects.requireNonNull(_id, "\"_id\" can't to be null"), "\"_id\" can't to be empty");
 		updated = System.currentTimeMillis();
 		return this;
 	}
 	
-	public StoreItem setPath(String path) {
+	public Item setPath(String path) {
 		this.path = requireNonEmpty(Objects.requireNonNull(path, "\"path\" can't to be null"), "\"path\" can't to be empty");
 		updated = System.currentTimeMillis();
 		return this;
 	}
 	
-	public StoreItem setPayload(byte[] payload) {
+	public Item setPayload(byte[] payload) {
 		this.payload = Objects.requireNonNull(payload, "\"payload\" can't to be null");
 		updated = System.currentTimeMillis();
 		return this;
@@ -263,7 +263,7 @@ public final class StoreItem {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		StoreItem other = (StoreItem) obj;
+		Item other = (Item) obj;
 		if (_id == null) {
 			if (other._id != null) {
 				return false;
