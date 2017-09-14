@@ -17,16 +17,12 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.IOException;
-import java.lang.Thread.State;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.LongBinaryOperator;
-import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,7 +44,7 @@ public final class Store<T> {
 	private final Cache read_cache;
 	private final Backend backend;
 	private final ItemFactory<T> item_factory;
-	private final Queue queue;
+	private final StoreQueue queue;
 	
 	private final ConcurrentHashMap<ItemKey, Item> commit_log_cache;
 	private final long max_size_for_cached_commit_log;
@@ -95,7 +91,11 @@ public final class Store<T> {
 			log.error("Genric error for " + database_name + "/" + generic_class_name, e);
 		});
 		
-		queue = new Queue();
+		queue = new StoreQueue(getDatabaseName() + "/" + generic_class_name, () -> {
+			return elegiblityToCleanUp();
+		}, () -> {
+			internalDurableWrite();
+		}, executor);
 		
 		backend.rotateAndReadCommitlog((key, content) -> {
 			injectCurrentRawDatasInDatabase(key, content);
@@ -123,7 +123,6 @@ public final class Store<T> {
 				read_cache.remove(key);
 				
 				backend.writeInCommitlog(key, item.toRawContent());
-				checkIfNeedToRotateCommitLog();
 				executor.execute(onDone);
 			} catch (IOException e) {
 				executor.execute(() -> {
@@ -347,7 +346,6 @@ public final class Store<T> {
 				throw new IOException(e2);
 			}
 		}
-		checkIfNeedToRotateCommitLog();
 	}
 	
 	public void removeAllByPath(String path, Consumer<String> onDone, BiConsumer<String, IOException> onError) {
@@ -369,7 +367,6 @@ public final class Store<T> {
 				});
 			});
 		});
-		
 	}
 	
 	public void truncate(Runnable onDone, Consumer<IOException> onError) {
@@ -380,7 +377,6 @@ public final class Store<T> {
 				remove(commit_log_cache.values().stream());
 				read_cache.purgeAll();
 				doDurableWrite();
-				executor.execute(onDone);
 			} catch (IOException e) {
 				executor.execute(() -> {
 					onError.accept(e);
@@ -389,12 +385,31 @@ public final class Store<T> {
 		});
 	}
 	
-	/**
-	 * Stop the world
-	 */
-	public void doDurableWrite() throws IOException {
-		queue.stopTheWorld();
-		
+	private void injectCurrentRawDatasInDatabase(ItemKey key, byte[] content) {
+		Item item = Item.fromRawContent(content);
+		if (item.isDeletedPurgable(grace_period_for_expired_items) == false) {
+			try {
+				backend.writeInDatabase(key, content, item.getId(), item.getPath(), item.getDeleteDate());
+			} catch (IOException e) {
+				throw new RuntimeException("Can't write in database", e);
+			}
+		}
+	}
+	
+	public String getDatabaseName() {
+		return database_name;
+	}
+	
+	private boolean elegiblityToCleanUp() {
+		long estimate_commit_log_cache_size = commit_log_cache.reduceValuesToLong(MyDMAM.CPU_COUNT, item -> {
+			return (long) item.estimateSize();
+		}, 0, (l, r) -> {
+			return l + r;
+		});
+		return estimate_commit_log_cache_size > max_size_for_cached_commit_log;
+	}
+	
+	private void internalDurableWrite() {
 		try {
 			/**
 			 * commit_log_cache >> writeInDatabase
@@ -423,105 +438,18 @@ public final class Store<T> {
 			commit_log_cache.clear();
 			
 			backend.removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
-			
-			queue.releaseTheWorld();
-		} catch (IOException e) {
-			queue.releaseTheWorld();
-			throw e;
+		} catch (Exception e) {
+			log.error("Can't doDurableWrite", e);
 		}
 	}
 	
-	private void injectCurrentRawDatasInDatabase(ItemKey key, byte[] content) {
-		Item item = Item.fromRawContent(content);
-		if (item.isDeletedPurgable(grace_period_for_expired_items) == false) {
-			try {
-				backend.writeInDatabase(key, content, item.getId(), item.getPath(), item.getDeleteDate());
-			} catch (IOException e) {
-				throw new RuntimeException("Can't write in database", e);
-			}
-		}
+	/**
+	 * Async: this request is put in a pool, and will be executed after the next Store request.
+	 */
+	public void doDurableWrite() {
+		queue.cleanUp();
 	}
 	
-	public String getDatabaseName() {
-		return database_name;
-	}
+	// TODO network I/O
 	
-	private void checkIfNeedToRotateCommitLog() throws IOException {
-		ToLongFunction<Item> transformer = item -> {
-			return (long) item.estimateSize();
-		};
-		
-		LongBinaryOperator reducer = (l, r) -> {
-			return l + r;
-		};
-		long estimate_commit_log_cache_size = commit_log_cache.reduceValuesToLong(MyDMAM.CPU_COUNT, transformer, 0, reducer);
-		
-		if (estimate_commit_log_cache_size > max_size_for_cached_commit_log) {
-			doDurableWrite(); // TODO protect with parallel exec (not needs to be called a lot of time...)
-		}
-	}
-	
-	private class Queue {
-		final LinkedBlockingQueue<Runnable> waiting = new LinkedBlockingQueue<>();
-		volatile boolean stop_the_world = false;
-		final Object lock = new Object();
-		
-		Thread loop_processor;
-		
-		public Queue() {
-			createThread();
-		}
-		
-		private void createThread() {
-			if (loop_processor != null) {
-				if (loop_processor.getState() != State.TERMINATED) {
-					return;
-				}
-			}
-			loop_processor = new Thread(queue_process_loop);
-			loop_processor.setDaemon(true);
-			loop_processor.setName("EMBDDBStoreQueueExecutorFor_" + getDatabaseName() + "/" + generic_class_name);
-			loop_processor.setPriority(Thread.MIN_PRIORITY + 1);
-			loop_processor.start();
-		}
-		
-		final Runnable queue_process_loop = () -> {
-			try {
-				while (stop_the_world == false) {
-					Runnable next_task = waiting.take();
-					
-					synchronized (lock) {
-						if (stop_the_world) {
-							waiting.add(next_task);
-							return;
-						} else {
-							executor.execute(next_task);
-						}
-					}
-				}
-			} catch (InterruptedException e) {
-				log.error("Cancel Store queue", e);
-			}
-		};
-		
-		void put(Runnable r) {
-			waiting.add(r);
-		}
-		
-		void stopTheWorld() {
-			synchronized (lock) {
-				stop_the_world = true;
-			}
-		}
-		
-		void releaseTheWorld() {
-			synchronized (lock) {
-				stop_the_world = false;
-			}
-			createThread();
-		}
-		
-	}
-	
-	// TODO network IO
 }

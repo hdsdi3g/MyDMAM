@@ -16,8 +16,10 @@
 */
 package hd3gtv.tools;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -174,6 +176,14 @@ public class ThreadPoolExecutorFactory {
 	
 	public void execute(Runnable r) {
 		executor.execute(r);
+	}
+	
+	public Future<?> submit(Runnable r) {
+		return executor.submit(r);
+	}
+	
+	public <T> Future<T> submit(Callable<T> task) {
+		return executor.submit(task);
 	}
 	
 	/**
