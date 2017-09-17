@@ -57,7 +57,7 @@ public class ThreadPoolExecutorFactory {
 		if (thread_priority < Thread.MIN_PRIORITY) {
 			throw new IndexOutOfBoundsException("thread_priority can be < " + Thread.MIN_PRIORITY);
 		}
-		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(10000));
+		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 		executor.setRejectedExecutionHandler((r, executor) -> {
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
 		});
@@ -93,6 +93,12 @@ public class ThreadPoolExecutorFactory {
 	 */
 	public ThreadPoolExecutorFactory(String base_thread_name, int thread_priority) {
 		this(base_thread_name, thread_priority, null);
+	}
+	
+	public ThreadPoolExecutorFactory setSimplePoolSize() {
+		executor.setCorePoolSize(1);
+		executor.setMaximumPoolSize(1);
+		return this;
 	}
 	
 	public ThreadPoolExecutor getThreadPoolExecutor() {

@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-public abstract class Backend {// TODO set async
-	
-	// TODO Grand journal
+public abstract class Backend {// TODO set async (remove IOException)
 	
 	abstract void init(String database_name, String class_name);
 	
