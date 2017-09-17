@@ -24,6 +24,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -242,7 +243,7 @@ class TransactionJournal {
 		};
 		
 		final long _actual_pos = actual_pos;
-		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false).onClose(() -> {
+		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.IMMUTABLE + Spliterator.DISTINCT + Spliterator.NONNULL), false).onClose(() -> {
 			try {
 				file_channel.position(_actual_pos);
 			} catch (IOException e) {
