@@ -26,38 +26,41 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.StreamMaker;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 public class FileHashTable {
 	private static Logger log = Logger.getLogger(FileHashTable.class);
+	
 	private static final byte[] FILE_INDEX_HEADER = "MYDMAMHSHIDX".getBytes(MyDMAM.UTF8);
 	private static final int FILE_INDEX_VERSION = 1;
-	private static final byte[] FILE_DATA_HEADER = "MYDMAMHSHDTA".getBytes(MyDMAM.UTF8);
-	private static final int FILE_DATA_VERSION = 1;
-	private static final byte[] NEXT_TAG = "####".getBytes(MyDMAM.UTF8);
+	private static final int HASH_ENTRY_SIZE = 12;
+	private static final int FILE_INDEX_HEADER_LENGTH = FILE_INDEX_HEADER.length + 4 + 4 + 4;
+	private static final int LINKED_LIST_ENTRY_SIZE = ItemKey.SIZE + 16;
 	
-	private final Set<OpenOption> open_options_file_exists;
-	private final Set<OpenOption> open_options_file_not_exists;
+	static final Set<OpenOption> OPEN_OPTIONS_FILE_EXISTS;
+	static final Set<OpenOption> OPEN_OPTIONS_FILE_NOT_EXISTS;
+	
+	static {
+		OPEN_OPTIONS_FILE_EXISTS = new HashSet<OpenOption>(3);
+		Collections.addAll(OPEN_OPTIONS_FILE_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE);
+		OPEN_OPTIONS_FILE_NOT_EXISTS = new HashSet<OpenOption>(5);
+		Collections.addAll(OPEN_OPTIONS_FILE_NOT_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.SPARSE);
+	}
 	
 	private final int table_size;
-	private final int key_size;
 	private final File index_file;
 	private final AsynchronousFileChannel index_channel;
 	private final long file_index_start;
@@ -65,27 +68,17 @@ public class FileHashTable {
 	private AtomicLong file_index_write_pointer;
 	private final ThreadPoolExecutorFactory index_executor;
 	
-	private static final int HASH_ENTRY_SIZE = 12;
-	private static final int FILE_INDEX_HEADER_LENGTH = FILE_INDEX_HEADER.length + 4 + 4 + 4;
-	private static final int FILE_DATA_HEADER_LENGTH = FILE_DATA_HEADER.length + 4;
-	private final int LINKED_LIST_ENTRY_SIZE;
+	private final FileData data_engine;// TODO rename
 	
-	private final DataEngine data_engine;
-	
-	public FileHashTable(File index_file, File data_file, int table_size, int key_size) throws IOException, InterruptedException, ExecutionException {
-		open_options_file_exists = new HashSet<OpenOption>(3);
-		Collections.addAll(open_options_file_exists, StandardOpenOption.READ, StandardOpenOption.WRITE);
-		open_options_file_not_exists = new HashSet<OpenOption>(5);
-		Collections.addAll(open_options_file_not_exists, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.SPARSE);
+	public FileHashTable(File index_file, File data_file, int table_size) throws IOException, InterruptedException, ExecutionException { // TODO all with CompletableFuture
 		
 		this.table_size = table_size;
-		this.key_size = key_size;
 		this.index_file = index_file;
 		if (index_file == null) {
 			throw new NullPointerException("\"index_file\" can't to be null");
 		}
 		
-		data_engine = new DataEngine(data_file);
+		data_engine = new FileData(data_file);
 		
 		index_executor = new ThreadPoolExecutorFactory(getClass().getSimpleName() + "_Index", Thread.MAX_PRIORITY);
 		
@@ -95,7 +88,7 @@ public class FileHashTable {
 		start_linked_lists_zone_in_index_file = file_index_start + ((long) table_size) * 12l;
 		
 		if (index_file.exists()) {
-			index_channel = AsynchronousFileChannel.open(index_file.toPath(), open_options_file_exists, index_executor.getThreadPoolExecutor());
+			index_channel = AsynchronousFileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS, index_executor.getThreadPoolExecutor());
 			index_channel.read(bytebuffer_header_index, 0).get();
 			bytebuffer_header_index.flip();
 			
@@ -112,217 +105,21 @@ public class FileHashTable {
 				throw new IOException("Invalid table_size: file is " + actual_table_size + " instead of " + table_size);
 			}
 			int actual_key_size = bytebuffer_header_index.getInt();
-			if (actual_key_size != key_size) {
-				throw new IOException("Invalid key_size: file is " + actual_key_size + " instead of " + key_size);
+			if (actual_key_size != ItemKey.SIZE) {
+				throw new IOException("Invalid key_size: file is " + actual_key_size + " instead of " + ItemKey.SIZE);
 			}
 			
 			file_index_write_pointer = new AtomicLong(Long.max(index_channel.size(), start_linked_lists_zone_in_index_file));
 		} else {
-			index_channel = AsynchronousFileChannel.open(index_file.toPath(), open_options_file_not_exists, index_executor.getThreadPoolExecutor());
+			index_channel = AsynchronousFileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS, index_executor.getThreadPoolExecutor());
 			bytebuffer_header_index.put(FILE_INDEX_HEADER);
 			bytebuffer_header_index.putInt(FILE_INDEX_VERSION);
 			bytebuffer_header_index.putInt(table_size);
-			bytebuffer_header_index.putInt(key_size);
+			bytebuffer_header_index.putInt(ItemKey.SIZE);
 			bytebuffer_header_index.flip();
 			index_channel.write(bytebuffer_header_index, 0).get();
 			file_index_write_pointer = new AtomicLong(start_linked_lists_zone_in_index_file);
 		}
-		
-		LINKED_LIST_ENTRY_SIZE = key_size + 16;
-	}
-	
-	private class DataEngine {
-		final AsynchronousFileChannel data_channel;
-		AtomicLong file_data_write_pointer;
-		// final File data_file;
-		final long file_data_start;
-		final ThreadPoolExecutorFactory data_executor;
-		final Predicate<Long> checkDataPointerValidity;
-		final Function<Long, Entry> getDataEntryFromDataPointer;
-		
-		public DataEngine(File data_file) throws IOException, InterruptedException, ExecutionException {
-			// this.data_file = data_file;
-			if (data_file == null) {
-				throw new NullPointerException("\"data_file\" can't to be null");
-			}
-			
-			data_executor = new ThreadPoolExecutorFactory(FileHashTable.class.getName() + "/" + getClass().getSimpleName(), Thread.MAX_PRIORITY);
-			
-			ByteBuffer bytebuffer_header_data = ByteBuffer.allocate(FILE_DATA_HEADER_LENGTH);
-			file_data_start = bytebuffer_header_data.capacity();
-			
-			if (data_file.exists()) {
-				data_channel = AsynchronousFileChannel.open(data_file.toPath(), open_options_file_exists, data_executor.getThreadPoolExecutor());
-				
-				data_channel.read(bytebuffer_header_data, 0).get();
-				bytebuffer_header_data.flip();
-				
-				TransactionJournal.readAndEquals(bytebuffer_header_data, FILE_DATA_HEADER, bad_datas -> {
-					return new IOException("Invalid file header: " + new String(bad_datas));
-				});
-				int version = bytebuffer_header_data.getInt();
-				if (version != FILE_DATA_VERSION) {
-					throw new IOException("Invalid version: " + version + " instead of " + FILE_DATA_VERSION);
-				}
-			} else {
-				data_channel = AsynchronousFileChannel.open(data_file.toPath(), open_options_file_not_exists, data_executor.getThreadPoolExecutor());
-				bytebuffer_header_data.put(FILE_DATA_HEADER);
-				bytebuffer_header_data.putInt(FILE_DATA_VERSION);
-				bytebuffer_header_data.flip();
-				data_channel.write(bytebuffer_header_data, 0).get();
-			}
-			file_data_write_pointer = new AtomicLong(data_channel.size());
-			
-			checkDataPointerValidity = data_pointer -> {
-				return (data_pointer > file_data_start) & (data_pointer < data_file.length());
-			};
-			
-			getDataEntryFromDataPointer = data_pointer -> {
-				try {
-					return readData(data_pointer);
-				} catch (InterruptedException | ExecutionException | IOException e) {
-					throw new RuntimeException(e);
-				}
-			};
-		}
-		
-		/**
-		 * Prepare data entry and write it
-		 * @param onDone the new data pointer.
-		 */
-		private void writeData(byte[] key, byte[] user_data, Consumer<Throwable> onError, Consumer<Long> onDone) {
-			/*
-			<int, 4 bytes><key_size><--int, 4 bytes--->
-			[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
-			 * */
-			int data_entry_size = computeExactlyDataEntrySize(user_data.length);
-			ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
-			data_buffer.putInt(data_entry_size - 4);
-			data_buffer.put(key);
-			data_buffer.putInt(user_data.length);
-			data_buffer.put(user_data);
-			data_buffer.put(NEXT_TAG);
-			data_buffer.flip();
-			
-			long data_pointer = file_data_write_pointer.getAndAdd(computeExactlyDataEntrySize(user_data.length));
-			
-			asyncWrite(data_channel, data_buffer, data_pointer, onError, s3 -> {
-				onDone.accept(data_pointer);
-			});
-		}
-		
-		/**
-		 * @param onDone key->data or null -> new byte[0] if not found datas
-		 */
-		private void readData(long data_pointer, Consumer<Throwable> onError, BiConsumer<byte[], byte[]> onDone) {
-			/*
-			<int, 4 bytes><key_size><--int, 4 bytes--->
-			[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
-			 * */
-			ByteBuffer header_buffer = ByteBuffer.allocate(4);
-			
-			asyncRead(data_channel, header_buffer, data_pointer, onError, s -> {
-				if (s != 4) {
-					onDone.accept(null, new byte[0]);
-					return;
-				}
-				header_buffer.flip();
-				int data_entry_size = header_buffer.getInt();
-				if (data_entry_size < 0) {
-					onDone.accept(null, new byte[0]);
-					return;
-				}
-				ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
-				asyncRead(data_channel, data_buffer, data_pointer + 4l, onError, s2 -> {
-					if (s2 != data_entry_size) {
-						onDone.accept(null, new byte[0]);
-						return;
-					}
-					data_buffer.flip();
-					byte[] key = new byte[key_size];
-					data_buffer.get(key);
-					
-					byte[] data = null;
-					int user_data_length = data_buffer.getInt();
-					
-					if (user_data_length < 0) {
-						onDone.accept(null, new byte[0]);
-						return;
-					} else if (user_data_length == 0) {
-						data = new byte[0];
-					} else {
-						data = new byte[user_data_length];
-						data_buffer.get(data);
-					}
-					
-					try {
-						TransactionJournal.readAndEquals(data_buffer, NEXT_TAG, err -> {
-							return new IOException("Bad tag separator: " + new String(err, MyDMAM.UTF8));
-						});
-						onDone.accept(key, data);
-					} catch (IOException e) {
-						onError.accept(e);
-					}
-				});
-			});
-		}
-		
-		/**
-		 * Sync.
-		 * @return can be null
-		 */
-		private Entry readData(long data_pointer) throws InterruptedException, ExecutionException, IOException {
-			/*
-			<int, 4 bytes><key_size><--int, 4 bytes--->
-			[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
-			 * */
-			ByteBuffer header_buffer = ByteBuffer.allocate(4);
-			int size = data_channel.read(header_buffer, data_pointer).get();
-			if (size != 4) {
-				throw new IOException("Invalid header size: " + size);
-			}
-			header_buffer.flip();
-			int data_entry_size = header_buffer.getInt();
-			if (data_entry_size < 0) {
-				throw new IOException("Invalid data_entry_size: " + data_entry_size);
-			}
-			
-			ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
-			
-			size = data_channel.read(data_buffer, data_pointer + 4l).get();
-			if (size != data_entry_size) {
-				throw new IOException("Can't read datas: " + size + "/" + data_entry_size);
-			}
-			data_buffer.flip();
-			byte[] key = new byte[key_size];
-			data_buffer.get(key);
-			
-			byte[] data = null;
-			int user_data_length = data_buffer.getInt();
-			if (user_data_length < 0) {
-				throw new IOException("Invalid user data len: " + user_data_length);
-			} else if (user_data_length == 0) {
-				data = new byte[0];
-			} else {
-				data = new byte[user_data_length];
-				data_buffer.get(data);
-			}
-			
-			TransactionJournal.readAndEquals(data_buffer, NEXT_TAG, err -> {
-				return new IOException("Bad tag separator: " + new String(err, MyDMAM.UTF8));
-			});
-			return new Entry(key, data);
-		}
-		
-		private int computeExactlyDataEntrySize(int user_data_len) {
-			/*
-			<int, 4 bytes><key_size><--int, 4 bytes--->
-			[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
-			* */
-			return 4 + key_size + 4 + user_data_len + NEXT_TAG.length;
-		}
-		
-		// TODO defragment data file...
 	}
 	
 	/*
@@ -375,7 +172,6 @@ public class FileHashTable {
 				onDone.accept(-1l);
 				return;
 			}
-			
 			findInLinkedlistEntryData(linked_list_pointer, key, onError, data_pointer -> {
 				onDone.accept(data_pointer);
 			});
@@ -426,160 +222,155 @@ public class FileHashTable {
 		});
 	}
 	
-	private void removeHashOrLinkedlistEntry(byte[] key, Consumer<Throwable> onError, Runnable onDone) {
-		int compressed_key = compressKey(key);
+	/**
+	 * @param onHashEntry return an Stream of firsts linked_list_pointers
+	 * @return
+	 */
+	CompletableFuture<Stream<HashEntry>> getAllHashEntries() { // TODO set to private
+		ByteBuffer read_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE * table_size);
+		CompletableFuture<Integer> on_done = asyncRead(index_channel, read_buffer, file_index_start);
 		
-		readHashEntry(compressed_key, onError, linked_list_pointer -> {
-			if (linked_list_pointer == -1l) {
-				/**
-				 * Can't found hash record: nothing to delete.
-				 */
-				onDone.run();
-			} else {
-				isLinkedlistEntryTargetKey(linked_list_pointer, key, onError, next_linked_list_pointer -> {
-					if (next_linked_list_pointer == -1l) {
-						/**
-						 * First linkedlist record is not this key. Let's finds the next chain entries.
-						 */
-						findLinkedlistEntry(next_linked_list_pointer, -1, key, onError, null, last_linked_list_pointer -> {
-							/**
-							 * Not in the list? Nothing to delete.
-							 */
-							onDone.run();
-						}, (previous_linked_list_pointer, next_founded_list_pointer) -> {
-							/**
-							 * Raccord in linkedlist chain the previous item and the next, and orphan this record.
-							 */
-							writeNextLinkedlistEntry(previous_linked_list_pointer, next_founded_list_pointer, onError, onDone);
-							// TODO update bloom filter (recalculate ?)
-						});
-					} else {
-						/**
-						 * This first linkedlist record is the key. Change it for the next.
-						 */
-						writeHashEntry(compressed_key, next_linked_list_pointer, onError, onDone);
-						// TODO update bloom filter (recalculate ?)
-					}
-				}, () -> {
-					/**
-					 * Empty list... Clear hashentry
-					 */
-					writeClearHashEntry(compressed_key, onError, onDone);
-					// TODO update bloom filter (recalculate ?)
-				});
+		return on_done.thenApply(size -> {
+			if (size == 0) {
+				return Stream.empty();
 			}
+			read_buffer.flip();
+			if (read_buffer.capacity() != size) {
+				return Stream.empty();
+			}
+			return StreamMaker.create(() -> {
+				if (read_buffer.remaining() - HASH_ENTRY_SIZE >= 0) {
+					/*
+					Hash entry struct:
+					<---int, 4 bytes----><----------------long, 8 bytes------------------->
+					[Compressed hash key][absolute position for first index in linked list]
+					*/
+					int compressed_hash_key = read_buffer.getInt();
+					long linked_list_first_index = read_buffer.getLong();
+					
+					return new HashEntry(compressed_hash_key, linked_list_first_index);
+				} else {
+					return null;
+				}
+			}, e -> {
+				on_done.completeExceptionally(e);
+			}).stream();
+		});
+	}
+	
+	class HashEntry { // TODO set to private
+		int compressed_hash_key;
+		long linked_list_first_index;
+		
+		HashEntry(int compressed_hash_key, long linked_list_first_index) {
+			this.compressed_hash_key = compressed_hash_key;
+			this.linked_list_first_index = linked_list_first_index;
+		}
+	}
+	
+	class LinkedListEntry { // TODO set to private
+		byte[] current_key;
+		long data_pointer;
+		
+		LinkedListEntry(byte[] current_key, long data_pointer) {
+			this.current_key = current_key;
+			this.data_pointer = data_pointer;
+		}
+		
+	}
+	
+	/*
+	Linked list entry struct:
+	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
+	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
+	*/
+	CompletableFuture<Stream<LinkedListEntry>> getAllLinkedListItems(CompletableFuture<Stream<HashEntry>> hash_entries) { // TODO set to private
+		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
+		
+		AtomicReference<Long> next_pointer = new AtomicReference<>(-1l);
+		
+		return hash_entries.thenApply(entries -> {
+			return entries.map(entry -> {
+				return entry.linked_list_first_index;
+			}).flatMap(linked_list_pointer -> {
+				next_pointer.set(linked_list_pointer);
+				
+				return StreamMaker.create(() -> {
+					if (next_pointer.get() <= 0) {
+						return null;
+					}
+					try {
+						return asyncRead(index_channel, linkedlist_entry_buffer, next_pointer.get()).thenApply(s -> {
+							if (s != LINKED_LIST_ENTRY_SIZE) {
+								return null;
+							}
+							linkedlist_entry_buffer.flip();
+							byte[] current_key = new byte[ItemKey.SIZE];
+							linkedlist_entry_buffer.get(current_key);
+							long data_pointer = linkedlist_entry_buffer.getLong();
+							long next_linked_list_pointer = linkedlist_entry_buffer.getLong();
+							linkedlist_entry_buffer.clear();
+							
+							next_pointer.set(next_linked_list_pointer);
+							return new LinkedListEntry(current_key, data_pointer);
+						}).get();
+					} catch (InterruptedException | ExecutionException e) {
+						hash_entries.completeExceptionally(e);
+						return null;
+					}
+				}).stream();
+			});
 		});
 	}
 	
 	/**
-	 * Sync.
-	 * @return linked_list_pointers
+	 * @param nextItem key -> Data pointer
 	 */
-	private Stream<Long> forEachHashEntry() throws IOException, InterruptedException, ExecutionException {
-		ByteBuffer read_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE * table_size);
-		int size = index_channel.read(read_buffer, file_index_start).get();
-		read_buffer.flip();
-		
+	private void getAllHashsLinkedListItems(BiConsumer<byte[], Long> nextKeyDataPointer, Consumer<Throwable> onError) {
+		// TODO
 		/*
-		Hash entry struct:
-		<---int, 4 bytes----><----------------long, 8 bytes------------------->
-		[Compressed hash key][absolute position for first index in linked list]
-		*/
-		Iterator<Long> iterator = new Iterator<Long>() {
-			
-			public Long next() {
-				read_buffer.getInt();
-				return read_buffer.getLong();
-			}
-			
-			public boolean hasNext() {
-				return read_buffer.remaining() + HASH_ENTRY_SIZE <= size;
-			}
-		};
-		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.IMMUTABLE + Spliterator.DISTINCT + Spliterator.NONNULL), false);
+		fht.getAllHashEntries().get().forEach(l -> {
+			System.out.println(l);
+		});
+		 * */
+		/*getAllHashEntries(linked_list_pointer_stream -> {
+			linked_list_pointer_stream.forEach(linked_list_pointer -> {
+				getAllNextLinkedListItemsFrom(linked_list_pointer, nextKeyDataPointer, onError);
+			});
+		}, onError);*/
 	}
 	
-	/**
-	 * Sync.
-	 * @return keys
-	 */
-	private <T> Stream<T> forEachLinkedListItemChainDataKeys(long first_linked_list_pointer, Function<ByteBuffer, T> transformer) throws RuntimeException {
-		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
-		/*
-		Linked list entry struct:
-		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
-		[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-		*/
-		
-		Iterator<T> iterator = new Iterator<T>() {
-			
-			int size = 0;
-			long next_linked_list_pointer = first_linked_list_pointer;
-			
-			public T next() {
-				linkedlist_entry_buffer.flip();
-				T result = transformer.apply(linkedlist_entry_buffer);
-				next_linked_list_pointer = linkedlist_entry_buffer.getLong(key_size + 8);
-				linkedlist_entry_buffer.clear();
-				return result;
-			}
-			
-			public boolean hasNext() {
-				if (next_linked_list_pointer < start_linked_lists_zone_in_index_file) {
-					return false;
-				}
-				try {
-					size = index_channel.read(linkedlist_entry_buffer, next_linked_list_pointer).get();
-				} catch (InterruptedException | ExecutionException e) {
-					throw new RuntimeException(e);
-				}
-				return size == LINKED_LIST_ENTRY_SIZE;
-			}
-		};
-		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.IMMUTABLE + Spliterator.DISTINCT + Spliterator.NONNULL), false);
-	}
-	
-	public Stream<ItemKey> forEachKeys() throws RuntimeException, IOException, InterruptedException, ExecutionException {
+	/*
+	Linked list entry struct:
+	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
+	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
+	*/
+	/*public Stream<ItemKey> forEachKeys() throws RuntimeException, IOException, InterruptedException, ExecutionException {
 		return forEachHashEntry().flatMap(first_linked_list_pointer -> {
 			return forEachLinkedListItemChainDataKeys(first_linked_list_pointer, linkedlist_entry_buffer -> {
-				/*
-				Linked list entry struct:
-				<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
-				[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-				*/
-				byte[] result = new byte[key_size];
-				linkedlist_entry_buffer.get(result, 0, key_size);
+				byte[] result = new byte[ItemKey.SIZE];
+				linkedlist_entry_buffer.get(result, 0, ItemKey.SIZE);
 				return result;
 			});
 		}).map(k -> {
 			return new ItemKey(k);
 		});
-	}
+	}*/
 	
-	public class Entry {
-		public final ItemKey key;
-		public final byte[] value;
-		
-		private Entry(byte[] key, byte[] value) {
-			this.key = new ItemKey(key);
-			this.value = value;
-		}
-	}
-	
-	public Stream<Entry> forEachKeyValues() throws RuntimeException, IOException, InterruptedException, ExecutionException {
+	/*
+	Linked list entry struct:
+	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
+	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
+	*/
+	/*Stream<Entry> forEachKeyValues() throws RuntimeException, IOException, InterruptedException, ExecutionException {
 		return forEachHashEntry().flatMap(first_linked_list_pointer -> {
 			return forEachLinkedListItemChainDataKeys(first_linked_list_pointer, linkedlist_entry_buffer -> {
-				/*
-				Linked list entry struct:
-				<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
-				[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-				*/
-				return linkedlist_entry_buffer.getLong(key_size);
+				return linkedlist_entry_buffer.getLong(ItemKey.SIZE);
 			});
 		}).filter(data_engine.checkDataPointerValidity).map(data_engine.getDataEntryFromDataPointer).filter(entry -> {
 			return entry != null;
 		});
-	}
+	}*/
 	
 	/**
 	 * Just write a new entry
@@ -720,7 +511,7 @@ public class FileHashTable {
 		linkedlist_entry_buffer.putLong(new_next_linked_list_pointer);
 		linkedlist_entry_buffer.flip();
 		
-		asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer + key_size + 8, onError, s -> {
+		asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer + ItemKey.SIZE + 8, onError, s -> {
 			onDone.run();
 		});
 	}
@@ -824,33 +615,61 @@ public class FileHashTable {
 	
 	// TODO add bloom filter for all keys
 	
-	private void asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position, Consumer<Throwable> onError, Consumer<Integer> completed) {
-		if (stopTheWorld.get()) {
-			return;
-		}
-		channel.read(buffer, position, null, new CompletionHandler<Integer, Void>() {
+	static CompletableFuture<Integer> asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position) {
+		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
+		
+		channel.read(buffer, position, position, new CompletionHandler<Integer, Long>() {
 			
-			public void completed(Integer result, Void attachment) {
+			public void completed(Integer result, Long position) {
+				completable_future.complete(result);
+			}
+			
+			public void failed(Throwable e, Long position) {
+				completable_future.completeExceptionally(e);
+			}
+		});
+		return completable_future;
+	}
+	
+	static CompletableFuture<Integer> asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position) {
+		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
+		
+		channel.write(buffer, position, position, new CompletionHandler<Integer, Long>() {
+			
+			public void completed(Integer result, Long position) {
+				completable_future.complete(result);
+			}
+			
+			public void failed(Throwable e, Long position) {
+				completable_future.completeExceptionally(e);
+			}
+		});
+		return completable_future;
+	}
+	
+	@Deprecated
+	static void asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position, Consumer<Throwable> onError, Consumer<Integer> completed) {
+		channel.read(buffer, position, position, new CompletionHandler<Integer, Long>() {
+			
+			public void completed(Integer result, Long position) {
 				completed.accept(result);
 			}
 			
-			public void failed(Throwable e, Void attachment) {
+			public void failed(Throwable e, Long position) {
 				onError.accept(e);
 			}
 		});
 	}
 	
-	private void asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position, Consumer<Throwable> onError, Consumer<Integer> completed) {
-		if (stopTheWorld.get()) {
-			return;
-		}
-		channel.write(buffer, position, null, new CompletionHandler<Integer, Void>() {
+	@Deprecated
+	static void asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position, Consumer<Throwable> onError, Consumer<Integer> completed) {
+		channel.write(buffer, position, position, new CompletionHandler<Integer, Long>() {
 			
-			public void completed(Integer result, Void attachment) {
+			public void completed(Integer result, Long position) {
 				completed.accept(result);
 			}
 			
-			public void failed(Throwable e, Void attachment) {
+			public void failed(Throwable e, Long position) {
 				onError.accept(e);
 			}
 		});
@@ -883,26 +702,68 @@ public class FileHashTable {
 	/**
 	 * Internal datas will not removed. Only references.
 	 */
-	public void remove(ItemKey key, Consumer<Throwable> onError, Consumer<ItemKey> onDone) {
-		removeHashOrLinkedlistEntry(key.key, onError, () -> {
-			onDone.accept(key);
+	public void remove(ItemKey item_key, Consumer<Throwable> onError, Consumer<ItemKey> onDone) {
+		byte[] key = item_key.key;
+		int compressed_key = compressKey(key);
+		
+		readHashEntry(compressed_key, onError, linked_list_pointer -> {
+			if (linked_list_pointer == -1l) {
+				/**
+				 * Can't found hash record: nothing to delete.
+				 */
+				onDone.accept(item_key);
+			} else {
+				isLinkedlistEntryTargetKey(linked_list_pointer, key, onError, next_linked_list_pointer -> {
+					if (next_linked_list_pointer == -1l) {
+						/**
+						 * First linkedlist record is not this key. Let's finds the next chain entries.
+						 */
+						findLinkedlistEntry(next_linked_list_pointer, -1, key, onError, null, last_linked_list_pointer -> {
+							/**
+							 * Not in the list? Nothing to delete.
+							 */
+							onDone.accept(item_key);
+						}, (previous_linked_list_pointer, next_founded_list_pointer) -> {
+							/**
+							 * Raccord in linkedlist chain the previous item and the next, and orphan this record.
+							 */
+							writeNextLinkedlistEntry(previous_linked_list_pointer, next_founded_list_pointer, onError, () -> {
+								onDone.accept(item_key);
+							});
+							// TODO update bloom filter (recalculate ?)
+						});
+					} else {
+						/**
+						 * This first linkedlist record is the key. Change it for the next.
+						 */
+						writeHashEntry(compressed_key, next_linked_list_pointer, onError, () -> {
+							onDone.accept(item_key);
+						});
+						// TODO update bloom filter (recalculate ?)
+					}
+				}, () -> {
+					/**
+					 * Empty list... Clear hashentry
+					 */
+					writeClearHashEntry(compressed_key, onError, () -> {
+						onDone.accept(item_key);
+					});
+					// TODO update bloom filter (recalculate ?)
+				});
+			}
 		});
 	}
 	
-	public int size() throws IOException {
-		try {
-			return (int) forEachHashEntry().count();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException(e);
-		}
+	public CompletableFuture<Integer> size() throws IOException {
+		return getAllLinkedListItems(getAllHashEntries()).thenApply(entries -> {
+			return (int) entries.count();
+		});
 	}
 	
-	public boolean isEmpty() throws IOException {
-		try {
-			return forEachHashEntry().anyMatch(p -> true) == false;
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException(e);
-		}
+	public CompletableFuture<Boolean> isEmpty() {
+		return getAllHashEntries().thenApply(entries -> {
+			return entries.anyMatch(p -> true);
+		}).thenApply(r -> !r);
 	}
 	
 	public void has(ItemKey key, Consumer<Throwable> onError, Consumer<Boolean> onDone) {
@@ -912,25 +773,13 @@ public class FileHashTable {
 		});
 	}
 	
-	final AtomicBoolean stopTheWorld = new AtomicBoolean(false);
-	
 	public void clear() throws IOException, InterruptedException, ExecutionException {
-		if (stopTheWorld.get()) {
-			return;
-		}
-		stopTheWorld.set(true);
-		
-		data_engine.file_data_write_pointer.set(FILE_DATA_HEADER_LENGTH);
-		data_engine.data_executor.getThreadPoolExecutor().getQueue().clear();
-		data_engine.data_channel.truncate(FILE_DATA_HEADER_LENGTH);
-		data_engine.data_channel.force(true);
+		data_engine.clear();
 		
 		file_index_write_pointer.set(start_linked_lists_zone_in_index_file);
 		index_executor.getThreadPoolExecutor().getQueue().clear();
 		index_channel.truncate(FILE_INDEX_HEADER_LENGTH);
 		index_channel.force(true);
-		
-		stopTheWorld.set(false);
 	}
 	
 }

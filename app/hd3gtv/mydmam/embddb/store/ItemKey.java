@@ -29,6 +29,8 @@ final class ItemKey {
 	
 	final byte[] key;
 	
+	final static int SIZE = new ItemKey("").key.length;
+	
 	ItemKey(byte[] key) {
 		this.key = key;
 	}
