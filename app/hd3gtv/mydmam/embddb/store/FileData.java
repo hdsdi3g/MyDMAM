@@ -23,8 +23,6 @@ import java.nio.channels.AsynchronousFileChannel;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.apache.log4j.Logger;
 
@@ -83,10 +81,9 @@ class FileData {
 	}
 	
 	/**
-	 * Prepare data entry and write it
-	 * @param onDone the new data pointer.
+	 * @return data_pointer
 	 */
-	void writeData(byte[] key, byte[] user_data, Consumer<Throwable> onError, Consumer<Long> onDone) {
+	CompletableFuture<Long> write(byte[] key, byte[] user_data) {
 		/*
 		<int, 4 bytes><key_size><--int, 4 bytes--->
 		[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
@@ -102,8 +99,8 @@ class FileData {
 		
 		long data_pointer = file_data_write_pointer.getAndAdd(computeExactlyDataEntrySize(user_data.length));
 		
-		FileHashTable.asyncWrite(data_channel, data_buffer, data_pointer, onError, s3 -> {
-			onDone.accept(data_pointer);
+		return FileHashTable.asyncWrite(data_channel, data_buffer, data_pointer).thenApply(size -> {
+			return data_pointer;
 		});
 	}
 	
@@ -170,58 +167,6 @@ class FileData {
 		return result;
 	}
 	
-	/**
-	 * @param onDone key->data or null -> new byte[0] if not found datas
-	 */
-	void readData(long data_pointer, Consumer<Throwable> onError, BiConsumer<byte[], byte[]> onDone) {
-		ByteBuffer header_buffer = ByteBuffer.allocate(4);
-		
-		FileHashTable.asyncRead(data_channel, header_buffer, data_pointer, onError, s -> {
-			if (s != 4) {
-				onDone.accept(null, new byte[0]);
-				return;
-			}
-			header_buffer.flip();
-			int data_entry_size = header_buffer.getInt();
-			if (data_entry_size < 0) {
-				onDone.accept(null, new byte[0]);
-				return;
-			}
-			ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
-			FileHashTable.asyncRead(data_channel, data_buffer, data_pointer + 4l, onError, s2 -> {
-				if (s2 != data_entry_size) {
-					onDone.accept(null, new byte[0]);
-					return;
-				}
-				data_buffer.flip();
-				byte[] key = new byte[ItemKey.SIZE];
-				data_buffer.get(key);
-				
-				byte[] data = null;
-				int user_data_length = data_buffer.getInt();
-				
-				if (user_data_length < 0) {
-					onDone.accept(null, new byte[0]);
-					return;
-				} else if (user_data_length == 0) {
-					data = new byte[0];
-				} else {
-					data = new byte[user_data_length];
-					data_buffer.get(data);
-				}
-				
-				try {
-					TransactionJournal.readAndEquals(data_buffer, NEXT_TAG, err -> {
-						return new IOException("Bad tag separator: " + new String(err, MyDMAM.UTF8));
-					});
-					onDone.accept(key, data);
-				} catch (IOException e) {
-					onError.accept(e);
-				}
-			});
-		});
-	}
-	
 	public class Entry {
 		public final ItemKey key;
 		public final byte[] value;
@@ -247,6 +192,9 @@ class FileData {
 		data_channel.force(true);
 	}
 	
-	// TODO mark obsolete segments data file...
+	// TODO mark obsolete segments data file... + add more information in header and footer, like integrity control sum.
 	// TODO deleted (free) zones index
+	// TODO if overwrite a same/smaller length zone >> don't append, just overwrite
+	// TODO if overwrite a same length zone, check integrity control sum before overwrite
+	
 }

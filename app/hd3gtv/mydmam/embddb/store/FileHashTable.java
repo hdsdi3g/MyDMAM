@@ -31,8 +31,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
@@ -69,9 +67,9 @@ public class FileHashTable {
 	private AtomicLong file_index_write_pointer;
 	private final ThreadPoolExecutorFactory index_executor;
 	
-	private final FileData data_engine;// TODO rename
+	private final FileData data;
 	
-	public FileHashTable(File index_file, File data_file, int table_size) throws IOException, InterruptedException, ExecutionException { // TODO all with CompletableFuture
+	public FileHashTable(File index_file, File data_file, int table_size) throws IOException, InterruptedException, ExecutionException {
 		
 		this.table_size = table_size;
 		this.index_file = index_file;
@@ -79,7 +77,7 @@ public class FileHashTable {
 			throw new NullPointerException("\"index_file\" can't to be null");
 		}
 		
-		data_engine = new FileData(data_file);
+		data = new FileData(data_file);
 		
 		index_executor = new ThreadPoolExecutorFactory(getClass().getSimpleName() + "_Index", Thread.MAX_PRIORITY);
 		
@@ -121,6 +119,46 @@ public class FileHashTable {
 			index_channel.write(bytebuffer_header_index, 0).get();
 			file_index_write_pointer = new AtomicLong(start_linked_lists_zone_in_index_file);
 		}
+	}
+	
+	static CompletableFuture<Integer> asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position) {
+		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
+		
+		channel.read(buffer, position, position, new CompletionHandler<Integer, Long>() {
+			
+			public void completed(Integer result, Long position) {
+				completable_future.complete(result);
+			}
+			
+			public void failed(Throwable e, Long position) {
+				completable_future.completeExceptionally(e);
+			}
+		});
+		return completable_future;
+	}
+	
+	/**
+	 * @param buffer full buffer write is tested
+	 */
+	static CompletableFuture<Integer> asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position) {
+		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
+		int rem = buffer.remaining();
+		
+		channel.write(buffer, position, position, new CompletionHandler<Integer, Long>() {
+			
+			public void completed(Integer writed_size, Long position) {
+				if (rem != writed_size) {
+					completable_future.completeExceptionally(new IOException("Can't write all datas: " + writed_size + "/" + rem));
+				} else {
+					completable_future.complete(writed_size);
+				}
+			}
+			
+			public void failed(Throwable e, Long position) {
+				completable_future.completeExceptionally(e);
+			}
+		});
+		return completable_future;
 	}
 	
 	/*
@@ -179,15 +217,7 @@ public class FileHashTable {
 			}
 			return StreamMaker.create(() -> {
 				if (read_buffer.remaining() - HASH_ENTRY_SIZE >= 0) {
-					/*
-					Hash entry struct:
-					<---int, 4 bytes----><----------------long, 8 bytes------------------->
-					[Compressed hash key][absolute position for first index in linked list]
-					*/
-					int compressed_hash_key = read_buffer.getInt();
-					long linked_list_first_index = read_buffer.getLong();
-					
-					return new HashEntry(compressed_hash_key, linked_list_first_index);
+					return new HashEntry(read_buffer);
 				} else {
 					return null;
 				}
@@ -205,24 +235,42 @@ public class FileHashTable {
 			this.compressed_hash_key = compressed_hash_key;
 			this.linked_list_first_index = linked_list_first_index;
 		}
+		
+		/*
+		Hash entry struct:
+		<---int, 4 bytes----><----------------long, 8 bytes------------------->
+		[Compressed hash key][absolute position for first index in linked list]
+		*/
+		HashEntry(ByteBuffer read_buffer) {
+			compressed_hash_key = read_buffer.getInt();
+			linked_list_first_index = read_buffer.getLong();
+		}
 	}
 	
 	private class LinkedListEntry {
 		byte[] current_key;
 		long data_pointer;
+		long next_linked_list_pointer;
 		
 		LinkedListEntry(byte[] current_key, long data_pointer) {
 			this.current_key = current_key;
 			this.data_pointer = data_pointer;
 		}
 		
+		/*
+		Linked list entry struct:
+		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
+		[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
+		*/
+		LinkedListEntry(ByteBuffer linkedlist_entry_buffer) {
+			current_key = new byte[ItemKey.SIZE];
+			linkedlist_entry_buffer.get(current_key);
+			data_pointer = linkedlist_entry_buffer.getLong();
+			next_linked_list_pointer = linkedlist_entry_buffer.getLong();
+		}
+		
 	}
 	
-	/*
-	Linked list entry struct:
-	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
-	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-	*/
 	private CompletableFuture<Stream<LinkedListEntry>> getAllLinkedListItems(CompletableFuture<Stream<HashEntry>> hash_entries) {
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
@@ -244,14 +292,10 @@ public class FileHashTable {
 								return null;
 							}
 							linkedlist_entry_buffer.flip();
-							byte[] current_key = new byte[ItemKey.SIZE];
-							linkedlist_entry_buffer.get(current_key);
-							long data_pointer = linkedlist_entry_buffer.getLong();
-							long next_linked_list_pointer = linkedlist_entry_buffer.getLong();
+							LinkedListEntry result = new LinkedListEntry(linkedlist_entry_buffer);
 							linkedlist_entry_buffer.clear();
-							
-							next_pointer.set(next_linked_list_pointer);
-							return new LinkedListEntry(current_key, data_pointer);
+							next_pointer.set(result.next_linked_list_pointer);
+							return result;
 						}).get();
 					} catch (InterruptedException | ExecutionException e) {
 						hash_entries.completeExceptionally(e);
@@ -276,7 +320,7 @@ public class FileHashTable {
 				if (lle.data_pointer <= 0) {
 					return null;
 				}
-				return data_engine.read(lle.data_pointer);
+				return data.read(lle.data_pointer);
 			});
 		});
 	}
@@ -296,11 +340,9 @@ public class FileHashTable {
 	}
 	
 	/**
-	 * Just write a new entry
-	 * Prepare entry and write it
+	 * Just write an entry: Prepare entry and write it
 	 */
-	@Deprecated
-	private void writeHashEntry(int compressed_key, long first_linked_list_pointer, Consumer<Throwable> onError, Runnable onDone) {
+	private CompletableFuture<Void> writeHashEntry(int compressed_key, long first_linked_list_pointer) {
 		/*
 		Hash entry struct:
 		<---int, 4 bytes----><----------------long, 8 bytes------------------->
@@ -311,30 +353,12 @@ public class FileHashTable {
 		key_table_buffer.putLong(first_linked_list_pointer);
 		key_table_buffer.flip();
 		
-		asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key), onError, size -> {
-			onDone.run();
+		return asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key)).thenApply(s -> {
+			return null;
 		});
 	}
 	
-	/**
-	 * Just write a new entry
-	 * Prepare entry and write it
-	 */
-	private CompletableFuture<Integer> writeHashEntry(int compressed_key, long first_linked_list_pointer) {
-		/*
-		Hash entry struct:
-		<---int, 4 bytes----><----------------long, 8 bytes------------------->
-		[Compressed hash key][absolute position for first index in linked list]
-		*/
-		ByteBuffer key_table_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE);
-		key_table_buffer.putInt(compressed_key);
-		key_table_buffer.putLong(first_linked_list_pointer);
-		key_table_buffer.flip();
-		
-		return asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key));
-	}
-	
-	private void writeClearHashEntry(int compressed_key, Consumer<Throwable> onError, Runnable onDone) {
+	private CompletableFuture<Void> writeClearHashEntry(int compressed_key) {
 		/*
 		Hash entry struct:
 		<---int, 4 bytes----><----------------long, 8 bytes------------------->
@@ -344,15 +368,15 @@ public class FileHashTable {
 		key_table_buffer.putInt(0);
 		key_table_buffer.putLong(0);
 		key_table_buffer.flip();
-		asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key), onError, size -> {
-			onDone.run();
+		return asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key)).thenApply(size -> {
+			return null;
 		});
 	}
 	
 	/**
 	 * @param onDone the Absolute position for the first index in linked list, or -1
 	 */
-	private void readHashEntry(int compressed_key, Consumer<Throwable> onError, Consumer<Long> onDone) {
+	private CompletableFuture<Long> readHashEntry(int compressed_key) {
 		/*
 		Hash entry struct:
 		<---int, 4 bytes----><----------------long, 8 bytes------------------->
@@ -361,31 +385,27 @@ public class FileHashTable {
 		*/
 		long index_file_pos = computeIndexFilePosition(compressed_key);
 		if (index_file_pos > index_file.length()) {
-			onDone.accept(-1l);
-			return;
+			return CompletableFuture.completedFuture(-1l);
 		}
 		
 		ByteBuffer key_table_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE);
-		asyncRead(index_channel, key_table_buffer, index_file_pos, onError, size -> {
+		return asyncRead(index_channel, key_table_buffer, index_file_pos).thenApply(size -> {
 			if (size != HASH_ENTRY_SIZE) {
-				onDone.accept(-1l);
-				return;
+				return -1l;
 			}
 			key_table_buffer.flip();
 			if (compressed_key != key_table_buffer.getInt()) {
-				onDone.accept(-1l);
-				return;
+				return -1l;
 			}
 			long result = key_table_buffer.getLong();
 			if (result == 0) {
-				onDone.accept(-1l);
-				return;
+				return -1l;
 			}
-			onDone.accept(result);
+			return result;
 		});
 	}
 	
-	private void writeLinkedlistEntry(long linked_list_pointer, byte[] key, long data_pointer, long next_linked_list_pointer, Consumer<Throwable> onError, Runnable onDone) {
+	private CompletableFuture<Void> writeLinkedlistEntry(long linked_list_pointer, byte[] key, long data_pointer, long next_linked_list_pointer) {
 		/*
 		Linked list entry struct:
 		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
@@ -397,15 +417,14 @@ public class FileHashTable {
 		linkedlist_entry_buffer.putLong(next_linked_list_pointer);
 		linkedlist_entry_buffer.flip();
 		
-		asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer, onError, s -> {
-			onDone.run();
+		return asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer).thenAccept(s -> {
 		});
 	}
 	
 	/**
-	 * @param onDone the data_pointer or -1
+	 * @return the data_pointer or -1
 	 */
-	private void findInLinkedlistEntryData(long linked_list_pointer, byte[] targeted_key, Consumer<Throwable> onError, Consumer<Long> onDone) {
+	private CompletableFuture<Long> findInLinkedlistEntryData(long linked_list_pointer, byte[] targeted_key) {
 		/*
 		Linked list entry struct:
 		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
@@ -414,10 +433,9 @@ public class FileHashTable {
 		*/
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
-		asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer, onError, s -> {
+		return asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer).thenCompose(s -> {
 			if (s != LINKED_LIST_ENTRY_SIZE) {
-				onDone.accept(-1l);
-				return;
+				return CompletableFuture.completedFuture(-1l);
 			}
 			linkedlist_entry_buffer.flip();
 			byte[] current_key = new byte[targeted_key.length];
@@ -427,22 +445,22 @@ public class FileHashTable {
 			
 			if (Arrays.equals(targeted_key, current_key)) {
 				if (data_pointer < 1l) {
-					onDone.accept(-1l);
+					return CompletableFuture.completedFuture(-1l);
 				} else {
-					onDone.accept(data_pointer);
+					return CompletableFuture.completedFuture(data_pointer);
 				}
 			} else if (next_linked_list_pointer > -1) {
 				/**
 				 * The princess is in another castle
 				 */
-				findInLinkedlistEntryData(next_linked_list_pointer, targeted_key, onError, onDone);
+				return findInLinkedlistEntryData(next_linked_list_pointer, targeted_key);
 			} else {
-				onDone.accept(-1l);
+				return CompletableFuture.completedFuture(-1l);
 			}
 		});
 	}
 	
-	private void writeNextLinkedlistEntry(long linked_list_pointer, long new_next_linked_list_pointer, Consumer<Throwable> onError, Runnable onDone) {
+	private CompletableFuture<Void> writeNextLinkedlistEntry(long linked_list_pointer, long new_next_linked_list_pointer) {
 		/*
 		Linked list entry struct:
 		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
@@ -453,17 +471,18 @@ public class FileHashTable {
 		linkedlist_entry_buffer.putLong(new_next_linked_list_pointer);
 		linkedlist_entry_buffer.flip();
 		
-		asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer + ItemKey.SIZE + 8, onError, s -> {
-			onDone.run();
+		return asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer + ItemKey.SIZE + 8).thenAccept(s -> {
 		});
 	}
 	
-	/**
-	 * @param onFoundEntry the current linked list entry pointer and the next linked list entry pointer (for this current). Can be null.
-	 * @param onNotFoundEntry the last linked list entry or -1 (empty list)
-	 * @param onFoundEntryOriginNext the origin (previous item in list) and the next linked list entry pointer (for this current). Can be null.
-	 */
-	private void findLinkedlistEntry(long linked_list_pointer, long linked_list_pointer_origin, byte[] targeted_key, Consumer<Throwable> onError, BiConsumer<Long, Long> onFoundEntry, Consumer<Long> onNotFoundEntry, BiConsumer<Long, Long> onFoundEntryOriginNext) {
+	private class LinkedListFoundEntry {
+		boolean not_found;
+		long linked_list_pointer_origin;
+		long next_linked_list_pointer;
+		long linked_list_pointer;
+	}
+	
+	private CompletableFuture<LinkedListFoundEntry> findLinkedlistEntry(long linked_list_pointer, long linked_list_pointer_origin, byte[] targeted_key) {
 		/*
 		Linked list entry struct:
 		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
@@ -472,40 +491,40 @@ public class FileHashTable {
 		*/
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
-		asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer, onError, s -> {
-			if (s != LINKED_LIST_ENTRY_SIZE) {
-				onNotFoundEntry.accept(-1l);
-				return;
-			}
-			linkedlist_entry_buffer.flip();
-			byte[] current_key = new byte[targeted_key.length];
-			linkedlist_entry_buffer.get(current_key);
-			/*long data_pointer =*/ linkedlist_entry_buffer.getLong();
-			long next_linked_list_pointer = linkedlist_entry_buffer.getLong();
+		return asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer).thenCompose(s -> {
+			LinkedListFoundEntry result = new LinkedListFoundEntry();
 			
-			if (Arrays.equals(targeted_key, current_key)) {
-				if (onFoundEntry != null) {
-					onFoundEntry.accept(linked_list_pointer, next_linked_list_pointer);
-				}
-				if (onFoundEntryOriginNext != null) {
-					onFoundEntryOriginNext.accept(linked_list_pointer_origin, next_linked_list_pointer);
-				}
-			} else if (next_linked_list_pointer > -1) {
-				/**
-				 * The princess (entry) is in another castle
-				 */
-				findLinkedlistEntry(next_linked_list_pointer, linked_list_pointer, targeted_key, onError, onFoundEntry, onNotFoundEntry, onFoundEntryOriginNext);
+			if (s != LINKED_LIST_ENTRY_SIZE) {
+				result.not_found = true;
 			} else {
-				onNotFoundEntry.accept(linked_list_pointer);
+				linkedlist_entry_buffer.flip();
+				byte[] current_key = new byte[targeted_key.length];
+				linkedlist_entry_buffer.get(current_key);
+				/*long data_pointer =*/ linkedlist_entry_buffer.getLong();
+				long next_linked_list_pointer = linkedlist_entry_buffer.getLong();
+				
+				if (Arrays.equals(targeted_key, current_key)) {
+					result.linked_list_pointer = linked_list_pointer;
+					result.next_linked_list_pointer = next_linked_list_pointer;
+					result.linked_list_pointer_origin = linked_list_pointer_origin;
+				} else if (next_linked_list_pointer > -1) {
+					/**
+					 * The princess (entry) is in another castle
+					 */
+					return findLinkedlistEntry(next_linked_list_pointer, linked_list_pointer, targeted_key);
+				} else {
+					result.linked_list_pointer = linked_list_pointer;
+				}
 			}
+			return CompletableFuture.completedFuture(result);
 		});
 	}
 	
 	/**
 	 * Simple get, don't do recursive things.
-	 * @param onDone the next linked list entry pointer (for this current) or -1 (empty list/not found)
+	 * @retrun the next linked list entry pointer (for this current) or null
 	 */
-	private void isLinkedlistEntryTargetKey(long linked_list_pointer, byte[] targeted_key, Consumer<Throwable> onError, Consumer<Long> onFounded, Runnable onNotFounded) {
+	private CompletableFuture<LinkedListEntry> isLinkedlistEntryTargetKey(long linked_list_pointer, byte[] targeted_key) {
 		/*
 		Linked list entry struct:
 		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
@@ -514,21 +533,16 @@ public class FileHashTable {
 		*/
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
-		asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer, onError, s -> {
+		return asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer).thenApply(s -> {
 			if (s != LINKED_LIST_ENTRY_SIZE) {
-				onNotFounded.run();
-				return;
+				return null;
 			}
 			linkedlist_entry_buffer.flip();
-			byte[] current_key = new byte[targeted_key.length];
-			linkedlist_entry_buffer.get(current_key);
-			/*long data_pointer =*/ linkedlist_entry_buffer.getLong();
-			long next_linked_list_pointer = linkedlist_entry_buffer.getLong();
-			
-			if (Arrays.equals(targeted_key, current_key)) {
-				onFounded.accept(next_linked_list_pointer);
+			LinkedListEntry result = new LinkedListEntry(linkedlist_entry_buffer);
+			if (Arrays.equals(targeted_key, result.current_key)) {
+				return result;
 			} else {
-				onNotFounded.run();
+				return null;
 			}
 		});
 	}
@@ -536,7 +550,7 @@ public class FileHashTable {
 	/**
 	 * @param onDone created item position
 	 */
-	private void writeAppendLinkedlistEntry(byte[] key, long data_pointer, Consumer<Throwable> onError, Consumer<Long> onDone) {
+	private CompletableFuture<Long> writeAppendLinkedlistEntry(byte[] key, long data_pointer) {
 		/*
 		Linked list entry struct:
 		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
@@ -550,155 +564,83 @@ public class FileHashTable {
 		
 		long linked_list_pointer = file_index_write_pointer.getAndAdd(LINKED_LIST_ENTRY_SIZE);
 		
-		asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer, onError, s -> {
-			onDone.accept(linked_list_pointer);
-		});
-	}
-	
-	// TODO add bloom filter for all keys
-	
-	static CompletableFuture<Integer> asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position) {
-		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
-		
-		channel.read(buffer, position, position, new CompletionHandler<Integer, Long>() {
-			
-			public void completed(Integer result, Long position) {
-				completable_future.complete(result);
-			}
-			
-			public void failed(Throwable e, Long position) {
-				completable_future.completeExceptionally(e);
-			}
-		});
-		return completable_future;
-	}
-	
-	static CompletableFuture<Integer> asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position) {
-		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
-		
-		channel.write(buffer, position, position, new CompletionHandler<Integer, Long>() {
-			
-			public void completed(Integer result, Long position) {
-				completable_future.complete(result);
-			}
-			
-			public void failed(Throwable e, Long position) {
-				completable_future.completeExceptionally(e);
-			}
-		});
-		return completable_future;
-	}
-	
-	@Deprecated
-	static void asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position, Consumer<Throwable> onError, Consumer<Integer> completed) {
-		channel.read(buffer, position, position, new CompletionHandler<Integer, Long>() {
-			
-			public void completed(Integer result, Long position) {
-				completed.accept(result);
-			}
-			
-			public void failed(Throwable e, Long position) {
-				onError.accept(e);
-			}
-		});
-	}
-	
-	@Deprecated
-	static void asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position, Consumer<Throwable> onError, Consumer<Integer> completed) {
-		channel.write(buffer, position, position, new CompletionHandler<Integer, Long>() {
-			
-			public void completed(Integer result, Long position) {
-				completed.accept(result);
-			}
-			
-			public void failed(Throwable e, Long position) {
-				onError.accept(e);
-			}
+		return asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer).thenApply(s -> {
+			return linked_list_pointer;
 		});
 	}
 	
 	/**
 	 * @param onDone data_pointer or -1
 	 */
-	private void getDataPointerFromHashKey(byte[] key, Consumer<Throwable> onError, Consumer<Long> onDone) {
-		// TODO get bloom filter
+	private CompletableFuture<Long> getDataPointerFromHashKey(byte[] key) {
 		int compressed_key = compressKey(key);
 		
-		readHashEntry(compressed_key, onError, linked_list_pointer -> {
+		return readHashEntry(compressed_key).thenCompose(linked_list_pointer -> {
 			if (linked_list_pointer == -1l) {
-				onDone.accept(-1l);
-				return;
+				return CompletableFuture.completedFuture(-1l);
 			}
-			findInLinkedlistEntryData(linked_list_pointer, key, onError, data_pointer -> {
-				onDone.accept(data_pointer);
-			});
+			return findInLinkedlistEntryData(linked_list_pointer, key);
 		});
 	}
 	
-	private void updateIndex(byte[] key, long data_pointer, Consumer<Throwable> onError, Runnable onDone) {
+	private CompletableFuture<Void> updateIndex(byte[] key, long data_pointer) {
 		int compressed_key = compressKey(key);
 		
-		readHashEntry(compressed_key, onError, first_linked_list_pointer -> {
+		return readHashEntry(compressed_key).thenCompose(first_linked_list_pointer -> {
 			if (first_linked_list_pointer == -1l) {
 				/**
 				 * Hash entry don't exists, create it and put in the hash table.
 				 */
-				writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
-					writeHashEntry(compressed_key, new_linked_list_pointer, onError, onDone);
-					// TODO update bloom filter (recalculate ?)
+				return writeAppendLinkedlistEntry(key, data_pointer).thenCompose(new_linked_list_pointer -> {
+					return writeHashEntry(compressed_key, new_linked_list_pointer);
 				});
 			} else {
 				/**
 				 * Search if linked list entry exists
 				 */
-				findLinkedlistEntry(first_linked_list_pointer, -1, key, onError, (linked_list_pointer, next_list_pointer) -> {
-					/**
-					 * Entry exists, replace current entry
-					 */
-					writeLinkedlistEntry(linked_list_pointer, key, data_pointer, next_list_pointer, onError, onDone);
-				}, last_linked_list_pointer -> {
-					if (last_linked_list_pointer == -1l) {
+				return findLinkedlistEntry(first_linked_list_pointer, -1, key).thenCompose(ll_founded_entry -> {
+					if (ll_founded_entry.not_found) {
+						return CompletableFuture.completedFuture(null);
+					} else if (ll_founded_entry.linked_list_pointer > -1 && ll_founded_entry.next_linked_list_pointer > -1) {
+						/**
+						 * Entry exists, replace current entry
+						 **/
+						return writeLinkedlistEntry(ll_founded_entry.linked_list_pointer, key, data_pointer, ll_founded_entry.next_linked_list_pointer);
+					} else if (ll_founded_entry.linked_list_pointer_origin == -1l) {
 						/**
 						 * Add new linked list entry, and attach it for last entry. Overwrite current Hash entry.
 						 */
-						writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
-							writeHashEntry(compressed_key, new_linked_list_pointer, onError, onDone);
-							// TODO update bloom filter (recalculate ?)
+						return writeAppendLinkedlistEntry(key, data_pointer).thenCompose(new_linked_list_pointer -> {
+							return writeHashEntry(compressed_key, new_linked_list_pointer);
 						});
 					} else {
 						/**
 						 * Append new entry to actual list (chain)
 						 */
-						writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
-							writeNextLinkedlistEntry(last_linked_list_pointer, new_linked_list_pointer, onError, onDone);
-							// TODO update bloom filter (recalculate ?)
+						return writeAppendLinkedlistEntry(key, data_pointer).thenCompose(new_linked_list_pointer -> {
+							return writeNextLinkedlistEntry(ll_founded_entry.linked_list_pointer_origin, new_linked_list_pointer);
 						});
 					}
-				}, null);
+				});
 			}
 		});
 	}
 	
-	public void put(ItemKey key, byte[] user_data, Consumer<Throwable> onError, Consumer<ItemKey> onDone) {
-		data_engine.writeData(key.key, user_data, onError, data_pointer -> {
-			updateIndex(key.key, data_pointer, onError, () -> {
-				onDone.accept(key);
-			});
+	public CompletableFuture<Void> put(ItemKey key, byte[] user_data) {// TODO interblocking !! use simple Queue for writes !
+		return data.write(key.key, user_data).thenCompose(data_pointer -> {
+			return updateIndex(key.key, data_pointer);
 		});
 	}
 	
-	public void get(ItemKey key, Consumer<Throwable> onError, BiConsumer<ItemKey, byte[]> onDone, Consumer<ItemKey> notFound) {
-		getDataPointerFromHashKey(key.key, onError, data_pointer -> {
+	/**
+	 * @return entry can be null if not found.
+	 */
+	public CompletableFuture<Entry> getEntry(ItemKey key) {
+		return getDataPointerFromHashKey(key.key).thenCompose(data_pointer -> {
 			if (data_pointer == -1) {
-				notFound.accept(key);
+				return CompletableFuture.completedFuture(null);
 			} else {
-				data_engine.readData(data_pointer, onError, (k, d) -> {
-					if (k == null) {
-						notFound.accept(key);
-					} else {
-						onDone.accept(key, d);
-					}
-				});
+				return data.read(data_pointer);
 			}
 		});
 	}
@@ -706,53 +648,48 @@ public class FileHashTable {
 	/**
 	 * Internal datas will not removed. Only references.
 	 */
-	public void remove(ItemKey item_key, Consumer<Throwable> onError, Consumer<ItemKey> onDone) {
+	public CompletableFuture<Void> remove(ItemKey item_key) {
 		byte[] key = item_key.key;
 		int compressed_key = compressKey(key);
 		
-		readHashEntry(compressed_key, onError, linked_list_pointer -> {
+		return readHashEntry(compressed_key).thenCompose(linked_list_pointer -> {
 			if (linked_list_pointer == -1l) {
 				/**
 				 * Can't found hash record: nothing to delete.
 				 */
-				onDone.accept(item_key);
+				return CompletableFuture.completedFuture(null);
 			} else {
-				isLinkedlistEntryTargetKey(linked_list_pointer, key, onError, next_linked_list_pointer -> {
-					if (next_linked_list_pointer == -1l) {
+				return isLinkedlistEntryTargetKey(linked_list_pointer, key).thenCompose(ll_entry -> {
+					if (ll_entry == null) {
+						/**
+						 * Empty list... Clear hashentry
+						 */
+						return writeClearHashEntry(compressed_key);
+					} else if (ll_entry.next_linked_list_pointer == -1l) {
 						/**
 						 * First linkedlist record is not this key. Let's finds the next chain entries.
 						 */
-						findLinkedlistEntry(next_linked_list_pointer, -1, key, onError, null, last_linked_list_pointer -> {
-							/**
-							 * Not in the list? Nothing to delete.
-							 */
-							onDone.accept(item_key);
-						}, (previous_linked_list_pointer, next_founded_list_pointer) -> {
-							/**
-							 * Raccord in linkedlist chain the previous item and the next, and orphan this record.
-							 */
-							writeNextLinkedlistEntry(previous_linked_list_pointer, next_founded_list_pointer, onError, () -> {
-								onDone.accept(item_key);
-							});
-							// TODO update bloom filter (recalculate ?)
+						return findLinkedlistEntry(ll_entry.next_linked_list_pointer, -1, key).thenCompose(ll_next_entry -> {
+							if (ll_next_entry.linked_list_pointer_origin > -1) {
+								/**
+								 * Not in the list? Nothing to delete.
+								 */
+								return CompletableFuture.completedFuture(null);
+							} else if (ll_next_entry.linked_list_pointer_origin > -1 && ll_next_entry.next_linked_list_pointer > -1) {
+								/**
+								 * Raccord in linkedlist chain the previous item and the next, and orphan this record.
+								 */
+								return writeNextLinkedlistEntry(ll_next_entry.linked_list_pointer_origin, ll_next_entry.next_linked_list_pointer);
+							} else {
+								/**
+								 * This first linkedlist record is the key. Change it for the next.
+								 */
+								return writeHashEntry(compressed_key, ll_next_entry.next_linked_list_pointer);
+							}
 						});
 					} else {
-						/**
-						 * This first linkedlist record is the key. Change it for the next.
-						 */
-						writeHashEntry(compressed_key, next_linked_list_pointer, onError, () -> {
-							onDone.accept(item_key);
-						});
-						// TODO update bloom filter (recalculate ?)
+						return CompletableFuture.completedFuture(null); // This is strange...
 					}
-				}, () -> {
-					/**
-					 * Empty list... Clear hashentry
-					 */
-					writeClearHashEntry(compressed_key, onError, () -> {
-						onDone.accept(item_key);
-					});
-					// TODO update bloom filter (recalculate ?)
 				});
 			}
 		});
@@ -770,15 +707,14 @@ public class FileHashTable {
 		}).thenApply(r -> !r);
 	}
 	
-	public void has(ItemKey key, Consumer<Throwable> onError, Consumer<Boolean> onDone) {
-		// TODO via bloom filter...
-		getDataPointerFromHashKey(key.key, onError, data_pointer -> {
-			onDone.accept(data_pointer != -1);
+	public CompletableFuture<Boolean> has(ItemKey key) {
+		return getDataPointerFromHashKey(key.key).thenApply(data_pointer -> {
+			return data_pointer != -1;
 		});
 	}
 	
 	public void clear() throws IOException, InterruptedException, ExecutionException {
-		data_engine.clear();
+		data.clear();
 		
 		file_index_write_pointer.set(start_linked_lists_zone_in_index_file);
 		index_executor.getThreadPoolExecutor().getQueue().clear();
