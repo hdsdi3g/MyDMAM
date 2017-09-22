@@ -162,68 +162,6 @@ public class FileHashTable {
 	}
 	
 	/**
-	 * @param onDone data_pointer or -1
-	 */
-	private void getDataPointerFromHashKey(byte[] key, Consumer<Throwable> onError, Consumer<Long> onDone) {
-		// TODO get bloom filter
-		int compressed_key = compressKey(key);
-		
-		readHashEntry(compressed_key, onError, linked_list_pointer -> {
-			if (linked_list_pointer == -1l) {
-				onDone.accept(-1l);
-				return;
-			}
-			findInLinkedlistEntryData(linked_list_pointer, key, onError, data_pointer -> {
-				onDone.accept(data_pointer);
-			});
-		});
-	}
-	
-	private void updateIndex(byte[] key, long data_pointer, Consumer<Throwable> onError, Runnable onDone) {
-		int compressed_key = compressKey(key);
-		
-		readHashEntry(compressed_key, onError, first_linked_list_pointer -> {
-			if (first_linked_list_pointer == -1l) {
-				/**
-				 * Hash entry don't exists, create it and put in the hash table.
-				 */
-				writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
-					writeHashEntry(compressed_key, new_linked_list_pointer, onError, onDone);
-					// TODO update bloom filter (recalculate ?)
-				});
-			} else {
-				/**
-				 * Search if linked list entry exists
-				 */
-				findLinkedlistEntry(first_linked_list_pointer, -1, key, onError, (linked_list_pointer, next_list_pointer) -> {
-					/**
-					 * Entry exists, replace current entry
-					 */
-					writeLinkedlistEntry(linked_list_pointer, key, data_pointer, next_list_pointer, onError, onDone);
-				}, last_linked_list_pointer -> {
-					if (last_linked_list_pointer == -1l) {
-						/**
-						 * Add new linked list entry, and attach it for last entry. Overwrite current Hash entry.
-						 */
-						writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
-							writeHashEntry(compressed_key, new_linked_list_pointer, onError, onDone);
-							// TODO update bloom filter (recalculate ?)
-						});
-					} else {
-						/**
-						 * Append new entry to actual list (chain)
-						 */
-						writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
-							writeNextLinkedlistEntry(last_linked_list_pointer, new_linked_list_pointer, onError, onDone);
-							// TODO update bloom filter (recalculate ?)
-						});
-					}
-				}, null);
-			}
-		});
-	}
-	
-	/**
 	 * @param onHashEntry return an Stream of firsts linked_list_pointers
 	 * @return
 	 */
@@ -335,32 +273,23 @@ public class FileHashTable {
 	public CompletableFuture<Stream<CompletableFuture<Entry>>> forEachKeyValue() {
 		return getAllLinkedListItems(getAllHashEntries()).thenApply(lle_stream -> {
 			return lle_stream.map(lle -> {
-				return lle.data_pointer;
-			}).map(data_pointer -> {
-				if (data_pointer <= 0) {
+				if (lle.data_pointer <= 0) {
 					return null;
 				}
-				return data_engine.read(data_pointer);
+				return data_engine.read(lle.data_pointer);
 			});
 		});
 	}
 	
 	public Stream<Entry> getAllKeyValues() {
 		try {
-			return getAllLinkedListItems(getAllHashEntries()).thenApply(lle_stream -> {
-				return lle_stream.map(lle -> {
-					return lle.data_pointer;
-				}).map(data_pointer -> {
-					if (data_pointer <= 0) {
-						return null;
-					}
-					try {
-						return data_engine.read(data_pointer).get();
-					} catch (Exception e) {
-						throw new RuntimeException(e.getCause());
-					}
-				});
-			}).get();
+			return forEachKeyValue().get().map(cf_entry -> {
+				try {
+					return cf_entry.get();
+				} catch (Exception e) {
+					throw new RuntimeException(e.getCause());
+				}
+			});
 		} catch (Exception e) {
 			throw new RuntimeException(e.getCause());
 		}
@@ -370,6 +299,7 @@ public class FileHashTable {
 	 * Just write a new entry
 	 * Prepare entry and write it
 	 */
+	@Deprecated
 	private void writeHashEntry(int compressed_key, long first_linked_list_pointer, Consumer<Throwable> onError, Runnable onDone) {
 		/*
 		Hash entry struct:
@@ -384,6 +314,24 @@ public class FileHashTable {
 		asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key), onError, size -> {
 			onDone.run();
 		});
+	}
+	
+	/**
+	 * Just write a new entry
+	 * Prepare entry and write it
+	 */
+	private CompletableFuture<Integer> writeHashEntry(int compressed_key, long first_linked_list_pointer) {
+		/*
+		Hash entry struct:
+		<---int, 4 bytes----><----------------long, 8 bytes------------------->
+		[Compressed hash key][absolute position for first index in linked list]
+		*/
+		ByteBuffer key_table_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE);
+		key_table_buffer.putInt(compressed_key);
+		key_table_buffer.putLong(first_linked_list_pointer);
+		key_table_buffer.flip();
+		
+		return asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(compressed_key));
 	}
 	
 	private void writeClearHashEntry(int compressed_key, Consumer<Throwable> onError, Runnable onDone) {
@@ -665,6 +613,68 @@ public class FileHashTable {
 			
 			public void failed(Throwable e, Long position) {
 				onError.accept(e);
+			}
+		});
+	}
+	
+	/**
+	 * @param onDone data_pointer or -1
+	 */
+	private void getDataPointerFromHashKey(byte[] key, Consumer<Throwable> onError, Consumer<Long> onDone) {
+		// TODO get bloom filter
+		int compressed_key = compressKey(key);
+		
+		readHashEntry(compressed_key, onError, linked_list_pointer -> {
+			if (linked_list_pointer == -1l) {
+				onDone.accept(-1l);
+				return;
+			}
+			findInLinkedlistEntryData(linked_list_pointer, key, onError, data_pointer -> {
+				onDone.accept(data_pointer);
+			});
+		});
+	}
+	
+	private void updateIndex(byte[] key, long data_pointer, Consumer<Throwable> onError, Runnable onDone) {
+		int compressed_key = compressKey(key);
+		
+		readHashEntry(compressed_key, onError, first_linked_list_pointer -> {
+			if (first_linked_list_pointer == -1l) {
+				/**
+				 * Hash entry don't exists, create it and put in the hash table.
+				 */
+				writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
+					writeHashEntry(compressed_key, new_linked_list_pointer, onError, onDone);
+					// TODO update bloom filter (recalculate ?)
+				});
+			} else {
+				/**
+				 * Search if linked list entry exists
+				 */
+				findLinkedlistEntry(first_linked_list_pointer, -1, key, onError, (linked_list_pointer, next_list_pointer) -> {
+					/**
+					 * Entry exists, replace current entry
+					 */
+					writeLinkedlistEntry(linked_list_pointer, key, data_pointer, next_list_pointer, onError, onDone);
+				}, last_linked_list_pointer -> {
+					if (last_linked_list_pointer == -1l) {
+						/**
+						 * Add new linked list entry, and attach it for last entry. Overwrite current Hash entry.
+						 */
+						writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
+							writeHashEntry(compressed_key, new_linked_list_pointer, onError, onDone);
+							// TODO update bloom filter (recalculate ?)
+						});
+					} else {
+						/**
+						 * Append new entry to actual list (chain)
+						 */
+						writeAppendLinkedlistEntry(key, data_pointer, onError, new_linked_list_pointer -> {
+							writeNextLinkedlistEntry(last_linked_list_pointer, new_linked_list_pointer, onError, onDone);
+							// TODO update bloom filter (recalculate ?)
+						});
+					}
+				}, null);
 			}
 		});
 	}
