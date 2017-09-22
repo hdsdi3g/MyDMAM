@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.StreamMaker;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
@@ -226,7 +227,7 @@ public class FileHashTable {
 	 * @param onHashEntry return an Stream of firsts linked_list_pointers
 	 * @return
 	 */
-	CompletableFuture<Stream<HashEntry>> getAllHashEntries() { // TODO set to private
+	private CompletableFuture<Stream<HashEntry>> getAllHashEntries() {
 		ByteBuffer read_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE * table_size);
 		CompletableFuture<Integer> on_done = asyncRead(index_channel, read_buffer, file_index_start);
 		
@@ -258,7 +259,7 @@ public class FileHashTable {
 		});
 	}
 	
-	class HashEntry { // TODO set to private
+	private class HashEntry {
 		int compressed_hash_key;
 		long linked_list_first_index;
 		
@@ -268,7 +269,7 @@ public class FileHashTable {
 		}
 	}
 	
-	class LinkedListEntry { // TODO set to private
+	private class LinkedListEntry {
 		byte[] current_key;
 		long data_pointer;
 		
@@ -284,7 +285,7 @@ public class FileHashTable {
 	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
 	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
 	*/
-	CompletableFuture<Stream<LinkedListEntry>> getAllLinkedListItems(CompletableFuture<Stream<HashEntry>> hash_entries) { // TODO set to private
+	private CompletableFuture<Stream<LinkedListEntry>> getAllLinkedListItems(CompletableFuture<Stream<HashEntry>> hash_entries) {
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
 		AtomicReference<Long> next_pointer = new AtomicReference<>(-1l);
@@ -323,54 +324,47 @@ public class FileHashTable {
 		});
 	}
 	
-	/**
-	 * @param nextItem key -> Data pointer
-	 */
-	private void getAllHashsLinkedListItems(BiConsumer<byte[], Long> nextKeyDataPointer, Consumer<Throwable> onError) {
-		// TODO
-		/*
-		fht.getAllHashEntries().get().forEach(l -> {
-			System.out.println(l);
-		});
-		 * */
-		/*getAllHashEntries(linked_list_pointer_stream -> {
-			linked_list_pointer_stream.forEach(linked_list_pointer -> {
-				getAllNextLinkedListItemsFrom(linked_list_pointer, nextKeyDataPointer, onError);
+	public CompletableFuture<Stream<ItemKey>> forEachKeys() {
+		return getAllLinkedListItems(getAllHashEntries()).thenApply(lle_stream -> {
+			return lle_stream.map(lle -> {
+				return new ItemKey(lle.current_key);
 			});
-		}, onError);*/
+		});
 	}
 	
-	/*
-	Linked list entry struct:
-	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
-	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-	*/
-	/*public Stream<ItemKey> forEachKeys() throws RuntimeException, IOException, InterruptedException, ExecutionException {
-		return forEachHashEntry().flatMap(first_linked_list_pointer -> {
-			return forEachLinkedListItemChainDataKeys(first_linked_list_pointer, linkedlist_entry_buffer -> {
-				byte[] result = new byte[ItemKey.SIZE];
-				linkedlist_entry_buffer.get(result, 0, ItemKey.SIZE);
-				return result;
+	public CompletableFuture<Stream<CompletableFuture<Entry>>> forEachKeyValue() {
+		return getAllLinkedListItems(getAllHashEntries()).thenApply(lle_stream -> {
+			return lle_stream.map(lle -> {
+				return lle.data_pointer;
+			}).map(data_pointer -> {
+				if (data_pointer <= 0) {
+					return null;
+				}
+				return data_engine.read(data_pointer);
 			});
-		}).map(k -> {
-			return new ItemKey(k);
 		});
-	}*/
+	}
 	
-	/*
-	Linked list entry struct:
-	<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
-	[hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-	*/
-	/*Stream<Entry> forEachKeyValues() throws RuntimeException, IOException, InterruptedException, ExecutionException {
-		return forEachHashEntry().flatMap(first_linked_list_pointer -> {
-			return forEachLinkedListItemChainDataKeys(first_linked_list_pointer, linkedlist_entry_buffer -> {
-				return linkedlist_entry_buffer.getLong(ItemKey.SIZE);
-			});
-		}).filter(data_engine.checkDataPointerValidity).map(data_engine.getDataEntryFromDataPointer).filter(entry -> {
-			return entry != null;
-		});
-	}*/
+	public Stream<Entry> getAllKeyValues() {
+		try {
+			return getAllLinkedListItems(getAllHashEntries()).thenApply(lle_stream -> {
+				return lle_stream.map(lle -> {
+					return lle.data_pointer;
+				}).map(data_pointer -> {
+					if (data_pointer <= 0) {
+						return null;
+					}
+					try {
+						return data_engine.read(data_pointer).get();
+					} catch (Exception e) {
+						throw new RuntimeException(e.getCause());
+					}
+				});
+			}).get();
+		} catch (Exception e) {
+			throw new RuntimeException(e.getCause());
+		}
+	}
 	
 	/**
 	 * Just write a new entry
