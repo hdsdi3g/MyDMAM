@@ -53,6 +53,7 @@ class FileData {
 		}
 		
 		data_executor = new ThreadPoolExecutorFactory(FileHashTable.class.getName() + "/" + getClass().getSimpleName(), Thread.MAX_PRIORITY);
+		data_executor.setSimplePoolSize();// XXX
 		
 		ByteBuffer bytebuffer_header_data = ByteBuffer.allocate(FILE_DATA_HEADER_LENGTH);
 		file_data_start = bytebuffer_header_data.capacity();
@@ -99,6 +100,10 @@ class FileData {
 		
 		long data_pointer = file_data_write_pointer.getAndAdd(computeExactlyDataEntrySize(user_data.length));
 		
+		if (log.isTraceEnabled()) {
+			log.trace("Prepare to write datas: key = " + MyDMAM.byteToString(key) + ", " + data_entry_size + " bytes from " + data_pointer);
+		}
+		
 		return FileHashTable.asyncWrite(data_channel, data_buffer, data_pointer).thenApply(size -> {
 			return data_pointer;
 		});
@@ -112,6 +117,10 @@ class FileData {
 		[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
 		 * */
 		ByteBuffer header_buffer = ByteBuffer.allocate(4);
+		
+		if (log.isTraceEnabled()) {
+			log.trace("Prepare to read data header from " + data_pointer);
+		}
 		
 		FileHashTable.asyncRead(data_channel, header_buffer, data_pointer).exceptionally(e -> {
 			result.completeExceptionally(e);
@@ -129,6 +138,11 @@ class FileData {
 			}
 			
 			ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Prepare to read full data content " + data_entry_size + " bytes from " + (data_pointer + 4l));
+			}
+			
 			FileHashTable.asyncRead(data_channel, data_buffer, data_pointer + 4l).exceptionally(e -> {
 				result.completeExceptionally(e);
 				return null;
