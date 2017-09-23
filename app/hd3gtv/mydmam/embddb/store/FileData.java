@@ -42,17 +42,17 @@ class FileData {
 	
 	private final AsynchronousFileChannel data_channel;
 	private AtomicLong file_data_write_pointer;
-	// final File data_file;
+	final File data_file;
 	private final long file_data_start;
 	private final ThreadPoolExecutorFactory data_executor;
 	
 	FileData(File data_file) throws IOException, InterruptedException, ExecutionException {
-		// this.data_file = data_file;
+		this.data_file = data_file;
 		if (data_file == null) {
 			throw new NullPointerException("\"data_file\" can't to be null");
 		}
 		
-		data_executor = new ThreadPoolExecutorFactory(FileHashTable.class.getName() + "/" + getClass().getSimpleName(), Thread.MAX_PRIORITY);
+		data_executor = new ThreadPoolExecutorFactory(FileHashTable.class.getSimpleName(), Thread.MAX_PRIORITY);
 		data_executor.setSimplePoolSize();// XXX
 		
 		ByteBuffer bytebuffer_header_data = ByteBuffer.allocate(FILE_DATA_HEADER_LENGTH);
@@ -104,7 +104,7 @@ class FileData {
 			log.trace("Prepare to write datas: key = " + MyDMAM.byteToString(key) + ", " + data_entry_size + " bytes from " + data_pointer);
 		}
 		
-		return FileHashTable.asyncWrite(data_channel, data_buffer, data_pointer).thenApply(size -> {
+		return FileHashTable.asyncWrite(data_channel, data_buffer, data_pointer, "data header and content").thenApply(size -> {
 			return data_pointer;
 		});
 	}
@@ -122,7 +122,7 @@ class FileData {
 			log.trace("Prepare to read data header from " + data_pointer);
 		}
 		
-		FileHashTable.asyncRead(data_channel, header_buffer, data_pointer).exceptionally(e -> {
+		FileHashTable.asyncRead(data_channel, header_buffer, data_pointer, "data header").exceptionally(e -> {
 			result.completeExceptionally(e);
 			return null;
 		}).thenAccept(s -> {
@@ -143,7 +143,7 @@ class FileData {
 				log.trace("Prepare to read full data content " + data_entry_size + " bytes from " + (data_pointer + 4l));
 			}
 			
-			FileHashTable.asyncRead(data_channel, data_buffer, data_pointer + 4l).exceptionally(e -> {
+			FileHashTable.asyncRead(data_channel, data_buffer, data_pointer + 4l, "data content").exceptionally(e -> {
 				result.completeExceptionally(e);
 				return null;
 			}).thenAccept(s2 -> {
@@ -200,6 +200,8 @@ class FileData {
 	}
 	
 	void clear() throws IOException {
+		log.info("Clear " + data_file);
+		
 		file_data_write_pointer.set(FILE_DATA_HEADER_LENGTH);
 		data_executor.getThreadPoolExecutor().getQueue().clear();
 		data_channel.truncate(FILE_DATA_HEADER_LENGTH);

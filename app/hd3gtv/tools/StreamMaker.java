@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -106,4 +107,29 @@ public final class StreamMaker<T> {
 		return c_future;
 	}*/
 	
+	/**
+	 * Let pass items until stop_trigger == true, then add the current element, and stop.
+	 * @see https://stackoverflow.com/questions/20746429/limit-a-stream-by-a-predicate
+	 */
+	public static <T> Stream<T> takeUntilTrigger(Predicate<? super T> stop_trigger, Stream<T> stream) {
+		Spliterator<T> splitr = stream.spliterator();
+		return StreamSupport.stream(new Spliterators.AbstractSpliterator<T>(splitr.estimateSize(), 0) {
+			boolean still_going = true;
+			
+			public boolean tryAdvance(Consumer<? super T> consumer) {
+				if (still_going) {
+					boolean had_next = splitr.tryAdvance(elem -> {
+						if (stop_trigger.test(elem) == false) {
+							consumer.accept(elem);
+						} else {
+							consumer.accept(elem);
+							still_going = false;
+						}
+					});
+					return had_next && still_going;
+				}
+				return false;
+			}
+		}, false);
+	}
 }
