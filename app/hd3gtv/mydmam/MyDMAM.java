@@ -92,6 +92,9 @@ public class MyDMAM {
 	}
 	
 	public static final String byteToString(byte[] b) {
+		if (b == null) {
+			return "(NULL)";
+		}
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < b.length; i++) {
 			int v = b[i] & 0xFF;

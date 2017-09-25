@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.CompletionHandler;
+import java.nio.channels.FileChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -30,10 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,8 +40,10 @@ import org.apache.log4j.Logger;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.StreamMaker;
-import hd3gtv.tools.ThreadPoolExecutorFactory;
 
+/**
+ * No internal sync, no internal lock. NOT THREAD SAFE. Don't support properly parallel writing.
+ */
 public class FileHashTable {
 	private static Logger log = Logger.getLogger(FileHashTable.class);
 	
@@ -66,17 +65,17 @@ public class FileHashTable {
 	
 	private final int table_size;
 	private final File index_file;
-	private final AsynchronousFileChannel index_channel;
+	
+	@Deprecated
+	private final AsynchronousFileChannel old_index_channel = null;
+	private final FileChannel channel;
 	private final long file_index_start;
 	private final long start_linked_lists_zone_in_index_file;
-	private AtomicLong file_index_write_pointer;
-	private final ThreadPoolExecutorFactory index_executor;
-	private final ThreadPoolExecutorFactory write_executor;
+	private volatile long file_index_write_pointer;
 	
 	private final FileData data;
 	
 	public FileHashTable(File index_file, File data_file, int table_size) throws IOException, InterruptedException, ExecutionException {
-		
 		this.table_size = table_size;
 		this.index_file = index_file;
 		if (index_file == null) {
@@ -85,20 +84,17 @@ public class FileHashTable {
 		
 		data = new FileData(data_file);
 		
-		index_executor = new ThreadPoolExecutorFactory(getClass().getSimpleName() + "_Index", Thread.MAX_PRIORITY);
-		index_executor.setSimplePoolSize();// XXX
-		
-		write_executor = new ThreadPoolExecutorFactory(getClass().getSimpleName() + "_Writer", Thread.MAX_PRIORITY - 1);
-		write_executor.setSimplePoolSize();
-		
 		ByteBuffer bytebuffer_header_index = ByteBuffer.allocate(FILE_INDEX_HEADER_LENGTH);
 		file_index_start = bytebuffer_header_index.capacity();
 		
 		start_linked_lists_zone_in_index_file = file_index_start + ((long) table_size) * 12l;
 		
 		if (index_file.exists()) {
-			index_channel = AsynchronousFileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS, index_executor.getThreadPoolExecutor());
-			index_channel.read(bytebuffer_header_index, 0).get();
+			channel = FileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS);
+			int size = channel.read(bytebuffer_header_index, 0);
+			if (size != FILE_INDEX_HEADER_LENGTH) {
+				throw new IOException("Invalid header");
+			}
 			bytebuffer_header_index.flip();
 			
 			TransactionJournal.readAndEquals(bytebuffer_header_index, FILE_INDEX_HEADER, bad_datas -> {
@@ -118,72 +114,18 @@ public class FileHashTable {
 				throw new IOException("Invalid key_size: file is " + actual_key_size + " instead of " + ItemKey.SIZE);
 			}
 			
-			file_index_write_pointer = new AtomicLong(Long.max(index_channel.size(), start_linked_lists_zone_in_index_file));
+			file_index_write_pointer = Long.max(channel.size(), start_linked_lists_zone_in_index_file);
 		} else {
-			index_channel = AsynchronousFileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS, index_executor.getThreadPoolExecutor());
+			channel = FileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS);
+			
 			bytebuffer_header_index.put(FILE_INDEX_HEADER);
 			bytebuffer_header_index.putInt(FILE_INDEX_VERSION);
 			bytebuffer_header_index.putInt(table_size);
 			bytebuffer_header_index.putInt(ItemKey.SIZE);
 			bytebuffer_header_index.flip();
-			index_channel.write(bytebuffer_header_index, 0).get();
-			file_index_write_pointer = new AtomicLong(start_linked_lists_zone_in_index_file);
+			channel.write(bytebuffer_header_index, 0);
+			file_index_write_pointer = start_linked_lists_zone_in_index_file;
 		}
-	}
-	
-	static CompletableFuture<Integer> asyncRead(AsynchronousFileChannel channel, ByteBuffer buffer, long position, String read_what) {
-		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
-		
-		channel.read(buffer, position, position, new CompletionHandler<Integer, Long>() {
-			
-			public void completed(Integer result, Long position) {
-				if (log.isTraceEnabled()) {
-					log.trace("Async read done (" + read_what + "): " + result + " bytes from " + position);
-				}
-				completable_future.complete(result);
-			}
-			
-			public void failed(Throwable e, Long position) {
-				if (log.isDebugEnabled()) {
-					log.debug("Async read fail (" + read_what + "): in " + position, e);
-				}
-				completable_future.completeExceptionally(e);
-			}
-		});
-		return completable_future;
-	}
-	
-	/**
-	 * @param buffer full buffer write is tested
-	 */
-	static CompletableFuture<Integer> asyncWrite(AsynchronousFileChannel channel, ByteBuffer buffer, long position, String write_what) {
-		CompletableFuture<Integer> completable_future = new CompletableFuture<>();
-		int rem = buffer.remaining();
-		
-		channel.write(buffer, position, position, new CompletionHandler<Integer, Long>() {
-			
-			public void completed(Integer writed_size, Long position) {
-				if (rem != writed_size) {
-					if (log.isDebugEnabled()) {
-						log.debug("Async write fail (" + write_what + "): in " + position);
-					}
-					completable_future.completeExceptionally(new IOException("Can't write all datas: " + writed_size + "/" + rem));
-				} else {
-					if (log.isTraceEnabled()) {
-						log.trace("Async write done (" + write_what + "): " + writed_size + " bytes from " + position);
-					}
-					completable_future.complete(writed_size);
-				}
-			}
-			
-			public void failed(Throwable e, Long position) {
-				if (log.isDebugEnabled()) {
-					log.debug("Async write fail (" + write_what + "): in " + position, e);
-				}
-				completable_future.completeExceptionally(e);
-			}
-		});
-		return completable_future;
 	}
 	
 	/*
@@ -224,7 +166,7 @@ public class FileHashTable {
 		return Math.abs(result) % table_size;
 	}
 	
-	class HashEntry {// XXX private
+	private class HashEntry {
 		int compressed_hash_key;
 		long linked_list_first_index;
 		
@@ -241,17 +183,25 @@ public class FileHashTable {
 		HashEntry(ByteBuffer read_buffer) {
 			compressed_hash_key = read_buffer.getInt();
 			linked_list_first_index = read_buffer.getLong();
-			if (log.isTraceEnabled()) {
-				log.trace("Read new HashEntry: compressed_hash_key = " + compressed_hash_key + ", linked_list_first_index = " + linked_list_first_index);
+			if (log.isTraceEnabled() && linked_list_first_index > 0) {
+				log.trace("Read HashEntry: compressed_hash_key = " + compressed_hash_key + ", linked_list_first_index = " + linked_list_first_index);
 			}
 		}
 		
-		void toByteBuffer(ByteBuffer write_buffer) {
+		void writeHashEntry() throws IOException {
+			ByteBuffer key_table_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE);
+			key_table_buffer.putInt(compressed_hash_key);
+			key_table_buffer.putLong(linked_list_first_index);
+			key_table_buffer.flip();
+			
 			if (log.isTraceEnabled()) {
-				log.trace("Prepare HashEntry write: compressed_hash_key = " + compressed_hash_key + ", linked_list_first_index = " + linked_list_first_index);
+				log.trace("Write hash_entry " + this);
 			}
-			write_buffer.putInt(compressed_hash_key);
-			write_buffer.putLong(linked_list_first_index);
+			
+			int size = channel.write(key_table_buffer, computeIndexFilePosition(compressed_hash_key));
+			if (size != HASH_ENTRY_SIZE) {
+				throw new IOException("Can't write " + HASH_ENTRY_SIZE + " bytes for " + this);
+			}
 		}
 		
 		public String toString() {
@@ -293,17 +243,28 @@ public class FileHashTable {
 			next_linked_list_pointer = linkedlist_entry_buffer.getLong();
 			
 			if (log.isTraceEnabled()) {
-				log.trace("Read new LinkedListEntry: current_key = " + MyDMAM.byteToString(current_key) + ", data_pointer = " + data_pointer + ", next_linked_list_pointer = " + next_linked_list_pointer);
+				log.trace("Read LinkedListEntry: current_key = " + MyDMAM.byteToString(current_key) + ", data_pointer = " + data_pointer + ", next_linked_list_pointer = " + next_linked_list_pointer);
 			}
 		}
 		
 		void toByteBuffer(ByteBuffer write_buffer) {
-			if (log.isTraceEnabled()) {
-				log.trace("Prepare LinkedListEntry write: current_key = #" + MyDMAM.byteToString(current_key).substring(0, 8) + ", data_pointer = " + data_pointer + ", next_linked_list_pointer = " + next_linked_list_pointer);
-			}
 			write_buffer.put(current_key);
 			write_buffer.putLong(data_pointer);
 			write_buffer.putLong(next_linked_list_pointer);
+		}
+		
+		void writeLinkedlistEntry(long linked_list_pointer) throws IOException {
+			ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
+			toByteBuffer(linkedlist_entry_buffer);
+			linkedlist_entry_buffer.flip();
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Write linked_list_entry " + this + " in " + linked_list_pointer);
+			}
+			int size = channel.write(linkedlist_entry_buffer, linked_list_pointer);
+			if (size != LINKED_LIST_ENTRY_SIZE) {
+				throw new IOException("Can't write " + LINKED_LIST_ENTRY_SIZE + " bytes for " + this);
+			}
 		}
 		
 		public String toString() {
@@ -324,386 +285,316 @@ public class FileHashTable {
 		
 	}
 	
-	private CompletableFuture<Stream<LinkedListEntry>> getAllLinkedListItemsForHashEntry(HashEntry entry) {
-		CompletableFuture<Stream<LinkedListEntry>> result = new CompletableFuture<>();
-		AtomicReference<Long> next_pointer = new AtomicReference<>(entry.linked_list_first_index);
+	/**
+	 * @return empty list if nothing to read (no next_pointer)
+	 */
+	private List<LinkedListEntry> getAllLinkedListItemsForHashEntry(HashEntry entry) throws IOException {// TODO return stream (less cost in memory)
+		ArrayList<LinkedListEntry> result = new ArrayList<>(1);
+		long next_pointer = entry.linked_list_first_index;
 		
-		result.complete(StreamMaker.create(() -> {
-			if (next_pointer.get() <= 0) {
-				return null;
-			}
-			ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
-			try {
-				final long linked_list_pointer = next_pointer.getAndSet(0l);
-				return asyncRead(index_channel, linkedlist_entry_buffer, linked_list_pointer, "for each linkedlist entries").exceptionally(e -> {
-					result.completeExceptionally(e);
-					return null;
-				}).thenApply(s -> {
-					if (s != LINKED_LIST_ENTRY_SIZE) {
-						return null;
-					}
-					linkedlist_entry_buffer.flip();
-					LinkedListEntry r = new LinkedListEntry(linked_list_pointer, linkedlist_entry_buffer);
-					linkedlist_entry_buffer.clear();
-					next_pointer.set(r.next_linked_list_pointer);
-					return r;
-				}).get();
-			} catch (InterruptedException | ExecutionException e) {
-				result.completeExceptionally(e);
-				return null;
-			}
-		}).stream());
+		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
+		while (true) {
+			if (next_pointer <= 0) {
+				break;
+			}
+			int s = channel.read(linkedlist_entry_buffer, next_pointer);
+			if (s != LINKED_LIST_ENTRY_SIZE) {
+				break;
+			}
+			linkedlist_entry_buffer.flip();
+			LinkedListEntry r = new LinkedListEntry(next_pointer, linkedlist_entry_buffer);
+			result.add(r);
+			linkedlist_entry_buffer.clear();
+			next_pointer = r.next_linked_list_pointer;
+		}
 		return result;
 	}
 	
-	/**
-	 * @return fully sync
-	 */
-	private CompletableFuture<List<LinkedListEntry>> getAllLinkedListItems() {
+	private List<LinkedListEntry> getAllLinkedListItems() throws IOException {
 		ByteBuffer read_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE * table_size);
-		
-		CompletableFuture<List<LinkedListEntry>> result = new CompletableFuture<>();
-		
-		try {
-			int size = asyncRead(index_channel, read_buffer, file_index_start, "all hash table").get();
-			
-			if (size < 1) {
-				return CompletableFuture.completedFuture(Collections.emptyList());
-			}
-			read_buffer.flip();
-			if (read_buffer.capacity() != size) {
-				return CompletableFuture.completedFuture(Collections.emptyList());
-			}
-			
-			ArrayList<LinkedListEntry> entries = new ArrayList<>();
-			
-			while (read_buffer.remaining() - HASH_ENTRY_SIZE >= 0) {
-				HashEntry hash_entry = new HashEntry(read_buffer);
-				if (hash_entry.linked_list_first_index < 1) {
-					continue;
-				}
-				
-				entries.addAll(getAllLinkedListItemsForHashEntry(hash_entry).get().collect(Collectors.toList()));
-			}
-			result.complete(entries);
-		} catch (InterruptedException | ExecutionException e) {
-			result.completeExceptionally(e);
+		int size = channel.read(read_buffer, file_index_start);
+		if (size < 1) {
+			return Collections.emptyList();
 		}
 		
-		return result;
+		read_buffer.flip();
+		if (read_buffer.capacity() != size) {
+			return Collections.emptyList();
+		}
+		
+		ArrayList<LinkedListEntry> entries = new ArrayList<>();
+		
+		while (read_buffer.remaining() - HASH_ENTRY_SIZE >= 0) {
+			HashEntry hash_entry = new HashEntry(read_buffer);
+			if (hash_entry.linked_list_first_index < 1) {
+				continue;
+			}
+			
+			entries.addAll(getAllLinkedListItemsForHashEntry(hash_entry));
+		}
+		
+		return entries;
 	}
 	
-	public CompletableFuture<Stream<ItemKey>> forEachKeys() {
-		return getAllLinkedListItems().thenApply(lle_stream -> {
-			return lle_stream.stream().map(lle -> {
-				return new ItemKey(lle.current_key);
-			});
+	public Stream<ItemKey> forEachKeys() throws IOException {
+		return getAllLinkedListItems().stream().map(lle -> {
+			return new ItemKey(lle.current_key);
 		});
 	}
 	
-	public CompletableFuture<Stream<CompletableFuture<Entry>>> forEachKeyValue() {
-		return getAllLinkedListItems().thenApply(lle_stream -> {
-			return lle_stream.stream().map(lle -> {
-				if (lle.data_pointer <= 0) {
-					return null;
-				}
+	public Stream<Entry> forEachKeyValue() throws IOException {
+		return getAllLinkedListItems().stream().map(lle -> {
+			if (lle.data_pointer <= 0) {
+				return null;
+			}
+			try {
 				return data.read(lle.data_pointer);
-			});
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		});
-	}
-	
-	public Stream<Entry> getAllKeyValues() {
-		try {
-			return forEachKeyValue().get().map(cf_entry -> {
-				try {
-					return cf_entry.get();
-				} catch (Exception e) {
-					throw new RuntimeException(e.getCause());
-				}
-			});
-		} catch (Exception e) {
-			throw new RuntimeException(e.getCause());
-		}
-	}
-	
-	/**
-	 * Just write an entry: Prepare entry and write it
-	 */
-	private CompletableFuture<Void> writeHashEntry(HashEntry hash_entry) {
-		ByteBuffer key_table_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE);
-		hash_entry.toByteBuffer(key_table_buffer);
-		key_table_buffer.flip();
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Write hash_entry " + hash_entry);
-		}
-		
-		return asyncWrite(index_channel, key_table_buffer, computeIndexFilePosition(hash_entry.compressed_hash_key), "hash entry").thenApplyAsync(s -> {
-			return null;
-		}, write_executor.getThreadPoolExecutor());
 	}
 	
 	/**
 	 * @param onDone the Absolute position for the first index in linked list, or null
 	 */
-	private CompletableFuture<HashEntry> readHashEntry(int compressed_key) {
+	private HashEntry readHashEntry(int compressed_key) throws IOException {
 		long index_file_pos = computeIndexFilePosition(compressed_key);
 		if (index_file_pos > index_file.length()) {
 			if (log.isTraceEnabled()) {
 				log.trace("Can't found hash entry (EOF), compress key=" + compressed_key);
 			}
-			return CompletableFuture.completedFuture(null);
+			return null;
 		}
 		
 		ByteBuffer key_table_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE);
-		return asyncRead(index_channel, key_table_buffer, index_file_pos, "hash entry").thenApply(size -> {
-			if (size != HASH_ENTRY_SIZE) {
-				if (log.isTraceEnabled()) {
-					log.trace("Invalid hash entry size (" + size + " bytes(s)), compress key=" + compressed_key);
-				}
-				return null;
-			}
-			key_table_buffer.flip();
-			int real_compress_key = key_table_buffer.getInt();
-			if (compressed_key != real_compress_key) {
-				if (log.isTraceEnabled()) {
-					log.trace("Invalid hash entry header (real compress key=" + real_compress_key + "), compress key=" + compressed_key);
-				}
-				return null;
-			}
-			long result = key_table_buffer.getLong();
-			if (result == 0) {
-				if (log.isTraceEnabled()) {
-					log.trace("Empty value for hash entry, compress key=" + compressed_key);
-				}
-				return null;
-			}
-			return new HashEntry(compressed_key, result);
-		});
-	}
-	
-	private CompletableFuture<Void> writeLinkedlistEntry(long linked_list_pointer, LinkedListEntry linked_list_entry) {
-		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
-		linked_list_entry.toByteBuffer(linkedlist_entry_buffer);
-		linkedlist_entry_buffer.flip();
+		int size = channel.read(key_table_buffer, index_file_pos);
 		
-		if (log.isTraceEnabled()) {
-			log.trace("Write linked_list_entry " + linked_list_entry + " in " + linked_list_pointer);
+		if (size != HASH_ENTRY_SIZE) {
+			if (log.isTraceEnabled()) {
+				log.trace("Invalid hash entry size (" + size + " bytes(s)), compress key=" + compressed_key);
+			}
+			return null;
+		}
+		key_table_buffer.flip();
+		int real_compress_key = key_table_buffer.getInt();
+		if (compressed_key != real_compress_key) {
+			if (log.isTraceEnabled()) {
+				log.trace("Invalid hash entry header (real compress key=" + real_compress_key + "), compress key=" + compressed_key);
+			}
+			return null;
+		}
+		long result = key_table_buffer.getLong();
+		if (result == 0) {
+			if (log.isTraceEnabled()) {
+				log.trace("Empty value for hash entry, compress key=" + compressed_key);
+			}
+			return null;
 		}
 		
-		return asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer, "Linked list entry").thenAcceptAsync(s -> {
-		}, write_executor.getThreadPoolExecutor());
+		return new HashEntry(compressed_key, result);
 	}
 	
 	/**
-	 * @param onDone created item position
+	 * @return created item position
 	 */
-	private CompletableFuture<Long> writeNewLinkedlistEntry(LinkedListEntry ll_entry) {
-		/*
-		Linked list entry struct:
-		<key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes--------------------->
-		[hash key][absolute position for user's datas in data file][absolute position for linked list's next index: 0]
-		*/
+	private long addNewLinkedlistEntry(LinkedListEntry ll_entry) throws IOException {
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		ll_entry.toByteBuffer(linkedlist_entry_buffer);
 		linkedlist_entry_buffer.flip();
 		
-		long linked_list_pointer = file_index_write_pointer.getAndAdd(LINKED_LIST_ENTRY_SIZE);
+		long linked_list_pointer = file_index_write_pointer;
+		file_index_write_pointer += LINKED_LIST_ENTRY_SIZE;
 		
 		if (log.isTraceEnabled()) {
 			log.trace("Add new linked_list_entry " + ll_entry + " in " + linked_list_pointer);
 		}
-		
-		return asyncWrite(index_channel, linkedlist_entry_buffer, linked_list_pointer, "add new linked list entry").thenApplyAsync(s -> {
-			return linked_list_pointer;
-		}, write_executor.getThreadPoolExecutor());
+		int size = channel.write(linkedlist_entry_buffer, linked_list_pointer);
+		if (size != LINKED_LIST_ENTRY_SIZE) {
+			throw new IOException("Can't write " + LINKED_LIST_ENTRY_SIZE + " bytes for new " + ll_entry);
+		}
+		return linked_list_pointer;
 	}
 	
 	/**
-	 * @param onDone data_pointer or -1
+	 * @return data_pointer or -1
 	 */
-	private CompletableFuture<Long> getDataPointerFromHashKey(byte[] key) {
+	private long getDataPointerFromHashKey(byte[] key) throws IOException {
 		int compressed_key = compressKey(key);
 		
-		return readHashEntry(compressed_key).thenCompose(hash_entry -> {
-			if (hash_entry == null) {
-				if (log.isTraceEnabled()) {
-					log.trace("Can't found hash key " + MyDMAM.byteToString(key));
-				}
-				return CompletableFuture.completedFuture(-1l);
+		HashEntry hash_entry = readHashEntry(compressed_key);
+		if (hash_entry == null) {
+			if (log.isTraceEnabled()) {
+				log.trace("Can't found hash key " + MyDMAM.byteToString(key));
 			}
-			
-			return getAllLinkedListItemsForHashEntry(hash_entry).thenApply(linked_list_items -> {
-				Optional<LinkedListEntry> o_linked_list_item = linked_list_items.filter(linked_list_item -> {
-					return Arrays.equals(key, linked_list_item.current_key);
-				}).findFirst();
-				
-				if (o_linked_list_item.isPresent() == false) {
-					return -1l;
-				} else {
-					return o_linked_list_item.get().data_pointer;
-				}
-			});
-		});
+			return -1;
+		}
+		
+		List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
+		
+		Optional<LinkedListEntry> o_linked_list_item = linked_list_items.stream().filter(linked_list_item -> {
+			return Arrays.equals(key, linked_list_item.current_key);
+		}).findFirst();
+		
+		if (o_linked_list_item.isPresent() == false) {
+			return -1l;
+		} else {
+			return o_linked_list_item.get().data_pointer;
+		}
 	}
 	
-	public CompletableFuture<Void> put(ItemKey item_key, byte[] user_data) {
+	public void put(ItemKey item_key, byte[] user_data) throws IOException {
 		byte[] key = item_key.key;
 		
-		return data.write(key, user_data).thenComposeAsync(data_pointer -> {
-			int compressed_key = compressKey(key);
+		long data_pointer = data.write(key, user_data);
+		int compressed_key = compressKey(key);
+		HashEntry hash_entry = readHashEntry(compressed_key);
+		
+		if (hash_entry == null) {
+			if (log.isTraceEnabled()) {
+				log.trace("Hash entry (compressed_key=" + compressed_key + ") don't exists, create it and put in the hash table");
+			}
+			long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(key, data_pointer, -1));
+			new HashEntry(compressed_key, new_linked_list_pointer).writeHashEntry();
+		} else {
+			if (log.isTraceEnabled()) {
+				log.trace("Search if linked list entry exists for key #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key);
+			}
+			List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
 			
-			return readHashEntry(compressed_key).thenComposeAsync(hash_entry -> {
-				if (hash_entry == null) {
+			Optional<LinkedListEntry> o_linked_list_item = linked_list_items.stream().filter(linked_list_item -> {
+				return Arrays.equals(key, linked_list_item.current_key);
+			}).findFirst();
+			
+			if (o_linked_list_item.isPresent()) {
+				if (log.isTraceEnabled()) {
+					log.trace("Entry exists, replace current entry for #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key + " with new data_pointer=" + data_pointer);
+				}
+				LinkedListEntry linked_list_entry = o_linked_list_item.get();
+				linked_list_entry.data_pointer = data_pointer;
+				linked_list_entry.writeLinkedlistEntry(linked_list_entry.linked_list_pointer);
+			} else {
+				if (linked_list_items.isEmpty()) {
 					if (log.isTraceEnabled()) {
-						log.trace("Hash entry (compressed_key=" + compressed_key + ") don't exists, create it and put in the hash table");
+						log.trace("Append new entry to an empty list for #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key + " with new data_pointer=" + data_pointer);
 					}
-					return writeNewLinkedlistEntry(new LinkedListEntry(key, data_pointer, -1)).thenComposeAsync(new_linked_list_pointer -> {
-						return writeHashEntry(new HashEntry(compressed_key, new_linked_list_pointer));
-					}, write_executor.getThreadPoolExecutor());
+					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(key, data_pointer, -1));
+					new HashEntry(compressed_key, new_linked_list_pointer).writeHashEntry();
 				} else {
 					if (log.isTraceEnabled()) {
-						log.trace("Search if linked list entry exists for key #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key);
+						log.trace("Append new entry to actual list (chain) for #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key + " with new data_pointer=" + data_pointer);
 					}
-					return getAllLinkedListItemsForHashEntry(hash_entry).thenComposeAsync(linked_list_items -> {
-						Optional<LinkedListEntry> o_linked_list_item = linked_list_items.filter(linked_list_item -> {
-							return Arrays.equals(key, linked_list_item.current_key);
-						}).findFirst();
-						
-						if (o_linked_list_item.isPresent()) {
-							if (log.isTraceEnabled()) {
-								log.trace("Entry exists, replace current entry for #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key + " with new data_pointer=" + data_pointer);
-							}
-							LinkedListEntry linked_list_entry = o_linked_list_item.get();
-							linked_list_entry.data_pointer = data_pointer;
-							return writeLinkedlistEntry(linked_list_entry.linked_list_pointer, linked_list_entry);
-						} else {
-							if (log.isTraceEnabled()) {
-								log.trace("Append new entry to actual list (chain) for #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key + " with new data_pointer=" + data_pointer);
-							}
-							return writeNewLinkedlistEntry(new LinkedListEntry(key, data_pointer, -1)).thenComposeAsync(new_linked_list_pointer -> {
-								return writeHashEntry(new HashEntry(compressed_key, new_linked_list_pointer));
-							}, write_executor.getThreadPoolExecutor());
-						}
-					}, write_executor.getThreadPoolExecutor());
+					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(key, data_pointer, -1));
+					
+					LinkedListEntry last_item_to_update = linked_list_items.get(linked_list_items.size() - 1);
+					last_item_to_update.next_linked_list_pointer = new_linked_list_pointer;
+					last_item_to_update.writeLinkedlistEntry(last_item_to_update.linked_list_pointer);
 				}
-			}, write_executor.getThreadPoolExecutor());
-		}, write_executor.getThreadPoolExecutor());
+			}
+		}
 	}
 	
 	/**
 	 * @return entry can be null if not found.
 	 */
-	public CompletableFuture<Entry> getEntry(ItemKey key) {
-		return getDataPointerFromHashKey(key.key).thenCompose(data_pointer -> {
-			if (data_pointer == -1) {
-				if (log.isTraceEnabled()) {
-					log.trace("Can't found entry for " + MyDMAM.byteToString(key.key));
-				}
-				return CompletableFuture.completedFuture(null);
-			} else {
-				return data.read(data_pointer);
+	public Entry getEntry(ItemKey key) throws IOException {
+		long data_pointer = getDataPointerFromHashKey(key.key);
+		
+		if (data_pointer < 1) {
+			if (log.isTraceEnabled()) {
+				log.trace("Can't found entry for " + MyDMAM.byteToString(key.key));
 			}
-		});
+			return null;
+		} else {
+			return data.read(data_pointer);
+		}
 	}
 	
+	public int size() throws IOException {
+		return getAllLinkedListItems().size();
+	}
+	
+	public boolean has(ItemKey key) throws IOException {
+		return getDataPointerFromHashKey(key.key) > 0;
+	}
+	
+	// TODO reuse deleted LinkedListEntry addresses
+	
 	/**
-	 * Internal datas will not removed. Only references.
+	 * Internal datas will not removed (just tagged). Only references are removed.
 	 */
-	public CompletableFuture<Void> remove(ItemKey item_key) {
+	public void remove(ItemKey item_key) throws IOException {
 		byte[] key = item_key.key;
 		int compressed_key = compressKey(key);
 		final Predicate<LinkedListEntry> isThisSearchedItem = linked_list_item -> {
 			return Arrays.equals(key, linked_list_item.current_key);
 		};
 		
-		return readHashEntry(compressed_key).thenComposeAsync(hash_entry -> {
-			if (hash_entry == null) {
-				/**
-				 * Can't found hash record: nothing to delete.
-				 */
-				if (log.isTraceEnabled()) {
-					log.trace("Can't found hash key (compress key=" + compressed_key + ") for " + MyDMAM.byteToString(key));
-				}
-				return CompletableFuture.completedFuture(null);
-			} else {
-				return getAllLinkedListItemsForHashEntry(hash_entry).thenComposeAsync(linked_list_items -> {
-					List<LinkedListEntry> hash_entry_linked_list = StreamMaker.takeUntilTrigger(isThisSearchedItem, linked_list_items).collect(Collectors.toList());
-					if (hash_entry_linked_list.isEmpty()) {
-						/**
-						 * Nothing to remove: empty list...
-						 */
-						return CompletableFuture.completedFuture(null);
-					}
-					LinkedListEntry last_linked_list_item_to_remove = hash_entry_linked_list.get(hash_entry_linked_list.size() - 1);
-					
-					if (isThisSearchedItem.test(last_linked_list_item_to_remove) == false) {
-						/**
-						 * Item is not present to hash_list... so, nothing to remove.
-						 */
-						return CompletableFuture.completedFuture(null);
-					}
-					
-					if (hash_entry.linked_list_first_index != hash_entry_linked_list.get(0).linked_list_pointer) {
-						CompletableFuture<Void> error = new CompletableFuture<Void>();
-						error.completeExceptionally(new IOException("Invalid hashtable structure for " + compressed_key + " (" + hash_entry.linked_list_first_index + ", " + hash_entry_linked_list.get(0).linked_list_pointer));
-						return error;
-					}
-					
-					// last_linked_list_item_to_remove.data_pointer //TODO mark as "delete" data
-					long next_valid_linked_list_pointer = last_linked_list_item_to_remove.linked_list_pointer;
-					
-					/**
-					 * Clear the actual
-					 */
-					last_linked_list_item_to_remove.clear();
-					return writeLinkedlistEntry(last_linked_list_item_to_remove.linked_list_pointer, last_linked_list_item_to_remove).thenComposeAsync(b -> {
-						
-						if (hash_entry_linked_list.size() == 1) {
-							/**
-							 * {55:A}[A>B][B>-1], remove [A]: {55:B}-----[B>-1]
-							 * change hash_entry first target == me.next.target
-							 */
-							hash_entry.linked_list_first_index = next_valid_linked_list_pointer;
-							return writeHashEntry(hash_entry);
-						} else {
-							/**
-							 * [A>B][B>C][C>-1], remove [B]: [A>C]-----[C>-1]
-							 * change the me.previous.next_target == me.next.target
-							 */
-							LinkedListEntry last_valid_linked_list_item = hash_entry_linked_list.get(hash_entry_linked_list.size() - 2);
-							last_valid_linked_list_item.next_linked_list_pointer = next_valid_linked_list_pointer;
-							return writeLinkedlistEntry(last_valid_linked_list_item.linked_list_pointer, last_valid_linked_list_item);
-						}
-					}, write_executor.getThreadPoolExecutor());
-				}, write_executor.getThreadPoolExecutor());
+		HashEntry hash_entry = readHashEntry(compressed_key);
+		if (hash_entry == null) {
+			/**
+			 * Can't found hash record: nothing to delete.
+			 */
+			if (log.isTraceEnabled()) {
+				log.trace("Can't found hash key (compress key=" + compressed_key + ") for " + MyDMAM.byteToString(key));
 			}
-		}, write_executor.getThreadPoolExecutor());
-	}
-	
-	public CompletableFuture<Integer> size() {
-		return getAllLinkedListItems().thenApply(entries -> {
-			return (int) entries.size();
-		});
-	}
-	
-	public CompletableFuture<Boolean> has(ItemKey key) {
-		return getDataPointerFromHashKey(key.key).thenApply(data_pointer -> {
-			return data_pointer != -1;
-		});
+		} else {
+			List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
+			List<LinkedListEntry> hash_entry_linked_list = StreamMaker.takeUntilTrigger(isThisSearchedItem, linked_list_items.stream()).collect(Collectors.toList());
+			if (hash_entry_linked_list.isEmpty()) {
+				/**
+				 * Nothing to remove: empty list...
+				 */
+				return;
+			}
+			LinkedListEntry last_linked_list_item_to_remove = hash_entry_linked_list.get(hash_entry_linked_list.size() - 1);
+			
+			if (isThisSearchedItem.test(last_linked_list_item_to_remove) == false) {
+				/**
+				 * Item is not present to hash_list... so, nothing to remove.
+				 */
+				return;
+			}
+			
+			if (hash_entry.linked_list_first_index != hash_entry_linked_list.get(0).linked_list_pointer) {
+				throw new IOException("Invalid hashtable structure for " + compressed_key + " (" + hash_entry.linked_list_first_index + ", " + hash_entry_linked_list.get(0).linked_list_pointer);
+			}
+			
+			// last_linked_list_item_to_remove.data_pointer //TODO mark as "delete" data
+			long next_valid_linked_list_pointer = last_linked_list_item_to_remove.linked_list_pointer;
+			
+			/**
+			 * Clear the actual
+			 */
+			last_linked_list_item_to_remove.clear();
+			last_linked_list_item_to_remove.writeLinkedlistEntry(last_linked_list_item_to_remove.linked_list_pointer);
+			
+			if (hash_entry_linked_list.size() == 1) {
+				/**
+				 * {55:A}[A>B][B>-1], remove [A]: {55:B}-----[B>-1]
+				 * change hash_entry first target == me.next.target
+				 */
+				hash_entry.linked_list_first_index = next_valid_linked_list_pointer;
+				hash_entry.writeHashEntry();
+			} else {
+				/**
+				 * [A>B][B>C][C>-1], remove [B]: [A>C]-----[C>-1]
+				 * change the me.previous.next_target == me.next.target
+				 */
+				LinkedListEntry last_valid_linked_list_item = hash_entry_linked_list.get(hash_entry_linked_list.size() - 2);
+				last_valid_linked_list_item.next_linked_list_pointer = next_valid_linked_list_pointer;
+				last_valid_linked_list_item.writeLinkedlistEntry(last_valid_linked_list_item.linked_list_pointer);
+			}
+		}
 	}
 	
 	public void clear() throws IOException {
-		write_executor.getThreadPoolExecutor().getQueue().clear();
 		data.clear();
-		
 		log.info("Clear " + index_file);
-		file_index_write_pointer.set(start_linked_lists_zone_in_index_file);
-		index_executor.getThreadPoolExecutor().getQueue().clear();
-		write_executor.getThreadPoolExecutor().getQueue().clear();
-		index_channel.truncate(FILE_INDEX_HEADER_LENGTH);
-		index_channel.force(true);
+		file_index_write_pointer = start_linked_lists_zone_in_index_file;
+		channel.truncate(FILE_INDEX_HEADER_LENGTH);
+		channel.force(true);
 	}
 	
 }
