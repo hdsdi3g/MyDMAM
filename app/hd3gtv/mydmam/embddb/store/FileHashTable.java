@@ -19,18 +19,18 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.FileChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,12 +66,11 @@ public class FileHashTable {
 	private final int table_size;
 	private final File index_file;
 	
-	@Deprecated
-	private final AsynchronousFileChannel old_index_channel = null;
 	private final FileChannel channel;
 	private final long file_index_start;
 	private final long start_linked_lists_zone_in_index_file;
 	private volatile long file_index_write_pointer;
+	private final PriorityQueue<Long> free_linked_list_item_pointers;
 	
 	private final FileData data;
 	
@@ -83,6 +82,7 @@ public class FileHashTable {
 		}
 		
 		data = new FileData(data_file);
+		free_linked_list_item_pointers = new PriorityQueue<>((l, r) -> Long.compare(l, r));
 		
 		ByteBuffer bytebuffer_header_index = ByteBuffer.allocate(FILE_INDEX_HEADER_LENGTH);
 		file_index_start = bytebuffer_header_index.capacity();
@@ -275,11 +275,15 @@ public class FileHashTable {
 			return sb.toString();
 		}
 		
-		void clear() {
-			data_pointer = 0;
-			next_linked_list_pointer = 0;
-			for (int i = 0; i < current_key.length; i++) {
-				current_key[i] = 0;
+		void clear() throws IOException {
+			synchronized (free_linked_list_item_pointers) {
+				data_pointer = 0;
+				next_linked_list_pointer = 0;
+				for (int i = 0; i < current_key.length; i++) {
+					current_key[i] = 0;
+				}
+				writeLinkedlistEntry(linked_list_pointer);
+				free_linked_list_item_pointers.offer(linked_list_pointer);
 			}
 		}
 		
@@ -287,69 +291,73 @@ public class FileHashTable {
 	
 	/**
 	 * @return empty list if nothing to read (no next_pointer)
+	 * @throws RuntimeException
 	 */
-	private List<LinkedListEntry> getAllLinkedListItemsForHashEntry(HashEntry entry) throws IOException {// TODO return stream (less cost in memory)
-		ArrayList<LinkedListEntry> result = new ArrayList<>(1);
-		long next_pointer = entry.linked_list_first_index;
-		
+	private Stream<LinkedListEntry> getAllLinkedListItemsForHashEntry(HashEntry entry) {
+		AtomicLong next_pointer = new AtomicLong(entry.linked_list_first_index);
 		ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LINKED_LIST_ENTRY_SIZE);
 		
-		while (true) {
-			if (next_pointer <= 0) {
-				break;
+		StreamMaker<LinkedListEntry> stream = StreamMaker.create(() -> {
+			if (next_pointer.get() <= 0) {
+				return null;
 			}
-			int s = channel.read(linkedlist_entry_buffer, next_pointer);
-			if (s != LINKED_LIST_ENTRY_SIZE) {
-				break;
+			try {
+				int s = channel.read(linkedlist_entry_buffer, next_pointer.get());
+				if (s != LINKED_LIST_ENTRY_SIZE) {
+					return null;
+				}
+				linkedlist_entry_buffer.flip();
+				LinkedListEntry r = new LinkedListEntry(next_pointer.get(), linkedlist_entry_buffer);
+				linkedlist_entry_buffer.clear();
+				next_pointer.set(r.next_linked_list_pointer);
+				return r;
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
-			linkedlist_entry_buffer.flip();
-			LinkedListEntry r = new LinkedListEntry(next_pointer, linkedlist_entry_buffer);
-			result.add(r);
-			linkedlist_entry_buffer.clear();
-			next_pointer = r.next_linked_list_pointer;
-		}
-		return result;
+		});
+		
+		return stream.stream();
 	}
 	
-	private List<LinkedListEntry> getAllLinkedListItems() throws IOException {
+	private Stream<LinkedListEntry> getAllLinkedListItems() throws IOException, RuntimeException {
 		ByteBuffer read_buffer = ByteBuffer.allocate(HASH_ENTRY_SIZE * table_size);
 		int size = channel.read(read_buffer, file_index_start);
 		if (size < 1) {
-			return Collections.emptyList();
+			return Stream.empty();
 		}
 		
 		read_buffer.flip();
 		if (read_buffer.capacity() != size) {
-			return Collections.emptyList();
+			return Stream.empty();
 		}
 		
-		ArrayList<LinkedListEntry> entries = new ArrayList<>();
-		
-		while (read_buffer.remaining() - HASH_ENTRY_SIZE >= 0) {
-			HashEntry hash_entry = new HashEntry(read_buffer);
-			if (hash_entry.linked_list_first_index < 1) {
-				continue;
+		StreamMaker<HashEntry> stream = StreamMaker.create(() -> {
+			if (read_buffer.remaining() - HASH_ENTRY_SIZE < 0) {
+				return null;
 			}
-			
-			entries.addAll(getAllLinkedListItemsForHashEntry(hash_entry));
-		}
+			return new HashEntry(read_buffer);
+		});
 		
-		return entries;
+		return stream.stream().filter(hash_entry -> {
+			return hash_entry.linked_list_first_index > 0;
+		}).flatMap(hash_entry -> {
+			return getAllLinkedListItemsForHashEntry(hash_entry);
+		});
 	}
 	
 	public Stream<ItemKey> forEachKeys() throws IOException {
-		return getAllLinkedListItems().stream().map(lle -> {
+		return getAllLinkedListItems().map(lle -> {
 			return new ItemKey(lle.current_key);
 		});
 	}
 	
 	public Stream<Entry> forEachKeyValue() throws IOException {
-		return getAllLinkedListItems().stream().map(lle -> {
+		return getAllLinkedListItems().map(lle -> {
 			if (lle.data_pointer <= 0) {
 				return null;
 			}
 			try {
-				return data.read(lle.data_pointer, lle.current_key);
+				return data.read(lle.data_pointer, new ItemKey(lle.current_key));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -397,6 +405,7 @@ public class FileHashTable {
 	}
 	
 	/**
+	 * Thread safe
 	 * @return created item position
 	 */
 	private long addNewLinkedlistEntry(LinkedListEntry ll_entry) throws IOException {
@@ -404,17 +413,27 @@ public class FileHashTable {
 		ll_entry.toByteBuffer(linkedlist_entry_buffer);
 		linkedlist_entry_buffer.flip();
 		
-		long linked_list_pointer = file_index_write_pointer;
-		file_index_write_pointer += LINKED_LIST_ENTRY_SIZE;
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Add new linked_list_entry " + ll_entry + " in " + linked_list_pointer);
+		synchronized (free_linked_list_item_pointers) {
+			Long linked_list_pointer = free_linked_list_item_pointers.poll();
+			
+			if (linked_list_pointer == null) {
+				linked_list_pointer = file_index_write_pointer;
+				file_index_write_pointer += LINKED_LIST_ENTRY_SIZE;
+				
+				if (log.isTraceEnabled()) {
+					log.trace("Add new linked_list_entry " + ll_entry + " in " + linked_list_pointer);
+				}
+			} else if (log.isTraceEnabled()) {
+				log.trace("Reuse old linked_list_entry " + ll_entry + " in " + linked_list_pointer);
+			}
+			
+			int size = channel.write(linkedlist_entry_buffer, linked_list_pointer);
+			if (size != LINKED_LIST_ENTRY_SIZE) {
+				throw new IOException("Can't write " + LINKED_LIST_ENTRY_SIZE + " bytes for new " + ll_entry);
+			}
+			return linked_list_pointer;
+			
 		}
-		int size = channel.write(linkedlist_entry_buffer, linked_list_pointer);
-		if (size != LINKED_LIST_ENTRY_SIZE) {
-			throw new IOException("Can't write " + LINKED_LIST_ENTRY_SIZE + " bytes for new " + ll_entry);
-		}
-		return linked_list_pointer;
 	}
 	
 	/**
@@ -431,9 +450,9 @@ public class FileHashTable {
 			return -1;
 		}
 		
-		List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
+		Stream<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
 		
-		Optional<LinkedListEntry> o_linked_list_item = linked_list_items.stream().filter(linked_list_item -> {
+		Optional<LinkedListEntry> o_linked_list_item = linked_list_items.filter(linked_list_item -> {
 			return Arrays.equals(key, linked_list_item.current_key);
 		}).findFirst();
 		
@@ -461,7 +480,7 @@ public class FileHashTable {
 			if (log.isTraceEnabled()) {
 				log.trace("Search if linked list entry exists for key #" + MyDMAM.byteToString(key).substring(0, 12) + " in compressed_key=" + compressed_key);
 			}
-			List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
+			List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry).collect(Collectors.toList());
 			
 			Optional<LinkedListEntry> o_linked_list_item = linked_list_items.stream().filter(linked_list_item -> {
 				return Arrays.equals(key, linked_list_item.current_key);
@@ -507,19 +526,17 @@ public class FileHashTable {
 			}
 			return null;
 		} else {
-			return data.read(data_pointer, key.key);
+			return data.read(data_pointer, key);
 		}
 	}
 	
 	public int size() throws IOException {
-		return getAllLinkedListItems().size();
+		return (int) getAllLinkedListItems().count();
 	}
 	
 	public boolean has(ItemKey key) throws IOException {
 		return getDataPointerFromHashKey(key.key) > 0;
 	}
-	
-	// TODO reuse deleted LinkedListEntry addresses
 	
 	/**
 	 * Internal datas will not removed (just tagged). Only references are removed.
@@ -540,8 +557,7 @@ public class FileHashTable {
 				log.trace("Can't found hash key (compress key=" + compressed_key + ") for " + MyDMAM.byteToString(key));
 			}
 		} else {
-			List<LinkedListEntry> linked_list_items = getAllLinkedListItemsForHashEntry(hash_entry);
-			List<LinkedListEntry> hash_entry_linked_list = StreamMaker.takeUntilTrigger(isThisSearchedItem, linked_list_items.stream()).collect(Collectors.toList());
+			List<LinkedListEntry> hash_entry_linked_list = StreamMaker.takeUntilTrigger(isThisSearchedItem, getAllLinkedListItemsForHashEntry(hash_entry)).collect(Collectors.toList());
 			if (hash_entry_linked_list.isEmpty()) {
 				/**
 				 * Nothing to remove: empty list...
@@ -561,18 +577,18 @@ public class FileHashTable {
 				throw new IOException("Invalid hashtable structure for " + compressed_key + " (" + hash_entry.linked_list_first_index + ", " + hash_entry_linked_list.get(0).linked_list_pointer);
 			}
 			
-			// last_linked_list_item_to_remove.data_pointer //TODO mark as "delete" data
+			data.markDelete(last_linked_list_item_to_remove.data_pointer, new ItemKey(last_linked_list_item_to_remove.current_key));
+			
 			long next_valid_linked_list_pointer = last_linked_list_item_to_remove.linked_list_pointer;
 			
 			/**
 			 * Clear the actual
 			 */
 			last_linked_list_item_to_remove.clear();
-			last_linked_list_item_to_remove.writeLinkedlistEntry(last_linked_list_item_to_remove.linked_list_pointer);
 			
 			if (hash_entry_linked_list.size() == 1) {
 				/**
-				 * {55:A}[A>B][B>-1], remove [A]: {55:B}-----[B>-1]
+				 * {55:A}...[A>B][B>-1], remove [A]: {55:B}...-----[B>-1]
 				 * change hash_entry first target == me.next.target
 				 */
 				hash_entry.linked_list_first_index = next_valid_linked_list_pointer;
@@ -591,10 +607,13 @@ public class FileHashTable {
 	
 	public void clear() throws IOException {
 		data.clear();
-		log.info("Clear " + index_file);
-		file_index_write_pointer = start_linked_lists_zone_in_index_file;
-		channel.truncate(FILE_INDEX_HEADER_LENGTH);
-		channel.force(true);
+		synchronized (free_linked_list_item_pointers) {
+			log.info("Clear " + index_file);
+			free_linked_list_item_pointers.clear();
+			file_index_write_pointer = start_linked_lists_zone_in_index_file;
+			channel.truncate(FILE_INDEX_HEADER_LENGTH);
+			channel.force(true);
+		}
 	}
 	
 }

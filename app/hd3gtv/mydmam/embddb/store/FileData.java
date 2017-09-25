@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.zip.CRC32;
@@ -30,7 +32,8 @@ import hd3gtv.mydmam.MyDMAM;
 
 /**
  * Store raw datas sequentially in a bin File. Without index !
- * No internal sync, no internal lock. NOT THREAD SAFE. Don't support properly parallel writing.
+ * Thread safe.
+ * Don't support properly parallel writing but support parallel calls.
  */
 class FileData {
 	private static Logger log = Logger.getLogger(FileData.class);
@@ -49,6 +52,8 @@ class FileData {
 	private volatile long file_data_write_pointer;
 	private final File data_file;
 	private final FileChannel channel;
+	private final ArrayList<DeletedEntry> deleted_entries;
+	
 	// private final long file_data_start;
 	
 	FileData(File data_file) throws IOException, InterruptedException, ExecutionException {
@@ -60,20 +65,22 @@ class FileData {
 		ByteBuffer bytebuffer_header_data = ByteBuffer.allocate(FILE_DATA_HEADER_LENGTH);
 		// file_data_start = bytebuffer_header_data.capacity();
 		
+		deleted_entries = new ArrayList<>();
+		
 		if (data_file.exists()) {
 			channel = FileChannel.open(data_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS);
 			int size = channel.read(bytebuffer_header_data, 0);
 			if (size != FILE_DATA_HEADER_LENGTH) {
-				throw new IOException("Invalid header");
+				throw new IOException("Invalid header for " + data_file);
 			}
 			bytebuffer_header_data.flip();
 			
 			TransactionJournal.readAndEquals(bytebuffer_header_data, FILE_DATA_HEADER, bad_datas -> {
-				return new IOException("Invalid file header: " + new String(bad_datas));
+				return new IOException("Invalid file header: " + new String(bad_datas) + " for " + data_file);
 			});
 			int version = bytebuffer_header_data.getInt();
 			if (version != FILE_DATA_VERSION) {
-				throw new IOException("Invalid version: " + version + " instead of " + FILE_DATA_VERSION);
+				throw new IOException("Invalid version: " + version + " instead of " + FILE_DATA_VERSION + " for " + data_file);
 			}
 		} else {
 			channel = FileChannel.open(data_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS);
@@ -115,37 +122,106 @@ class FileData {
 		data_buffer.put(ENTRY_FOOTER);
 		data_buffer.flip();
 		
-		long data_pointer = file_data_write_pointer;
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Prepare to write datas: key = " + MyDMAM.byteToString(key) + ", " + data_entry_size + " bytes from " + data_pointer);
+		synchronized (deleted_entries) {
+			Optional<DeletedEntry> best_deleted_entry = deleted_entries.stream().filter(d_entry -> {
+				return d_entry.data_size >= user_data.length;
+			}).min((l, r) -> {
+				return Long.compare(l.data_size, r.data_size);
+			});
+			
+			long data_pointer = file_data_write_pointer;
+			if (best_deleted_entry.isPresent()) {
+				data_pointer = best_deleted_entry.get().data_pointer;
+			}
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Prepare to write datas: key = " + MyDMAM.byteToString(key) + ", " + data_entry_size + " bytes from " + data_pointer);
+			}
+			
+			int size = channel.write(data_buffer, data_pointer);
+			
+			if (best_deleted_entry.isPresent() == false) {
+				/**
+				 * Not recycling...
+				 */
+				file_data_write_pointer += size;
+			}
+			
+			if (size != data_entry_size) {
+				throw new IOException("Can't write data entry: " + size + " on " + data_entry_size + " bytes for " + MyDMAM.byteToString(key));
+			}
+			
+			if (best_deleted_entry.isPresent()) {
+				/**
+				 * Don't reuse...
+				 */
+				deleted_entries.remove(best_deleted_entry.get());
+			}
+			
+			return data_pointer;
 		}
-		
-		int size = channel.write(data_buffer, data_pointer);
-		file_data_write_pointer += size;
-		
-		if (size != data_entry_size) {
-			throw new IOException("Can't write data entry: " + size + " on " + data_entry_size + " bytes for " + MyDMAM.byteToString(key));
-		}
-		
-		return data_pointer;
 	}
 	
-	void markDelete(long data_pointer) throws IOException {
+	private class DeletedEntry {
+		long data_pointer;
+		int data_size;
+		
+		DeletedEntry(long data_pointer, int data_size) {
+			this.data_pointer = data_pointer;
+			this.data_size = data_size;
+		}
+		
+	}
+	
+	void markDelete(long data_pointer, ItemKey expected_key) throws IOException {
 		/*
 		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
 		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
-		 * */
-		long correct_zone_pointer = data_pointer + ENTRY_HEADER.length + ItemKey.SIZE;
+		 */
 		
-		ByteBuffer buffer = ByteBuffer.wrap(new byte[] { MARK_DELETED_ENTRY });
-		int size = channel.write(buffer, correct_zone_pointer);
+		/**
+		 * Check if data_pointer point to a real data entry, and match with the good key.
+		 */
+		ByteBuffer buffer = ByteBuffer.allocate(ENTRY_HEADER.length + ItemKey.SIZE);
 		
+		int size = channel.read(buffer, data_pointer);
+		if (size != ENTRY_HEADER.length + ItemKey.SIZE) {
+			throw new IOException("Invalid read size: read = " + size + " instead of " + ENTRY_HEADER.length + ItemKey.SIZE);
+		}
+		buffer.flip();
+		TransactionJournal.readAndEquals(buffer, ENTRY_HEADER, err -> {
+			return new IOException("Bad entry header: " + new String(err, MyDMAM.UTF8));
+		});
+		TransactionJournal.readAndEquals(buffer, expected_key.key, err -> {
+			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + expected_key);
+		});
+		
+		/**
+		 * Set delete mark to 1
+		 */
+		long zone_pointer = data_pointer + ENTRY_HEADER.length + ItemKey.SIZE;
+		
+		buffer = ByteBuffer.wrap(new byte[] { MARK_DELETED_ENTRY });
+		size = channel.write(buffer, zone_pointer);
 		if (size != 1) {
 			throw new IOException("Can't write delete mark: " + size);
 		}
 		
-		// TODO save delete pos with a read...
+		/**
+		 * Get data size for this entry
+		 */
+		buffer = ByteBuffer.allocate(4);
+		zone_pointer = data_pointer + ENTRY_HEADER.length + ItemKey.SIZE + 1 + 8;
+		size = channel.read(buffer, zone_pointer);
+		if (size != 4) {
+			throw new IOException("Can't read data size (" + size + ") for pointer " + data_pointer);
+		}
+		buffer.flip();
+		int data_size = buffer.getInt();
+		
+		synchronized (deleted_entries) {
+			deleted_entries.add(new DeletedEntry(data_pointer, data_size));
+		}
 	}
 	
 	public static <T extends Exception> void readAndEquals(ByteBuffer buffer, long expected, Function<Long, T> onDifference) throws T {
@@ -169,7 +245,7 @@ class FileData {
 		}
 	}
 	
-	Entry read(long data_pointer, byte[] expected_key) throws IOException {
+	Entry read(long data_pointer, ItemKey expected_key) throws IOException {
 		/*
 		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
 		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
@@ -189,11 +265,11 @@ class FileData {
 		TransactionJournal.readAndEquals(header_buffer, ENTRY_HEADER, err -> {
 			return new IOException("Bad entry header: " + new String(err, MyDMAM.UTF8));
 		});
-		TransactionJournal.readAndEquals(header_buffer, expected_key, err -> {
-			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + MyDMAM.byteToString(expected_key));
+		TransactionJournal.readAndEquals(header_buffer, expected_key.key, err -> {
+			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + expected_key);
 		});
 		readByteAndEquals(header_buffer, MARK_VALID_ENTRY, err -> {
-			return new IOException("Data entry marked as deleted/invalid: " + err + " for " + MyDMAM.byteToString(expected_key));
+			return new IOException("Data entry marked as deleted/invalid: " + err + " for " + expected_key);
 		});
 		long expected_crc = header_buffer.getLong();
 		int user_data_length = header_buffer.getInt();
@@ -215,11 +291,11 @@ class FileData {
 			data = new byte[user_data_length];
 			data_buffer.get(data);
 			if (getCRC(data) != expected_crc) {
-				throw new IOException("Invalid CRC for data entry: " + MyDMAM.byteToString(expected_key));
+				throw new IOException("Invalid CRC for data entry: " + expected_key);
 			}
 		}
 		
-		readByteAndEquals(header_buffer, ENTRY_FOOTER, err -> {
+		readByteAndEquals(data_buffer, ENTRY_FOOTER, err -> {
 			return new IOException("Invalid data entry footer: " + err);
 		});
 		
@@ -243,6 +319,11 @@ class FileData {
 			this.value = value;
 		}
 		
+		private Entry(ItemKey key, byte[] value) {
+			this.key = key;
+			this.value = value;
+		}
+		
 		public String toString() {
 			return key + " > " + MyDMAM.byteToString(value);
 		}
@@ -250,18 +331,16 @@ class FileData {
 	
 	void clear() throws IOException {
 		log.info("Clear " + data_file);
-		file_data_write_pointer = FILE_DATA_HEADER_LENGTH;
-		try {
-			channel.truncate(FILE_DATA_HEADER_LENGTH);
-			channel.force(true);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		synchronized (deleted_entries) {
+			deleted_entries.clear();
+			file_data_write_pointer = FILE_DATA_HEADER_LENGTH;
+			try {
+				channel.truncate(FILE_DATA_HEADER_LENGTH);
+				channel.force(true);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
-	
-	// TODO mark obsolete segments data file... + add more information in header and footer, like integrity control sum.
-	// TODO deleted (free) zones index
-	// TODO if overwrite a same/smaller length zone >> don't append, just overwrite
-	// TODO if overwrite a same length zone, check integrity control sum before overwrite
 	
 }
