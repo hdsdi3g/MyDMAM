@@ -341,5 +341,4 @@ class TransactionJournal {
 		return file.length();
 	}
 	
-	// TODO read http://distributeddatastore.blogspot.fr/2013/08/cassandra-sstable-storage-format.html
 }

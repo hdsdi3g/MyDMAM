@@ -349,7 +349,7 @@ public class FileHashTable {
 				return null;
 			}
 			try {
-				return data.read(lle.data_pointer);
+				return data.read(lle.data_pointer, lle.current_key);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -507,7 +507,7 @@ public class FileHashTable {
 			}
 			return null;
 		} else {
-			return data.read(data_pointer);
+			return data.read(data_pointer, key.key);
 		}
 	}
 	

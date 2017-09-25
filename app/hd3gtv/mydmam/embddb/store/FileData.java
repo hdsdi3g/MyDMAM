@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.zip.CRC32;
 
 import org.apache.log4j.Logger;
 
@@ -33,10 +35,16 @@ import hd3gtv.mydmam.MyDMAM;
 class FileData {
 	private static Logger log = Logger.getLogger(FileData.class);
 	
+	private static final ThreadLocal<CRC32> THREAD_CRC = ThreadLocal.withInitial(() -> new CRC32());
+	
 	private static final byte[] FILE_DATA_HEADER = "MYDMAMHSHDTA".getBytes(MyDMAM.UTF8);
-	private static final int FILE_DATA_VERSION = 1;
-	private static final byte[] NEXT_TAG = "####".getBytes(MyDMAM.UTF8);
 	private static final int FILE_DATA_HEADER_LENGTH = FILE_DATA_HEADER.length + 4;
+	private static final int FILE_DATA_VERSION = 1;
+	
+	private static final byte[] ENTRY_HEADER = "DATA".getBytes(MyDMAM.UTF8);
+	private static final byte ENTRY_FOOTER = 0x0;
+	private static final byte MARK_VALID_ENTRY = 0x0;
+	private static final byte MARK_DELETED_ENTRY = 0x1;
 	
 	private volatile long file_data_write_pointer;
 	private final File data_file;
@@ -78,87 +86,152 @@ class FileData {
 	}
 	
 	/**
+	 * Thread safe
+	 */
+	private static long getCRC(byte[] user_data) {
+		THREAD_CRC.get().reset();
+		THREAD_CRC.get().update(user_data);
+		return THREAD_CRC.get().getValue();
+	}
+	
+	/**
 	 * @return new data_pointer
 	 */
 	long write(byte[] key, byte[] user_data) throws IOException {
 		/*
-		<int, 4 bytes><key_size><--int, 4 bytes--->
-		[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
+		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
 		 * */
+		
 		int data_entry_size = computeExactlyDataEntrySize(user_data.length);
 		ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
-		data_buffer.putInt(data_entry_size - 4);
+		
+		data_buffer.put(ENTRY_HEADER);
 		data_buffer.put(key);
+		data_buffer.put(MARK_VALID_ENTRY);
+		data_buffer.putLong(getCRC(user_data));
 		data_buffer.putInt(user_data.length);
 		data_buffer.put(user_data);
-		data_buffer.put(NEXT_TAG);
+		data_buffer.put(ENTRY_FOOTER);
 		data_buffer.flip();
 		
 		long data_pointer = file_data_write_pointer;
-		file_data_write_pointer += computeExactlyDataEntrySize(user_data.length);
 		
 		if (log.isTraceEnabled()) {
 			log.trace("Prepare to write datas: key = " + MyDMAM.byteToString(key) + ", " + data_entry_size + " bytes from " + data_pointer);
 		}
 		
-		channel.write(data_buffer, data_pointer);
+		int size = channel.write(data_buffer, data_pointer);
+		file_data_write_pointer += size;
+		
+		if (size != data_entry_size) {
+			throw new IOException("Can't write data entry: " + size + " on " + data_entry_size + " bytes for " + MyDMAM.byteToString(key));
+		}
+		
 		return data_pointer;
 	}
 	
-	Entry read(long data_pointer) throws IOException {
+	void markDelete(long data_pointer) throws IOException {
 		/*
-		<int, 4 bytes><key_size><--int, 4 bytes--->
-		[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
+		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
 		 * */
-		ByteBuffer header_buffer = ByteBuffer.allocate(4);
+		long correct_zone_pointer = data_pointer + ENTRY_HEADER.length + ItemKey.SIZE;
 		
+		ByteBuffer buffer = ByteBuffer.wrap(new byte[] { MARK_DELETED_ENTRY });
+		int size = channel.write(buffer, correct_zone_pointer);
+		
+		if (size != 1) {
+			throw new IOException("Can't write delete mark: " + size);
+		}
+		
+		// TODO save delete pos with a read...
+	}
+	
+	public static <T extends Exception> void readAndEquals(ByteBuffer buffer, long expected, Function<Long, T> onDifference) throws T {
+		long real_value = buffer.getLong();
+		if (expected != real_value) {
+			throw onDifference.apply(real_value);
+		}
+	}
+	
+	/*public static <T extends Exception> void readAndEquals(ByteBuffer buffer, int expected, Function<Integer, T> onDifference) throws T {
+		int real_value = buffer.getInt();
+		if (expected != real_value) {
+			throw onDifference.apply(real_value);
+		}
+	}*/
+	
+	public static <T extends Exception> void readByteAndEquals(ByteBuffer buffer, byte expected, Function<Byte, T> onDifference) throws T {
+		byte real_value = buffer.get();
+		if (expected != real_value) {
+			throw onDifference.apply(real_value);
+		}
+	}
+	
+	Entry read(long data_pointer, byte[] expected_key) throws IOException {
+		/*
+		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
+		 * */
+		int full_header_len = ENTRY_HEADER.length + ItemKey.SIZE + 1 + 8 + 4;
+		ByteBuffer header_buffer = ByteBuffer.allocate(full_header_len);
 		if (log.isTraceEnabled()) {
 			log.trace("Prepare to read data header from " + data_pointer);
 		}
 		
 		int s = channel.read(header_buffer, data_pointer);
-		if (s != 4) {
-			throw new IOException("Invalid read size: read = " + s);
+		if (s != full_header_len) {
+			throw new IOException("Invalid read size: read = " + s + " instead of " + full_header_len);
 		}
 		header_buffer.flip();
-		int data_entry_size = header_buffer.getInt();
-		if (data_entry_size < 0) {
-			throw new IOException("Invalid data size: data_entry_size = " + data_entry_size);
+		
+		TransactionJournal.readAndEquals(header_buffer, ENTRY_HEADER, err -> {
+			return new IOException("Bad entry header: " + new String(err, MyDMAM.UTF8));
+		});
+		TransactionJournal.readAndEquals(header_buffer, expected_key, err -> {
+			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + MyDMAM.byteToString(expected_key));
+		});
+		readByteAndEquals(header_buffer, MARK_VALID_ENTRY, err -> {
+			return new IOException("Data entry marked as deleted/invalid: " + err + " for " + MyDMAM.byteToString(expected_key));
+		});
+		long expected_crc = header_buffer.getLong();
+		int user_data_length = header_buffer.getInt();
+		if (user_data_length < 0) {
+			throw new IOException("Invalid data size: data_entry_size: " + user_data_length);
 		}
 		
-		ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Prepare to read full data content " + data_entry_size + " bytes from " + (data_pointer + 4l));
-		}
-		
-		int s2 = channel.read(data_buffer, data_pointer + 4l);
-		if (s2 != data_entry_size) {
-			throw new IOException("Invalid read size: read = " + s2);
+		ByteBuffer data_buffer = ByteBuffer.allocate(user_data_length + 1);// + ENTRY FOOTER
+		int s2 = channel.read(data_buffer, data_pointer + (long) full_header_len);
+		if (s2 != user_data_length + 1) {
+			throw new IOException("Invalid read size, read only the first " + s2 + " byte(s)");
 		}
 		data_buffer.flip();
-		byte[] key = new byte[ItemKey.SIZE];
-		data_buffer.get(key);
 		
-		byte[] data = null;
-		int user_data_length = data_buffer.getInt();
-		if (user_data_length < 0) {
-			throw new IOException("Invalid read size: user_data_length = " + user_data_length);
-		} else if (user_data_length == 0) {
+		byte[] data;
+		if (user_data_length == 0) {
 			data = new byte[0];
 		} else {
 			data = new byte[user_data_length];
 			data_buffer.get(data);
+			if (getCRC(data) != expected_crc) {
+				throw new IOException("Invalid CRC for data entry: " + MyDMAM.byteToString(expected_key));
+			}
 		}
 		
-		try {
-			TransactionJournal.readAndEquals(data_buffer, NEXT_TAG, err -> {
-				return new IOException("Bad tag separator: " + new String(err, MyDMAM.UTF8));
-			});
-			return new Entry(key, data);
-		} catch (IOException e) {
-			throw e;
-		}
+		readByteAndEquals(header_buffer, ENTRY_FOOTER, err -> {
+			return new IOException("Invalid data entry footer: " + err);
+		});
+		
+		return new Entry(expected_key, data);
+	}
+	
+	private int computeExactlyDataEntrySize(int user_data_len) {
+		/*
+		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
+		 * */
+		return ENTRY_HEADER.length + ItemKey.SIZE + 1 + 8 + 4 + user_data_len + 1;
 	}
 	
 	public class Entry {
@@ -173,14 +246,6 @@ class FileData {
 		public String toString() {
 			return key + " > " + MyDMAM.byteToString(value);
 		}
-	}
-	
-	private int computeExactlyDataEntrySize(int user_data_len) {
-		/*
-		<int, 4 bytes><key_size><--int, 4 bytes--->
-		[ entry len  ][hash key][user's datas size][user's datas][suffix tag]
-		* */
-		return 4 + ItemKey.SIZE + 4 + user_data_len + NEXT_TAG.length;
 	}
 	
 	void clear() throws IOException {
