@@ -45,7 +45,7 @@ import hd3gtv.tools.ThreadPoolExecutorFactory;
 /**
  * Write only if new file, read only if file exists.
  */
-class TransactionJournal {
+class TransactionJournal { // TODO create Unit tests
 	
 	private static Logger log = Logger.getLogger(TransactionJournal.class);
 	private static final byte[] JOURNAL_HEADER = "MYDMAMJOURNAL".getBytes(MyDMAM.UTF8);
@@ -210,7 +210,7 @@ class TransactionJournal {
 			throw new RuntimeException("Can't get actual position for " + file, e1);
 		}
 		
-		Iterator<JournalEntry> iterator = new Iterator<TransactionJournal.JournalEntry>() {
+		Iterator<JournalEntry> iterator = new Iterator<TransactionJournal.JournalEntry>() {// TODO replace by StreamMaker
 			
 			ByteBuffer read_buffer = ByteBuffer.allocate(0xFFFF);
 			

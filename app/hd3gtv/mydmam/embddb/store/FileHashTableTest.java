@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -60,7 +59,7 @@ public class FileHashTableTest extends TestCase {
 	
 	@Test
 	public void testWriteReadRemoveSimple() throws IOException {
-		Random rnd = ThreadLocalRandom.current();
+		Random rnd = new Random(0);
 		ItemKey key = new ItemKey("test-" + rnd.nextInt(100));
 		byte[] data = new byte[rnd.nextInt(10000) + 1];
 		rnd.nextBytes(data);
@@ -69,6 +68,8 @@ public class FileHashTableTest extends TestCase {
 		assertEquals("Invalid number of items", 1, hash_table.size());
 		assertTrue("Can't found item", hash_table.has(key));
 		assertFalse("Not empty", hash_table.isEmpty());
+		
+		long file_size = index_file.length();
 		
 		Entry entry = hash_table.getEntry(key);
 		assertNotNull("Can't found " + key, entry);
@@ -82,6 +83,26 @@ public class FileHashTableTest extends TestCase {
 		assertFalse("Item is not deleted " + key, hash_table.has(key));
 		assertEquals("Invalid number of items", 0, hash_table.size());
 		assertTrue("Not empty", hash_table.isEmpty());
+		
+		/**
+		 * Overwrite
+		 */
+		data = new byte[rnd.nextInt(10000) + 1];
+		rnd.nextBytes(data);
+		hash_table.put(key, data);
+		
+		assertEquals("Invalid number of items", 1, hash_table.size());
+		assertTrue("Can't found item", hash_table.has(key));
+		assertFalse("Not empty", hash_table.isEmpty());
+		
+		entry = hash_table.getEntry(key);
+		assertNotNull("Can't found " + key, entry);
+		assertTrue("Not same key", key.equals(entry.key));
+		assertTrue("Not same datas", Arrays.equals(data, entry.value));
+		assertEquals("Not the same Item", key, hash_table.forEachKeys().findFirst().get());
+		assertTrue("Not the same Item content", Arrays.equals(data, hash_table.forEachKeyValue().findFirst().get().value));
+		
+		assertEquals("Hash file has not recycled its space", file_size, index_file.length());
 	}
 	
 	@Test
@@ -120,6 +141,7 @@ public class FileHashTableTest extends TestCase {
 		});
 		
 		assertEquals("Invalid number of items", all_items.size(), hash_table.size());
+		long file_size = index_file.length();
 		
 		/**
 		 * Check has
@@ -174,7 +196,7 @@ public class FileHashTableTest extends TestCase {
 			}
 		});
 		
-		all_items.stream().skip(max).forEach(item -> { // TODO parallel
+		all_items.parallelStream().skip(max).forEach(item -> {
 			try {
 				assertTrue("Can't found item " + item.key, hash_table.has(item.key));
 				Entry entry = hash_table.getEntry(item.key);
@@ -185,6 +207,9 @@ public class FileHashTableTest extends TestCase {
 		});
 		
 		assertEquals("Invalid number of items", max, hash_table.size());
+		
+		assertEquals("Hash file has not recycled its space", file_size, index_file.length());
+		
 		/*all_items.stream().limit(max).forEach(item -> {
 			try {
 			} catch (IOException e) {

@@ -184,7 +184,7 @@ public class FileHashTable {
 			compressed_hash_key = read_buffer.getInt();
 			linked_list_first_index = read_buffer.getLong();
 			if (log.isTraceEnabled() && linked_list_first_index > 0) {
-				log.trace("Read HashEntry: compressed_hash_key = " + compressed_hash_key + ", linked_list_first_index = " + linked_list_first_index);
+				log.trace("Read HashEntry: " + this);
 			}
 		}
 		
@@ -309,6 +309,12 @@ public class FileHashTable {
 				linkedlist_entry_buffer.flip();
 				LinkedListEntry r = new LinkedListEntry(next_pointer.get(), linkedlist_entry_buffer);
 				linkedlist_entry_buffer.clear();
+				
+				if (r.data_pointer < 1) {
+					throw new IOException("Invalid data pointer: " + r + " for " + entry);
+				} else if (next_pointer.get() == r.next_linked_list_pointer) {
+					throw new IOException("Next pointer is this pointer: " + r + " for " + entry);
+				}
 				next_pointer.set(r.next_linked_list_pointer);
 				return r;
 			} catch (IOException e) {
@@ -531,11 +537,11 @@ public class FileHashTable {
 	}
 	
 	public int size() throws IOException {
-		return (int) getAllLinkedListItems().count();
+		return (int) getAllLinkedListItems()/*.filter(lli -> lli.data_pointer > 0)*/.count();
 	}
 	
 	public boolean isEmpty() throws IOException {
-		return getAllLinkedListItems().findAny().isPresent() == false;
+		return getAllLinkedListItems()/*.filter(lli -> lli.data_pointer > 0)*/.findAny().isPresent() == false;
 	}
 	
 	public boolean has(ItemKey key) throws IOException {
@@ -552,30 +558,25 @@ public class FileHashTable {
 			return Arrays.equals(key, linked_list_item.current_key);
 		};
 		
-		// XXX Bug suspicious...
-		
 		HashEntry hash_entry = readHashEntry(compressed_key);
 		if (hash_entry == null) {
-			/**
-			 * Can't found hash record: nothing to delete.
-			 */
 			if (log.isTraceEnabled()) {
-				log.trace("Can't found hash key (compress key=" + compressed_key + ") for " + MyDMAM.byteToString(key));
+				log.trace("Can't found hash key (compress key=" + compressed_key + ") for " + item_key);
 			}
 		} else {
 			List<LinkedListEntry> hash_entry_linked_list = StreamMaker.takeUntilTrigger(isThisSearchedItem, getAllLinkedListItemsForHashEntry(hash_entry)).collect(Collectors.toList());
 			if (hash_entry_linked_list.isEmpty()) {
-				/**
-				 * Nothing to remove: empty list...
-				 */
+				if (log.isTraceEnabled()) {
+					log.trace("Nothing to remove: empty list (hash_entry=" + hash_entry + ") for " + item_key);
+				}
 				return;
 			}
 			LinkedListEntry last_linked_list_item_to_remove = hash_entry_linked_list.get(hash_entry_linked_list.size() - 1);
 			
 			if (isThisSearchedItem.test(last_linked_list_item_to_remove) == false) {
-				/**
-				 * Item is not present to hash_list... so, nothing to remove.
-				 */
+				if (log.isTraceEnabled()) {
+					log.trace("Item is not present to hash_list... so, nothing to remove (hash_entry=" + hash_entry + ") for " + item_key);
+				}
 				return;
 			}
 			
@@ -585,7 +586,7 @@ public class FileHashTable {
 			
 			data.markDelete(last_linked_list_item_to_remove.data_pointer, new ItemKey(last_linked_list_item_to_remove.current_key));
 			
-			long next_valid_linked_list_pointer = last_linked_list_item_to_remove.linked_list_pointer;
+			long next_valid_linked_list_pointer = last_linked_list_item_to_remove.next_linked_list_pointer;
 			
 			/**
 			 * Clear the actual
