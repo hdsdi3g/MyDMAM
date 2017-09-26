@@ -104,7 +104,7 @@ class FileData {
 	/**
 	 * @return new data_pointer
 	 */
-	long write(byte[] key, byte[] user_data) throws IOException {
+	long write(ItemKey key, byte[] user_data) throws IOException {
 		/*
 		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
 		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
@@ -114,7 +114,7 @@ class FileData {
 		ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
 		
 		data_buffer.put(ENTRY_HEADER);
-		data_buffer.put(key);
+		data_buffer.put(key.key);
 		data_buffer.put(MARK_VALID_ENTRY);
 		data_buffer.putLong(getCRC(user_data));
 		data_buffer.putInt(user_data.length);
@@ -135,7 +135,7 @@ class FileData {
 			}
 			
 			if (log.isTraceEnabled()) {
-				log.trace("Prepare to write datas: key = " + MyDMAM.byteToString(key) + ", " + data_entry_size + " bytes from " + data_pointer);
+				log.trace("Prepare to write datas: key = " + key + ", " + data_entry_size + " bytes from " + data_pointer);
 			}
 			
 			int size = channel.write(data_buffer, data_pointer);
@@ -148,7 +148,7 @@ class FileData {
 			}
 			
 			if (size != data_entry_size) {
-				throw new IOException("Can't write data entry: " + size + " on " + data_entry_size + " bytes for " + MyDMAM.byteToString(key));
+				throw new IOException("Can't write data entry: " + size + " on " + data_entry_size + " bytes for " + key);
 			}
 			
 			if (best_deleted_entry.isPresent()) {

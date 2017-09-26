@@ -38,7 +38,7 @@ public class FileDataTest extends TestCase {
 	private File file;
 	
 	public FileDataTest() throws Exception {
-		file = File.createTempFile("mydmam-test-" + FileDataTest.class.getSimpleName(), ".bin", new File(System.getProperty("user.home")));
+		file = File.createTempFile("mydmam-test-data", ".bin", new File(System.getProperty("user.home")));
 		file.delete();
 		file.deleteOnExit();
 		file_data = new FileData(file);
@@ -60,7 +60,7 @@ public class FileDataTest extends TestCase {
 		
 		byte[] data = new byte[rnd.nextInt(10000) + 1];
 		rnd.nextBytes(data);
-		long pos = file_data.write(key.key, data);
+		long pos = file_data.write(key, data);
 		assertTrue("Invalid write pos", pos > 0);
 		Entry entry = file_data.read(pos, key);
 		checkValidity(key, data, entry.key, entry.value);
@@ -72,10 +72,10 @@ public class FileDataTest extends TestCase {
 	}
 	
 	@Test
-	public void testWriteReadRemoveSimple() throws IOException {
+	public void testWriteReadOverwriteSimple() throws IOException {
 		ItemKey key = new ItemKey("test");
 		byte[] data = "TestData".getBytes(MyDMAM.UTF8);
-		long pos = file_data.write(key.key, data);
+		long pos = file_data.write(key, data);
 		assertTrue("Invalid write pos", pos > 0);
 		Entry entry = file_data.read(pos, key);
 		checkValidity(key, data, entry.key, entry.value);
@@ -91,14 +91,14 @@ public class FileDataTest extends TestCase {
 		
 		ItemKey key2 = new ItemKey("test2");
 		byte[] data2 = "Test2".getBytes(MyDMAM.UTF8);
-		long new_pos = file_data.write(key2.key, data2);
+		long new_pos = file_data.write(key2, data2);
 		assertEquals("Can't re-map old datas", new_pos, pos);
 		Entry entry2 = file_data.read(pos, key2);
 		assertTrue("Can't overwrite new datas", Arrays.equals(data2, entry2.value));
 		
 		ItemKey key3 = new ItemKey("test2");
 		byte[] data3 = "Test3WithMoreDatas".getBytes(MyDMAM.UTF8);
-		long new_pos3 = file_data.write(key2.key, data3);
+		long new_pos3 = file_data.write(key2, data3);
 		assertFalse("Try to overwrite old valid datas", new_pos3 == pos);
 		
 		Entry entry3 = file_data.read(new_pos3, key3);
@@ -138,7 +138,7 @@ public class FileDataTest extends TestCase {
 		 */
 		all_items.parallelStream().forEach(item -> {
 			try {
-				item.data_pos = file_data.write(item.key.key, item.data);
+				item.data_pos = file_data.write(item.key, item.data);
 				assertTrue("Invalid write pos", item.data_pos > 0);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -159,6 +159,69 @@ public class FileDataTest extends TestCase {
 		
 	}
 	
-	// TODO test parallel read/write/remove (more little size) + check if new file size is not bigger
+	@Test
+	public void testWriteReadOverwriteMultiple() throws IOException {
+		final Random rnd = ThreadLocalRandom.current();
+		
+		class Item {
+			ItemKey key;
+			byte[] data;
+			long data_pos;
+			
+			Item(ItemKey key, byte[] data) {
+				this.key = key;
+				this.data = data;
+			}
+		}
+		
+		/**
+		 * Create datas
+		 */
+		List<Item> all_items = IntStream.range(0, 1000).mapToObj(i -> {
+			ItemKey key = new ItemKey("Test" + i);
+			byte[] data = new byte[rnd.nextInt(1000) + 1];
+			rnd.nextBytes(data);
+			return new Item(key, data);
+		}).collect(Collectors.toList());
+		
+		/**
+		 * Write datas, 1st pass
+		 */
+		all_items.stream().forEach(item -> {
+			try {
+				item.data_pos = file_data.write(item.key, item.data);
+				assertTrue("Invalid write pos", item.data_pos > 0);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		/**
+		 * Mark to delete all
+		 */
+		all_items.parallelStream().forEach(item -> {
+			try {
+				file_data.markDelete(item.data_pos, item.key);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		long before_file_size = this.file.length();
+		
+		/**
+		 * (Over)write datas, 2nd pass
+		 */
+		all_items.stream().forEach(item -> {
+			try {
+				item.data_pos = file_data.write(item.key, Arrays.copyOf(item.data, item.data.length - item.data.length / 2));
+				assertTrue("Invalid write pos", item.data_pos > 0);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		assertEquals("Can't re-map old datas", before_file_size, file.length());
+	}
 	
 }

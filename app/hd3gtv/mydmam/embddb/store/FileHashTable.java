@@ -466,7 +466,7 @@ public class FileHashTable {
 	public void put(ItemKey item_key, byte[] user_data) throws IOException {
 		byte[] key = item_key.key;
 		
-		long data_pointer = data.write(key, user_data);
+		long data_pointer = data.write(item_key, user_data);
 		int compressed_key = compressKey(key);
 		HashEntry hash_entry = readHashEntry(compressed_key);
 		
@@ -534,6 +534,10 @@ public class FileHashTable {
 		return (int) getAllLinkedListItems().count();
 	}
 	
+	public boolean isEmpty() throws IOException {
+		return getAllLinkedListItems().findAny().isPresent() == false;
+	}
+	
 	public boolean has(ItemKey key) throws IOException {
 		return getDataPointerFromHashKey(key.key) > 0;
 	}
@@ -547,6 +551,8 @@ public class FileHashTable {
 		final Predicate<LinkedListEntry> isThisSearchedItem = linked_list_item -> {
 			return Arrays.equals(key, linked_list_item.current_key);
 		};
+		
+		// XXX Bug suspicious...
 		
 		HashEntry hash_entry = readHashEntry(compressed_key);
 		if (hash_entry == null) {
