@@ -24,9 +24,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,12 +34,11 @@ import org.apache.log4j.Logger;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.StreamMaker;
-import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
  * Write only if new file, read only if file exists.
  */
-class TransactionJournal { // TODO create Unit tests
+class TransactionJournal {
 	
 	private static Logger log = Logger.getLogger(TransactionJournal.class);
 	private static final byte[] JOURNAL_HEADER = "MYDMAMJOURNAL".getBytes(MyDMAM.UTF8);
@@ -53,7 +49,6 @@ class TransactionJournal { // TODO create Unit tests
 	private static final String EXTENSION = ".myjournal";
 	
 	private final FileChannel file_channel;
-	private final ThreadPoolExecutorFactory executor;
 	private final File file;
 	private final long creation_date;
 	
@@ -64,8 +59,6 @@ class TransactionJournal { // TODO create Unit tests
 		}
 		
 		ByteBuffer bytebuffer_header = ByteBuffer.allocate(JOURNAL_HEADER.length + 4 + 8);
-		
-		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), Thread.MAX_PRIORITY);
 		
 		if (file.exists()) {
 			file_channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
@@ -88,8 +81,6 @@ class TransactionJournal { // TODO create Unit tests
 			bytebuffer_header.putLong(creation_date);
 			bytebuffer_header.flip();
 			file_channel.write(bytebuffer_header);
-			
-			executor.setSimplePoolSize();
 		}
 		
 	}
@@ -114,89 +105,45 @@ class TransactionJournal { // TODO create Unit tests
 		}).collect(Collectors.toList());
 	}
 	
-	/**
-	 * Put a file_channel.force in the queue.
-	 */
-	Future<?> sync(Consumer<IOException> onError) {
-		return executor.submit(() -> {
-			try {
-				file_channel.force(true);
-			} catch (IOException e) {
-				log.error("Can't write in the file " + file.getPath());
-				onError.accept(e);
-			}
-		});
+	void channelSync() throws IOException {
+		file_channel.force(true);
 	}
 	
-	/**
-	 * Put a close() in the queue.
-	 */
-	Future<?> close(Consumer<IOException> onError) {
-		return executor.submit(() -> {
-			try {
-				if (file_channel.isOpen()) {
-					file_channel.close();
-				}
-			} catch (IOException e) {
-				log.error("Can't close the file " + file.getPath());
-				onError.accept(e);
-			}
-		});
+	void channelClose() throws IOException {
+		if (file_channel.isOpen()) {
+			file_channel.close();
+		}
 	}
 	
 	/**
 	 * Sync (close + delete)
 	 */
 	void delete() throws IOException {
-		if (file_channel.isOpen()) {
-			file_channel.close();
-		}
+		channelClose();
 		FileUtils.forceDelete(file);
 	}
 	
-	private void writeNextEntrySeparator(int size) throws IOException {
-		ByteBuffer write_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
-		write_buffer.put(ENTRY_SEPARATOR);
-		write_buffer.putInt(size);
-		write_buffer.flip();
-		file_channel.write(write_buffer);
-	}
-	
-	private int readNextEntrySeparator() throws IOException {
-		ByteBuffer read_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
-		file_channel.read(read_buffer);
-		read_buffer.flip();
-		readAndEquals(read_buffer, ENTRY_SEPARATOR, buff -> {
-			return new IOException("Expected entry separator tag instead of " + new String(buff));
-		});
-		return read_buffer.getInt();
-	}
-	
 	/**
-	 * Preparation (byte wrapping) is blocking, but write is put in the queue (non-blocking).
-	 * @return Future Null ilf error.
+	 * @return Null if error
 	 */
-	Future<ItemKey> write(String database_name, String data_class_name, ItemKey key, byte[] content, BiConsumer<ItemKey, IOException> onError) {
+	ItemKey write(String database_name, String data_class_name, ItemKey key, byte[] content) throws IOException {
 		JournalEntry entry = new JournalEntry(database_name, data_class_name, key, content);
 		ByteBuffer write_buffer = ByteBuffer.allocate(entry.estimateSize());
 		entry.saveRawEntry(write_buffer);
 		write_buffer.flip();
 		
-		return executor.submit(() -> {
-			try {
-				writeNextEntrySeparator(write_buffer.remaining());
-				file_channel.write(write_buffer);
-				return entry.key;
-			} catch (IOException e) {
-				onError.accept(entry.key, e);
-			}
-			return null;
-		});
+		ByteBuffer head_write_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
+		head_write_buffer.put(ENTRY_SEPARATOR);
+		head_write_buffer.putInt(write_buffer.remaining());
+		head_write_buffer.flip();
+		
+		synchronized (file_channel) {
+			file_channel.write(head_write_buffer);
+			file_channel.write(write_buffer);
+		}
+		return entry.key;
 	};
 	
-	/**
-	 * Fully sync
-	 */
 	Stream<JournalEntry> readAll() {
 		long actual_pos = 0;
 		long size = file.length();
@@ -207,10 +154,22 @@ class TransactionJournal { // TODO create Unit tests
 			throw new RuntimeException("Can't get actual position for " + file, e1);
 		}
 		
+		ByteBuffer head_read_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
+		
 		StreamMaker<JournalEntry> s_m = StreamMaker.create(() -> {
 			try {
 				while (file_channel.position() < size) {
-					int next_size = readNextEntrySeparator();
+					head_read_buffer.clear();
+					file_channel.read(head_read_buffer);
+					head_read_buffer.flip();
+					readAndEquals(head_read_buffer, ENTRY_SEPARATOR, buff -> {
+						return new IOException("Expected entry separator tag instead of " + new String(buff));
+					});
+					int next_size = head_read_buffer.getInt();
+					if (next_size < 1) {
+						throw new IOException("Invalid next size: " + next_size);
+					}
+					
 					ByteBuffer read_buffer = ByteBuffer.allocate(next_size);
 					file_channel.read(read_buffer);
 					read_buffer.flip();

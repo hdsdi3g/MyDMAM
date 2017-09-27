@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -196,7 +197,9 @@ public class FileHashTableTest extends TestCase {
 			}
 		});
 		
-		all_items.parallelStream().skip(max).forEach(item -> {
+		all_items = all_items.stream().skip(max).collect(Collectors.toList());
+		
+		all_items.parallelStream().forEach(item -> {
 			try {
 				assertTrue("Can't found item " + item.key, hash_table.has(item.key));
 				Entry entry = hash_table.getEntry(item.key);
@@ -206,18 +209,25 @@ public class FileHashTableTest extends TestCase {
 			}
 		});
 		
-		assertEquals("Invalid number of items", max, hash_table.size());
-		
+		assertEquals("Invalid number of items", all_items.size(), hash_table.size());
 		assertEquals("Hash file has not recycled its space", file_size, index_file.length());
 		
-		/*all_items.stream().limit(max).forEach(item -> {
-			try {
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		});*/
+		HashSet<ItemKey> for_each_keys = new HashSet<>(hash_table.forEachKeys().collect(Collectors.toSet()));
+		assertEquals("Invalid for each size", all_items.size(), for_each_keys.size());
 		
+		all_items.forEach(item -> {
+			assertTrue("Missing key in foreach: " + item.key, for_each_keys.remove(item.key));
+		});
+		assertTrue("Supplementary keys founded on foreach " + for_each_keys.size(), for_each_keys.isEmpty());
+		
+		HashSet<Entry> for_each_values = new HashSet<>(hash_table.forEachKeyValue().collect(Collectors.toSet()));
+		assertEquals("Invalid for each size values", all_items.size(), for_each_values.size());
+		all_items.forEach(item -> {
+			assertTrue("Missing key in foreach: " + item.key, for_each_values.removeIf(entry -> {
+				return item.key.equals(entry.key);
+			}));
+		});
+		assertTrue("Supplementary keys founded on foreach " + for_each_values.size(), for_each_values.isEmpty());
 	}
 	
-	// TODO test hash_table.forEachKeys() and hash_table.forEachKeyValue();
 }

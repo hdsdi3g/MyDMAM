@@ -327,6 +327,7 @@ class FileData {
 		public String toString() {
 			return key + " > " + MyDMAM.byteToString(value);
 		}
+		
 	}
 	
 	void clear() throws IOException {
