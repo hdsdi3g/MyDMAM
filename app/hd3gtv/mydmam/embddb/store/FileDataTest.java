@@ -25,9 +25,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.After;
-import org.junit.Test;
-
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import junit.framework.TestCase;
@@ -48,12 +45,10 @@ public class FileDataTest extends TestCase {
 		}
 	}
 	
-	@After
-	public void onAfterEachTest() throws Exception {
+	protected void tearDown() throws Exception {
 		file_data.clear();
 	}
 	
-	@Test
 	public void testWriteReadSimple() throws IOException {
 		Random rnd = ThreadLocalRandom.current();
 		ItemKey key = new ItemKey("test-" + rnd.nextInt(100));
@@ -71,7 +66,6 @@ public class FileDataTest extends TestCase {
 		assertTrue("Invalid datas", Arrays.equals(data_source, data_dest));
 	}
 	
-	@Test
 	public void testWriteReadOverwriteSimple() throws IOException {
 		ItemKey key = new ItemKey("test");
 		byte[] data = "TestData".getBytes(MyDMAM.UTF8);
@@ -108,7 +102,6 @@ public class FileDataTest extends TestCase {
 		assertTrue("Trouble with overwrite", Arrays.equals(data2, entry2.value));
 	}
 	
-	@Test
 	public void testWriteReadMultipleParallel() throws IOException {
 		final Random rnd = ThreadLocalRandom.current();
 		
@@ -159,7 +152,6 @@ public class FileDataTest extends TestCase {
 		
 	}
 	
-	@Test
 	public void testWriteReadOverwriteMultiple() throws IOException {
 		final Random rnd = ThreadLocalRandom.current();
 		

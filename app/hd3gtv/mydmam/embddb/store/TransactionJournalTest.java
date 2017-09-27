@@ -17,31 +17,94 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 
 import junit.framework.TestCase;
 
 public class TransactionJournalTest extends TestCase {
 	
-	private TransactionJournal journal;
-	private File file;
+	private final UUID uuid;
+	private final File file;
 	
-	public TransactionJournalTest() throws Exception {
-		UUID uuid = UUID.randomUUID();
+	public TransactionJournalTest() {
+		uuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
 		file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-transactionjournal-" + uuid);
-		FileUtils.forceMkdir(file);
-		FileUtils.forceDeleteOnExit(file);
+	}
+	
+	protected void tearDown() throws IOException {
+		try {
+			FileUtils.forceDelete(file);
+		} catch (FileNotFoundException e) {
+		}
+	}
+	
+	public void testCreateJournal() throws IOException {
+		try {
+			FileUtils.forceDelete(file);
+		} catch (FileNotFoundException e) {
+		}
 		
-		journal = new TransactionJournal(file, uuid);
+		FileUtils.forceMkdir(file);
+		TransactionJournal journal_write = new TransactionJournal(file, uuid);
+		
+		long before_size = journal_write.getFileSize();
+		
+		int size = 10000;
+		ConcurrentHashMap<ItemKey, Integer> hash_map = new ConcurrentHashMap<>(size);
+		
+		IntStream.range(0, size).parallel().forEach(i -> {
+			ThreadLocalRandom random = ThreadLocalRandom.current();
+			byte[] bytes = new byte[random.nextInt(1, 1000)];
+			random.nextBytes(bytes);
+			try {
+				ItemKey key = new ItemKey(String.valueOf(i));
+				journal_write.write("Database", "Class", key, bytes);
+				hash_map.put(key, bytes.length);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		journal_write.channelSync();
+		assertTrue("Empty journal", journal_write.getFileSize() > before_size);
+		journal_write.channelClose();
+		
+		TransactionJournal.allJournalsByDate(file).forEach(journal_read -> {
+			try {
+				assertTrue("Empty journal: " + journal_read.getFileSize(), journal_read.getFileSize() > before_size);
+				
+				AtomicLong last_date = new AtomicLong(0);
+				AtomicInteger item_count = new AtomicInteger(0);
+				
+				journal_read.readAll().forEach(entry -> {
+					item_count.incrementAndGet();
+					
+					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date, last_date.get() <= entry.date);
+					last_date.set(entry.date);
+					assertTrue("Unknow key in #" + item_count.get() + ": " + entry.key, hash_map.containsKey(entry.key));
+					assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), entry.content.length);
+				});
+				
+				assertEquals("Invalid item count", hash_map.size(), item_count.get());
+				journal_read.delete();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		List<File> actual_dir_content = Arrays.asList(file.listFiles());
+		assertEquals("Invalid delete journal", 0, actual_dir_content.size());
 	}
 	
-	@After
-	public void onAfterEachTest() throws Exception {
-		// TODO
-	}
-	
-	// TODO create Unit tests
 }

@@ -26,9 +26,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.After;
-import org.junit.Test;
-
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import junit.framework.TestCase;
 
@@ -53,12 +50,10 @@ public class FileHashTableTest extends TestCase {
 		}
 	}
 	
-	@After
-	public void onAfterEachTest() throws Exception {
+	protected void tearDown() throws Exception {
 		hash_table.clear();
 	}
 	
-	@Test
 	public void testWriteReadRemoveSimple() throws IOException {
 		Random rnd = new Random(0);
 		ItemKey key = new ItemKey("test-" + rnd.nextInt(100));
@@ -106,7 +101,6 @@ public class FileHashTableTest extends TestCase {
 		assertEquals("Hash file has not recycled its space", file_size, index_file.length());
 	}
 	
-	@Test
 	public void testWriteReadRemoveMultiple() throws IOException {
 		final Random rnd = new Random(0);
 		

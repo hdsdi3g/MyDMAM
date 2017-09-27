@@ -126,34 +126,26 @@ class TransactionJournal {
 	/**
 	 * @return Null if error
 	 */
-	ItemKey write(String database_name, String data_class_name, ItemKey key, byte[] content) throws IOException {
-		JournalEntry entry = new JournalEntry(database_name, data_class_name, key, content);
-		ByteBuffer write_buffer = ByteBuffer.allocate(entry.estimateSize());
-		entry.saveRawEntry(write_buffer);
-		write_buffer.flip();
-		
-		ByteBuffer head_write_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
-		head_write_buffer.put(ENTRY_SEPARATOR);
-		head_write_buffer.putInt(write_buffer.remaining());
-		head_write_buffer.flip();
-		
+	void write(String database_name, String data_class_name, ItemKey key, byte[] content) throws IOException {
 		synchronized (file_channel) {
+			JournalEntry entry = new JournalEntry(database_name, data_class_name, key, content);
+			ByteBuffer write_buffer = ByteBuffer.allocate(entry.estimateSize());
+			entry.saveRawEntry(write_buffer);
+			write_buffer.flip();
+			
+			ByteBuffer head_write_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
+			head_write_buffer.put(ENTRY_SEPARATOR);
+			head_write_buffer.putInt(write_buffer.remaining());
+			head_write_buffer.flip();
+			
 			file_channel.write(head_write_buffer);
 			file_channel.write(write_buffer);
 		}
-		return entry.key;
 	};
 	
-	Stream<JournalEntry> readAll() {
-		long actual_pos = 0;
-		long size = file.length();
-		
-		try {
-			actual_pos = file_channel.position();
-		} catch (IOException e1) {
-			throw new RuntimeException("Can't get actual position for " + file, e1);
-		}
-		
+	Stream<JournalEntry> readAll() throws IOException {
+		long actual_pos = file_channel.position();
+		long size = file_channel.size();
 		ByteBuffer head_read_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
 		
 		StreamMaker<JournalEntry> s_m = StreamMaker.create(() -> {
@@ -181,10 +173,9 @@ class TransactionJournal {
 			}
 		});
 		
-		final long _actual_pos = actual_pos;
 		return s_m.stream().onClose(() -> {
 			try {
-				file_channel.position(_actual_pos);
+				file_channel.position(actual_pos);
 			} catch (IOException e) {
 				throw new RuntimeException("Can't reset file_channel position", e);
 			}
