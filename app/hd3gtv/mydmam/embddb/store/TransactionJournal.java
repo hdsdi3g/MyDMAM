@@ -22,10 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
@@ -33,13 +30,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.StreamMaker;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
@@ -210,40 +207,23 @@ class TransactionJournal { // TODO create Unit tests
 			throw new RuntimeException("Can't get actual position for " + file, e1);
 		}
 		
-		Iterator<JournalEntry> iterator = new Iterator<TransactionJournal.JournalEntry>() {// TODO replace by StreamMaker
-			
-			ByteBuffer read_buffer = ByteBuffer.allocate(0xFFFF);
-			
-			public JournalEntry next() {
-				try {
-					read_buffer.clear();
-					
+		StreamMaker<JournalEntry> s_m = StreamMaker.create(() -> {
+			try {
+				while (file_channel.position() < size) {
 					int next_size = readNextEntrySeparator();
-					if (read_buffer.capacity() < next_size) {
-						read_buffer = ByteBuffer.allocate(next_size);
-					}
-					read_buffer.limit(next_size);
-					
+					ByteBuffer read_buffer = ByteBuffer.allocate(next_size);
 					file_channel.read(read_buffer);
 					read_buffer.flip();
-					
 					return new JournalEntry(read_buffer);
-				} catch (Exception e) {
-					throw new RuntimeException("Can't read " + file, e);
 				}
+				return null;
+			} catch (Exception e) {
+				throw new RuntimeException("Can't read " + file, e);
 			}
-			
-			public boolean hasNext() {
-				try {
-					return file_channel.position() < size;
-				} catch (Exception e) {
-					throw new RuntimeException("Can't read " + file, e);
-				}
-			}
-		};
+		});
 		
 		final long _actual_pos = actual_pos;
-		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.IMMUTABLE + Spliterator.DISTINCT + Spliterator.NONNULL), false).onClose(() -> {
+		return s_m.stream().onClose(() -> {
 			try {
 				file_channel.position(_actual_pos);
 			} catch (IOException e) {
