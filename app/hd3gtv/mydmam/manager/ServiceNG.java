@@ -210,7 +210,7 @@ public final class ServiceNG {
 			wf_trancoder = new WatchFolderTranscoder(manager);
 			TranscoderWorker.declareTranscoders(manager);
 			bca_watcher = new BCAWatcher(manager);
-			DARDB.setPlannedTask(manager);
+			DARDB.setPlannedTask();
 		}
 	}
 	

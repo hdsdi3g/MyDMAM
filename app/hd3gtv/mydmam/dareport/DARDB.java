@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.mail.internet.InternetAddress;
@@ -35,7 +37,6 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.manager.AppManager;
 
 public class DARDB {
 	
@@ -118,7 +119,26 @@ public class DARDB {
 		return mail_locale;
 	}
 	
+	private ScheduledExecutorService scheduled_ex_service;
+	
 	private DARDB() {
+		/*
+		scheduled_ex_service.shutdown();
+		try {
+			scheduled_ex_service.awaitTermination(500, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e1) {
+		}
+		scheduled_ex_service.shutdownNow();
+		 */
+		
+		scheduled_ex_service = Executors.newScheduledThreadPool(MyDMAM.CPU_COUNT, r -> {
+			Thread t = new Thread(r);
+			t.setDaemon(true);
+			t.setPriority(Thread.MIN_PRIORITY);
+			t.setName("Regular DARDB");
+			return t;
+		});
+		
 	}
 	
 	public String toString() {
@@ -199,15 +219,21 @@ public class DARDB {
 		return c.getTimeInMillis();
 	}
 	
+	/**
+	 * This is maybe shitty
+	 */
 	long getYesterdayStartOfTime() {
 		return getPreviousSendTime() - TimeUnit.DAYS.toMillis(1);
 	}
 	
+	/**
+	 * This is maybe shitty
+	 */
 	long getYesterdayEndOfTime() {
 		return getPreviousSendTime();
 	}
 	
-	public static void setPlannedTask(AppManager manager) {
+	public static void setPlannedTask() {
 		if (Configuration.global.isElementExists("dareport_setup") == false) {
 			return;
 		}
@@ -218,11 +244,31 @@ public class DARDB {
 			start_time_after_midnight += TimeUnit.SECONDS.toMillis(Integer.parseInt(time_unit[2]));
 		}
 		
-		String name = Configuration.global.getValue("dareport_setup", "name", "Daily activity report mail");
+		final String name = Configuration.global.getValue("dareport_setup", "name", "Daily activity report mail");
 		
-		manager.getClockProgrammedTasks().createTask(name, start_time_after_midnight, TimeUnit.MILLISECONDS, () -> {
-			new DARMails().sendDailyReports();
-		}).schedule();
+		/**
+		 * Local time
+		 */
+		Calendar c_first_time_to_start = Calendar.getInstance();
+		c_first_time_to_start.set(Calendar.HOUR_OF_DAY, 0);
+		c_first_time_to_start.set(Calendar.MINUTE, 0);
+		c_first_time_to_start.set(Calendar.SECOND, 0);
+		c_first_time_to_start.set(Calendar.MILLISECOND, 0);
+		c_first_time_to_start.setTimeInMillis(c_first_time_to_start.getTimeInMillis() + start_time_after_midnight);
+		if (c_first_time_to_start.getTimeInMillis() < System.currentTimeMillis()) {
+			c_first_time_to_start.setTimeInMillis(c_first_time_to_start.getTimeInMillis() + TimeUnit.DAYS.toMillis(1));
+		}
+		long initial_delay = c_first_time_to_start.getTimeInMillis() - System.currentTimeMillis();
+		
+		Loggers.DAReport.info("Prepare regular reports send to " + Loggers.dateLog(c_first_time_to_start.getTimeInMillis()) + " (in " + initial_delay / 1000 + " sec), every the " + start_time_after_midnight / 1000 + " ms after midnight, for " + name);
+		
+		DARDB.instance.scheduled_ex_service.scheduleAtFixedRate(() -> {
+			try {
+				new DARMails().sendDailyReports(name, DARDB.instance);
+			} catch (Exception e) {
+				Loggers.DAReport.error("Can't send report for " + name, e);
+			}
+		}, initial_delay, 1, TimeUnit.DAYS);
 	}
 	
 }

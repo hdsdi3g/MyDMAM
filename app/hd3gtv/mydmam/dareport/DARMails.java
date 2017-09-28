@@ -39,25 +39,16 @@ import hd3gtv.mydmam.mail.EndUserBaseMail;
 
 public class DARMails {
 	
-	private HashMap<DAREvent, List<DARReport>> reports_by_events;
-	
-	public DARMails() {
-		reports_by_events = new HashMap<>();
-	}
-	
-	/**
-	 * Accumulate all reports for this day to one summary
-	 */
-	public void sendDailyReports() throws Exception {
-		Loggers.DAReport.debug("Send daily mails");
+	void sendDailyReports(String name, DARDB dardb) throws Exception {
+		Loggers.DAReport.info("Send daily mails for " + name);
 		
-		reports_by_events.clear();
+		HashMap<DAREvent, List<DARReport>> reports_by_events = new HashMap<>();
 		
 		/**
 		 * Get yesterday
 		 */
-		long start_bounded_date = DARDB.get().getYesterdayStartOfTime();
-		long end_bounded_date = DARDB.get().getYesterdayEndOfTime();
+		long start_bounded_date = dardb.getYesterdayStartOfTime();
+		long end_bounded_date = dardb.getYesterdayEndOfTime();
 		
 		/**
 		 * Get all events for day
@@ -78,7 +69,7 @@ public class DARMails {
 		 */
 		LinkedHashMap<String, ArrayList<DARReport>> yesterday_reports_by_events_names = DARReport.listByEventsname(yesterday_events_by_events_names.keySet());
 		if (yesterday_reports_by_events_names.isEmpty()) {
-			Loggers.DAReport.info("Nobody has created reports for all events recorded yesterday. Events: " + yesterday_events_by_events_names.keySet().stream().collect(Collectors.joining(", ")));
+			Loggers.DAReport.info("Nobody has created reports for all events recorded yesterday");
 			return;
 		}
 		
@@ -94,9 +85,8 @@ public class DARMails {
 			Loggers.DAReport.info("Nobody has created reports for some events recorded yesterday. Events: " + events_that_not_had_reports.stream().collect(Collectors.joining(", ")));
 		}
 		
-		LinkedHashMap<DAREvent, List<DARReport>> yesterday_sorted_events = superSort();
+		LinkedHashMap<DAREvent, List<DARReport>> yesterday_sorted_events = superSort(reports_by_events);
 		
-		DARDB dardb = DARDB.get();
 		ArrayList<InternetAddress> managers_addrs = dardb.getManagerAddrs();
 		
 		boolean done = sendMail(yesterday_sorted_events, managers_addrs, dardb.getMailLocale(), "daily");
@@ -175,7 +165,18 @@ public class DARMails {
 		all_valid_report_authors.stream().forEach(action_prepare_send_user_mail);
 	}
 	
-	private LinkedHashMap<DAREvent, List<DARReport>> superSort() {
+	public void sendReportForAdmin(UserNG user, DAREvent event) throws Exception {
+		Loggers.DAReport.info("Send by mail all reports for event \"" + event.name + "\" to " + user.getFullname());
+		
+		HashMap<DAREvent, List<DARReport>> reports_by_events = new HashMap<>(1);
+		reports_by_events.put(event, DARReport.listByEventname(event.name));
+		
+		LinkedHashMap<DAREvent, List<DARReport>> sorted_reports = superSort(reports_by_events);
+		
+		sendMail(sorted_reports, Arrays.asList(user.getInternetAddress()), user.getLocale(), "admin-" + user.getName());
+	}
+	
+	private static LinkedHashMap<DAREvent, List<DARReport>> superSort(HashMap<DAREvent, List<DARReport>> reports_by_events) {
 		LinkedHashMap<DAREvent, List<DARReport>> result = new LinkedHashMap<>();
 		
 		ArrayList<DAREvent> all_events = new ArrayList<>(reports_by_events.keySet());
@@ -186,16 +187,6 @@ public class DARMails {
 		});
 		
 		return result;
-	}
-	
-	public void sendReportForAdmin(UserNG user, DAREvent event) throws Exception {
-		Loggers.DAReport.info("Send by mail all reports for event \"" + event.name + "\" to " + user.getFullname());
-		
-		reports_by_events.put(event, DARReport.listByEventname(event.name));
-		
-		LinkedHashMap<DAREvent, List<DARReport>> sorted_reports = superSort();
-		
-		sendMail(sorted_reports, Arrays.asList(user.getInternetAddress()), user.getLocale(), "admin-" + user.getName());
 	}
 	
 	public final static String formatDate(long date, Locale locale) {
@@ -211,7 +202,7 @@ public class DARMails {
 		return value.replaceAll("\r\n", "\n").replaceAll("\n", "<br>");
 	}
 	
-	private boolean sendMail(LinkedHashMap<DAREvent, List<DARReport>> events, List<InternetAddress> to, Locale locale, String mail_type) throws FileNotFoundException {
+	private static boolean sendMail(LinkedHashMap<DAREvent, List<DARReport>> events, List<InternetAddress> to, Locale locale, String mail_type) throws FileNotFoundException {
 		if (events.isEmpty()) {
 			throw new IndexOutOfBoundsException("No events to display !");
 		}
