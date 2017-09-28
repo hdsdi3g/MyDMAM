@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -74,7 +73,7 @@ public class FileHashTable {
 	
 	private final FileData data;
 	
-	public FileHashTable(File index_file, File data_file, int table_size) throws IOException, InterruptedException, ExecutionException {
+	public FileHashTable(File index_file, File data_file, int table_size) throws IOException {
 		this.table_size = table_size;
 		this.index_file = index_file;
 		if (index_file == null) {

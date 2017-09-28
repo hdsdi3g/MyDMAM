@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.zip.CRC32;
 
@@ -56,7 +55,7 @@ class FileData {
 	
 	// private final long file_data_start;
 	
-	FileData(File data_file) throws IOException, InterruptedException, ExecutionException {
+	FileData(File data_file) throws IOException {
 		this.data_file = data_file;
 		if (data_file == null) {
 			throw new NullPointerException("\"data_file\" can't to be null");

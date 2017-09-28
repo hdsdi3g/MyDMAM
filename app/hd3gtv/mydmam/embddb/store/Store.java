@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import com.google.common.reflect.TypeToken;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.embddb.store.FileBackend.StoreBackend;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
@@ -42,7 +43,7 @@ public final class Store<T> {
 	
 	protected final String database_name;
 	private final Cache read_cache;
-	private final Backend backend;
+	private final StoreBackend backend;
 	private final ItemFactory<T> item_factory;
 	private final StoreQueue queue;
 	
@@ -55,7 +56,7 @@ public final class Store<T> {
 	/**
 	 * @param read_cache dedicated cache for this store
 	 */
-	public Store(String database_name, ItemFactory<T> item_factory, Backend backend, Cache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items) throws IOException {
+	public Store(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, Cache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count) throws IOException {
 		this.database_name = database_name;
 		if (database_name == null) {
 			throw new NullPointerException("\"database_name\" can't to be null");
@@ -64,14 +65,13 @@ public final class Store<T> {
 		if (item_factory == null) {
 			throw new NullPointerException("\"item_factory\" can't to be null");
 		}
-		this.backend = backend;
-		if (backend == null) {
-			throw new NullPointerException("\"backend\" can't to be null");
+		if (file_backend == null) {
+			throw new NullPointerException("\"file_backend\" can't to be null");
 		}
 		TypeToken<T> type_factory = new TypeToken<T>() {
 		};
 		generic_class_name = type_factory.getRawType().getSimpleName();
-		backend.init(database_name, generic_class_name);
+		backend = file_backend.create(database_name, generic_class_name, expected_item_count);
 		
 		this.read_cache = read_cache;
 		if (read_cache == null) {
