@@ -73,8 +73,7 @@ public class FileHashTable {
 	
 	private final FileData data;
 	
-	public FileHashTable(File index_file, File data_file, int table_size) throws IOException {
-		this.table_size = table_size;
+	public FileHashTable(File index_file, File data_file, int default_table_size) throws IOException {
 		this.index_file = index_file;
 		if (index_file == null) {
 			throw new NullPointerException("\"index_file\" can't to be null");
@@ -85,8 +84,6 @@ public class FileHashTable {
 		
 		ByteBuffer bytebuffer_header_index = ByteBuffer.allocate(FILE_INDEX_HEADER_LENGTH);
 		file_index_start = bytebuffer_header_index.capacity();
-		
-		start_linked_lists_zone_in_index_file = file_index_start + ((long) table_size) * 12l;
 		
 		if (index_file.exists()) {
 			channel = FileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS);
@@ -105,21 +102,24 @@ public class FileHashTable {
 			}
 			
 			int actual_table_size = bytebuffer_header_index.getInt();
-			if (actual_table_size != table_size) {
-				throw new IOException("Invalid table_size: file is " + actual_table_size + " instead of " + table_size);
-			}
 			int actual_key_size = bytebuffer_header_index.getInt();
 			if (actual_key_size != ItemKey.SIZE) {
 				throw new IOException("Invalid key_size: file is " + actual_key_size + " instead of " + ItemKey.SIZE);
 			}
 			
+			table_size = actual_table_size;
+			start_linked_lists_zone_in_index_file = file_index_start + ((long) actual_table_size) * (long) HASH_ENTRY_SIZE;
+			
 			file_index_write_pointer = Long.max(channel.size(), start_linked_lists_zone_in_index_file);
 		} else {
+			table_size = default_table_size;
+			start_linked_lists_zone_in_index_file = file_index_start + ((long) default_table_size) * (long) HASH_ENTRY_SIZE;
+			
 			channel = FileChannel.open(index_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			
 			bytebuffer_header_index.put(FILE_INDEX_HEADER);
 			bytebuffer_header_index.putInt(FILE_INDEX_VERSION);
-			bytebuffer_header_index.putInt(table_size);
+			bytebuffer_header_index.putInt(default_table_size);
 			bytebuffer_header_index.putInt(ItemKey.SIZE);
 			bytebuffer_header_index.flip();
 			channel.write(bytebuffer_header_index, 0);
@@ -141,14 +141,6 @@ public class FileHashTable {
 	 With linked list entry struct:
 	 <key_size><----------------long, 8 bytes------------------><---------------long, 8 bytes------------------>
 	 [hash key][absolute position for user's datas in data file][absolute position for linked list's next index]
-	 
-	 Data file struct:
-	 [header...][user data block][user data block][user data block][user data block]...EOF
-	            ^ file_data_start
-	
-	 With user data block struct:
-	 <int, 4 bytes><key_size><--int, 4 bytes--->
-	 [ entry len  ][hash key][user's datas size][user's datas][suffix tag]
 	*/
 	
 	private long computeIndexFilePosition(int compressed_key) {

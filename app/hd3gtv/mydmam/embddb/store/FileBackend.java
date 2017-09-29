@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 
+import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.CopyMove;
 
 public class FileBackend {
@@ -68,7 +69,7 @@ public class FileBackend {
 		private TransactionJournal journal;
 		private FileHashTable hash_table;
 		
-		private StoreBackend(String database_name, String class_name, int table_size) throws IOException {
+		private StoreBackend(String database_name, String class_name, int default_table_size) throws IOException {
 			this.database_name = database_name;
 			if (database_name == null) {
 				throw new NullPointerException("\"database_name\" can't to be null");
@@ -84,52 +85,62 @@ public class FileBackend {
 			
 			File index_file = new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + "index.myhshtable");
 			File data_file = new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + "data.myhshtable");
-			hash_table = new FileHashTable(index_file, data_file, table_size);
+			hash_table = new FileHashTable(index_file, data_file, default_table_size);
 		}
 		
 		void writeInCommitlog(ItemKey key, byte[] content) throws IOException {
-			// TODO
+			journal.write(database_name, class_name, key, content);
 		}
 		
 		void rotateAndReadCommitlog(BiConsumer<ItemKey, byte[]> all_reader) throws IOException {
-			// TODO
-			
+			// TODO transfert path && delete date ?
 		}
 		
-		void writeInDatabase(ItemKey key, byte[] content, String _id, String path, long delete_date) throws IOException {
-			// TODO
+		void writeInDatabase(ItemKey key, byte[] content, String path, long delete_date) throws IOException {
+			// TODO create reverse list for path >> keys && delete_date >> keys
+			hash_table.put(key, content);
 		}
 		
 		/**
 		 * Remove all for delete_date < Now - grace_period
 		 */
 		void removeOutdatedRecordsInDatabase(long grace_period) throws IOException {
-			// TODO
+			// TODO create reverse list delete_date >> keys
 		}
 		
 		/**
 		 * @return raw content
 		 */
 		byte[] read(ItemKey key) throws IOException {
-			return null;// TODO
+			// TODO check delete_date ?
+			Entry result = hash_table.getEntry(key);
+			if (result == null) {
+				return null;
+			}
+			return result.value;
 		}
 		
 		boolean contain(ItemKey key) throws IOException {
-			return false;// TODO
+			// TODO check delete_date ?
+			return hash_table.has(key);
 		}
 		
 		/**
 		 * @return raw content
 		 */
 		Stream<byte[]> getAllDatas() throws IOException {
-			return null; // TODO
+			// TODO check delete_date ?
+			return hash_table.forEachKeyValue().map(entry -> {
+				return entry.value;
+			});
 		}
 		
 		/**
 		 * @return raw content
 		 */
 		Stream<byte[]> getDatasByPath(String path) throws IOException {
-			return null;// TODO
+			// TODO create reverse list for path >> keys && delete_date >> keys
+			return null;// TODO check delete_date ?
 		}
 	}
 	

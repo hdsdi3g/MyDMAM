@@ -389,7 +389,7 @@ public final class Store<T> {
 		Item item = Item.fromRawContent(content);
 		if (item.isDeletedPurgable(grace_period_for_expired_items) == false) {
 			try {
-				backend.writeInDatabase(key, content, item.getId(), item.getPath(), item.getDeleteDate());
+				backend.writeInDatabase(key, content, item.getPath(), item.getDeleteDate());
 			} catch (IOException e) {
 				throw new RuntimeException("Can't write in database", e);
 			}
@@ -419,7 +419,7 @@ public final class Store<T> {
 					return;
 				}
 				try {
-					backend.writeInDatabase(key, item.toRawContent(), item.getId(), item.getPath(), item.getDeleteDate());
+					backend.writeInDatabase(key, item.toRawContent(), item.getPath(), item.getDeleteDate());
 				} catch (IOException e) {
 					throw new RuntimeException("Can't write in database", e);
 				}
