@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -40,7 +39,7 @@ import hd3gtv.tools.StreamMaker;
  */
 class TransactionJournal {
 	
-	private static Logger log = Logger.getLogger(TransactionJournal.class);
+	// private static Logger log = Logger.getLogger(TransactionJournal.class);
 	private static final byte[] JOURNAL_HEADER = "MYDMAMJOURNAL".getBytes(MyDMAM.UTF8);
 	private static final int JOURNAL_VERSION = 1;
 	

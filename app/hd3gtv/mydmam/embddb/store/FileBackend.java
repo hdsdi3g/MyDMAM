@@ -67,7 +67,8 @@ public class FileBackend {
 		private String class_name;
 		
 		private TransactionJournal journal;
-		private FileHashTable hash_table;
+		private FileHashTableData data_hash_table;
+		private FileIndexDates expiration_dates;
 		
 		private StoreBackend(String database_name, String class_name, int default_table_size) throws IOException {
 			this.database_name = database_name;
@@ -85,11 +86,14 @@ public class FileBackend {
 			
 			File index_file = new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + "index.myhshtable");
 			File data_file = new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + "data.myhshtable");
-			hash_table = new FileHashTable(index_file, data_file, default_table_size);
+			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
+			
+			File expiration_dates_file = new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + "index.myhshtable");
+			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);
 		}
 		
 		void writeInCommitlog(ItemKey key, byte[] content) throws IOException {
-			journal.write(database_name, class_name, key, content);
+			journal.write(database_name, class_name, key, content);// TODO push delete_date ?
 		}
 		
 		void rotateAndReadCommitlog(BiConsumer<ItemKey, byte[]> all_reader) throws IOException {
@@ -97,23 +101,34 @@ public class FileBackend {
 		}
 		
 		void writeInDatabase(ItemKey key, byte[] content, String path, long delete_date) throws IOException {
-			// TODO create reverse list for path >> keys && delete_date >> keys
-			hash_table.put(key, content);
+			// TODO create reverse list for path >> keys
+			data_hash_table.put(key, content);
+			expiration_dates.put(key, delete_date);
 		}
 		
 		/**
 		 * Remove all for delete_date < Now - grace_period
 		 */
 		void removeOutdatedRecordsInDatabase(long grace_period) throws IOException {
-			// TODO create reverse list delete_date >> keys
+			expiration_dates.getPastKeys(System.currentTimeMillis() - grace_period).forEach(old_key -> {
+				try {
+					data_hash_table.remove(old_key);
+					expiration_dates.remove(old_key);
+					// TODO remove path index targeted on this keys ?
+				} catch (IOException e) {
+					throw new RuntimeException("Can't write in some file", e);
+				}
+			});
 		}
 		
 		/**
 		 * @return raw content
 		 */
 		byte[] read(ItemKey key) throws IOException {
-			// TODO check delete_date ?
-			Entry result = hash_table.getEntry(key);
+			if (expiration_dates.get(key) < System.currentTimeMillis()) {
+				return null;
+			}
+			Entry result = data_hash_table.getEntry(key);
 			if (result == null) {
 				return null;
 			}
@@ -121,16 +136,23 @@ public class FileBackend {
 		}
 		
 		boolean contain(ItemKey key) throws IOException {
-			// TODO check delete_date ?
-			return hash_table.has(key);
+			if (expiration_dates.get(key) < System.currentTimeMillis()) {
+				return false;
+			}
+			return data_hash_table.has(key);
 		}
 		
 		/**
-		 * @return raw content
+		 * @return raw content, without expired items
 		 */
 		Stream<byte[]> getAllDatas() throws IOException {
-			// TODO check delete_date ?
-			return hash_table.forEachKeyValue().map(entry -> {
+			return data_hash_table.forEachKeyValue().filter(entry -> {
+				try {
+					return expiration_dates.get(entry.key) > System.currentTimeMillis();
+				} catch (IOException e) {
+					throw new RuntimeException("Can't read in expiration_dates file", e);
+				}
+			}).map(entry -> {
 				return entry.value;
 			});
 		}

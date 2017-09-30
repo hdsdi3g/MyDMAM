@@ -29,25 +29,24 @@ import java.util.stream.IntStream;
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import junit.framework.TestCase;
 
-public class FileHashTableTest extends TestCase {
+public class FileHashTableDataTest extends TestCase {
 	
 	private File data_file;
 	private File index_file;
-	private FileHashTable hash_table;
+	private FileHashTableData hash_table;
 	
-	public FileHashTableTest() throws Exception {
+	public FileHashTableDataTest() throws Exception {
 		data_file = File.createTempFile("mydmam-test-data", ".bin", new File(System.getProperty("user.home")));
+		if (data_file.getFreeSpace() < 10_000_000l) {
+			throw new IOException("No more space for " + data_file);
+		}
 		data_file.delete();
 		data_file.deleteOnExit();
 		index_file = File.createTempFile("mydmam-test-file", ".bin", new File(System.getProperty("user.home")));
 		index_file.delete();
 		index_file.deleteOnExit();
 		
-		hash_table = new FileHashTable(index_file, data_file, 16);
-		
-		if (data_file.getFreeSpace() < 10_000_000l) {
-			throw new IOException("No more space for " + data_file);
-		}
+		hash_table = new FileHashTableData(index_file, data_file, 16);
 	}
 	
 	protected void tearDown() throws Exception {
