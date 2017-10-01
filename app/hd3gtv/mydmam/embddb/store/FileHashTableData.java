@@ -18,9 +18,6 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
@@ -30,20 +27,12 @@ import hd3gtv.mydmam.embddb.store.FileData.Entry;
  */
 public class FileHashTableData {
 	
-	private final FileHashTable<Long> hash_table;
+	private final FileHashTableLong hash_table;
 	private final FileData data;
 	
 	public FileHashTableData(File index_file, File data_file, int default_table_size) throws IOException {
 		data = new FileData(data_file);
-		
-		BiConsumer<Long, ByteBuffer> factory_to_bytes = (pointer, buffer) -> {
-			buffer.putLong(pointer);
-		};
-		
-		Function<ByteBuffer, Long> factory_from_bytes = buffer -> {
-			return buffer.getLong();
-		};
-		hash_table = new FileHashTable<>(index_file, factory_to_bytes, factory_from_bytes, 8, default_table_size);
+		hash_table = new FileHashTableLong(index_file, default_table_size);
 	}
 	
 	public void clear() throws IOException {
@@ -63,18 +52,11 @@ public class FileHashTableData {
 		return hash_table.has(key);
 	}
 	
-	private long p(Long v) {
-		if (v == null) {
-			return 0l;
-		}
-		return v.longValue();
-	}
-	
 	/**
 	 * Internal datas will not removed (just tagged). Only references are removed.
 	 */
 	public void remove(ItemKey item_key) throws IOException {
-		long old_pointer = p(hash_table.remove(item_key));
+		long old_pointer = hash_table.remove(item_key);
 		if (old_pointer < 1) {
 			return;
 		}
@@ -85,7 +67,7 @@ public class FileHashTableData {
 	 * @return entry can be null if not found.
 	 */
 	public Entry getEntry(ItemKey key) throws IOException {
-		long pointer = p(hash_table.getEntry(key));
+		long pointer = hash_table.getEntry(key);
 		if (pointer < 1) {
 			return null;
 		}
@@ -98,19 +80,15 @@ public class FileHashTableData {
 	}
 	
 	public Stream<ItemKey> forEachKeys() throws IOException {
-		return hash_table.forEach().filter(v -> {
-			return p(v.value) > 0;
-		}).map(v -> {
+		return hash_table.forEach().map(v -> {
 			return v.key;
 		});
 	}
 	
 	public Stream<Entry> forEachKeyValue() throws IOException {
-		return hash_table.forEach().filter(v -> {
-			return p(v.value) > 0;
-		}).map(v -> {
+		return hash_table.forEach().map(v -> {
 			try {
-				return data.read(p(v.value), v.key);
+				return data.read(v.value, v.key);
 			} catch (IOException e) {
 				throw new RuntimeException("Can't read from data file", e);
 			}

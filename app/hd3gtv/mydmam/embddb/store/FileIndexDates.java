@@ -18,25 +18,16 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class FileIndexDates {
 	
-	private final FileHashTable<Long> hash_table;
+	private final FileHashTableLong hash_table;
 	
 	public FileIndexDates(File index_file, int default_table_size) throws IOException {
-		BiConsumer<Long, ByteBuffer> factory_to_bytes = (date, buffer) -> {
-			buffer.putLong(date);
-		};
-		Function<ByteBuffer, Long> factory_from_bytes = buffer -> {
-			return buffer.getLong();
-		};
-		hash_table = new FileHashTable<>(index_file, factory_to_bytes, factory_from_bytes, 8, default_table_size);
+		hash_table = new FileHashTableLong(index_file, default_table_size);
 	}
 	
 	public void clear() throws IOException {
@@ -55,25 +46,15 @@ public class FileIndexDates {
 		return hash_table.has(key);
 	}
 	
-	private long p(Long v) {
-		if (v == null) {
-			return 0l;
-		}
-		return v.longValue();
-	}
-	
 	/**
 	 * Internal datas will not removed (just tagged). Only references are removed.
 	 */
 	public void remove(ItemKey item_key) throws IOException {
-		long old_date = p(hash_table.remove(item_key));
-		if (old_date < 1) {
-			return;
-		}
+		hash_table.remove(item_key);
 	}
 	
 	public long get(ItemKey key) throws IOException {
-		return p(hash_table.getEntry(key));
+		return hash_table.getEntry(key);
 	}
 	
 	public void put(ItemKey item_key, long date) throws IOException {

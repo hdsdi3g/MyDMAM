@@ -36,15 +36,16 @@ public class FileHashTableDataTest extends TestCase {
 	private FileHashTableData hash_table;
 	
 	public FileHashTableDataTest() throws Exception {
+		index_file = File.createTempFile("mydmam-test-file", ".bin", new File(System.getProperty("user.home")));
+		index_file.delete();
+		index_file.deleteOnExit();
+		
 		data_file = File.createTempFile("mydmam-test-data", ".bin", new File(System.getProperty("user.home")));
 		if (data_file.getFreeSpace() < 10_000_000l) {
 			throw new IOException("No more space for " + data_file);
 		}
 		data_file.delete();
 		data_file.deleteOnExit();
-		index_file = File.createTempFile("mydmam-test-file", ".bin", new File(System.getProperty("user.home")));
-		index_file.delete();
-		index_file.deleteOnExit();
 		
 		hash_table = new FileHashTableData(index_file, data_file, 16);
 	}
