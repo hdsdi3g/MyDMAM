@@ -200,9 +200,9 @@ public class FileBackend {
 			expiration_dates = null;
 			index_paths = null;
 			
-			FileUtils.forceDelete(expiration_dates_file);
-			FileUtils.forceDelete(index_paths_file);
-			FileUtils.forceDelete(index_paths_llists_file);
+			FileUtils.forceDelete(expiration_dates_file);// TODO not now
+			FileUtils.forceDelete(index_paths_file);// TODO not now
+			FileUtils.forceDelete(index_paths_llists_file);// TODO not now
 			
 			File old_index_file = new File(index_file.getPath() + ".cleanup");
 			File old_data_file = new File(data_file.getPath() + ".cleanup");
@@ -214,9 +214,10 @@ public class FileBackend {
 			expiration_dates = new FileIndexDates(expiration_dates_file, size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, size);
 			
+			@Deprecated
 			class EntryItem {
 				Entry entry;
-				Item item;
+				Item item;// TODO dangerous: if entry is not an Item ?! >>> read information from self, from expiration_dates and index_paths
 				
 				EntryItem(Entry entry) {
 					this.entry = entry;
