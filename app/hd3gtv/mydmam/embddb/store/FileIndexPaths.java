@@ -88,6 +88,11 @@ public class FileIndexPaths {
 		}
 	}
 	
+	public void close() throws IOException {
+		hash_table.close();
+		channel.close();
+	}
+	
 	/*
 	Linked list entry struct:
 	[header...][linked list entry][linked list entry]...EOF
@@ -242,7 +247,20 @@ public class FileIndexPaths {
 		});
 	}
 	
-	private void internalAdd(ItemKey item_key, String path) throws IOException {
+	/**
+	 * @param path null and empty will be ignored
+	 */
+	public void add(ItemKey item_key, String path) throws IOException {
+		if (item_key == null) {
+			throw new NullPointerException("\"item_key\" can't to be null");
+		}
+		if (path == null) {
+			return;
+		}
+		if (path.isEmpty()) {
+			return;
+		}
+		
 		ItemKey hash_path = new ItemKey(path);
 		long linked_list_first_index = hash_table.getEntry(hash_path);
 		
@@ -311,35 +329,10 @@ public class FileIndexPaths {
 		}
 	}
 	
-	public void add(ItemKey item_key, String path) throws IOException {
-		if (path == null) {
-			throw new NullPointerException("\"path\" can't to be null");
-		}
-		if (path.isEmpty()) {
-			throw new NullPointerException("\"path\" can't to be empty");
-		}
-		if (path.equals("/*")) {
-			return;
-		}
-		if (path.endsWith("*")) {
-			path = path.substring(0, path.length() - 1);
-		}
-		internalAdd(item_key, path);
-		
-		if (path.equals("/") == false) {
-			if (path.endsWith("/")) {
-				path = path + "*";
-			} else {
-				path = path + "/*";
-			}
-			internalAdd(item_key, path);
-		}
-	}
-	
 	/**
 	 * Can't all items, because it'll be slow.
 	 */
-	public Stream<ItemKey> getAllKeysInPath(String path, boolean only_current_path) throws IOException {
+	public Stream<ItemKey> getAllKeysInPath(String path) throws IOException {
 		if (path == null) {
 			throw new NullPointerException("\"path\" can't to be null");
 		} else if (path.isEmpty()) {
@@ -351,12 +344,7 @@ public class FileIndexPaths {
 		if (path.endsWith("/")) {
 			path = path.substring(0, path.length() - 1);
 		}
-		
-		if (only_current_path) {
-			return getAllKeysInPath(new ItemKey(path));
-		} else {
-			return getAllKeysInPath(new ItemKey(path + "/*"));
-		}
+		return getAllKeysInPath(new ItemKey(path));
 	}
 	
 	public void clear() throws IOException {

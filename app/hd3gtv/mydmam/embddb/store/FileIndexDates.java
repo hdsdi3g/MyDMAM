@@ -30,6 +30,10 @@ public class FileIndexDates {
 		hash_table = new FileHashTableLong(index_file, default_table_size);
 	}
 	
+	public void close() throws IOException {
+		hash_table.close();
+	}
+	
 	public void clear() throws IOException {
 		hash_table.clear();
 	}

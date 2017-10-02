@@ -193,13 +193,12 @@ public final class Item {
 	}
 	
 	public boolean isDeleted() {
-		return isDeletedPurgable(0);
+		return deleted < System.currentTimeMillis();
 	}
 	
-	boolean isDeletedPurgable(long grace_time) {
-		return ((deleted + grace_time) - System.currentTimeMillis()) < 0;
-	}
-	
+	/**
+	 * @return can be in past or future
+	 */
 	long getDeleteDate() {
 		return deleted;
 	}
@@ -211,20 +210,19 @@ public final class Item {
 		if (isDeleted()) {
 			return 0;
 		}
-		
 		return deleted - System.currentTimeMillis();
 	}
 	
 	/**
 	 * @param ttl if 0, no TTL, else real TTL (positive or negative)
 	 */
-	void setTTL(long ttl) {
-		if (ttl != 0) {
-			deleted = System.currentTimeMillis() + ttl;
+	Item setTTL(long ttl) {
+		if (ttl == 0) {
+			deleted = Long.MAX_VALUE - (System.currentTimeMillis() * 10l);
 		} else {
-			deleted = 0;
+			deleted = System.currentTimeMillis() + ttl;
 		}
-		
+		return this;
 	}
 	
 	public String toString() {

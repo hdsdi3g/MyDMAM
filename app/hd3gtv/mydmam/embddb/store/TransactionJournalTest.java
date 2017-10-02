@@ -69,7 +69,7 @@ public class TransactionJournalTest extends TestCase {
 			random.nextBytes(bytes);
 			try {
 				ItemKey key = new ItemKey(String.valueOf(i));
-				journal_write.write("Database", "Class", key, bytes);
+				journal_write.write(key, bytes, System.currentTimeMillis() + 1_000_000l, null);
 				hash_map.put(key, bytes.length);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -87,7 +87,7 @@ public class TransactionJournalTest extends TestCase {
 				AtomicLong last_date = new AtomicLong(0);
 				AtomicInteger item_count = new AtomicInteger(0);
 				
-				journal_read.readAll().forEach(entry -> {
+				journal_read.readAll(false).forEach(entry -> {
 					item_count.incrementAndGet();
 					
 					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date, last_date.get() <= entry.date);

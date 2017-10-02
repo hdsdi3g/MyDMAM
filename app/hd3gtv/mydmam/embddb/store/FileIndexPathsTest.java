@@ -75,17 +75,30 @@ public class FileIndexPathsTest extends TestCase {
 			return f.getParentFile();
 		}).distinct().collect(Collectors.toList());
 		
-		all_parents.stream().forEach(parent -> {
+		assertFalse(file_index.isEmpty());
+		assertEquals(all_parents.size(), file_index.pathCount());
+		
+		boolean done = all_parents.parallelStream().allMatch(parent -> {
 			try {
-				System.out.print(parent + " -> ");
-				System.out.println(file_index.getAllKeysInPath(parent.getPath(), false).map(sub_file -> {// FIXME recursive don't works...
-					return all_user_files.get(sub_file).getName();
-				}).collect(Collectors.toList()));
+				return file_index.has(parent.getPath()) & file_index.getAllKeysInPath(parent.getPath()).allMatch(sub_file -> {
+					return all_user_files.containsKey(sub_file);
+				});
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
 		
-		// file_index.getAllKeysInPath(path)
+		assertTrue(done);
+		
+		all_parents.forEach(parent -> {
+			try {
+				file_index.remove(parent.getPath());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		assertTrue(file_index.isEmpty());
+		assertEquals(0, file_index.pathCount());
 	}
 }

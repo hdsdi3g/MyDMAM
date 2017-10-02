@@ -91,6 +91,10 @@ class FileData {
 		file_data_write_pointer = channel.size();
 	}
 	
+	public void close() throws IOException {
+		channel.close();
+	}
+	
 	/**
 	 * Thread safe
 	 */

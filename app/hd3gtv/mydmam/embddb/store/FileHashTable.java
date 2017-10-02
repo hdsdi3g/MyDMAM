@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.OpenOption;
@@ -37,6 +38,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
+
+import com.google.common.math.IntMath;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.StreamMaker;
@@ -138,6 +141,10 @@ public class FileHashTable<T> {
 			channel.write(bytebuffer_header_index, 0);
 			file_index_write_pointer = start_linked_lists_zone_in_index_file;
 		}
+	}
+	
+	public void close() throws IOException {
+		channel.close();
 	}
 	
 	/*
@@ -633,6 +640,13 @@ public class FileHashTable<T> {
 			channel.truncate(FILE_INDEX_HEADER_LENGTH);
 			channel.force(true);
 		}
+	}
+	
+	public static final int computeHashTableBestSize(int estimate_number_of_elements) {
+		if (estimate_number_of_elements == 0) {
+			return computeHashTableBestSize(1000);
+		}
+		return IntMath.pow(2, 1 + IntMath.log2(estimate_number_of_elements, RoundingMode.CEILING));
 	}
 	
 }

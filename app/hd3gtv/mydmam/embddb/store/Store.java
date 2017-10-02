@@ -47,7 +47,7 @@ public final class Store<T> {
 	private final ItemFactory<T> item_factory;
 	private final StoreQueue queue;
 	
-	private final ConcurrentHashMap<ItemKey, Item> commit_log_cache;
+	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final long max_size_for_cached_commit_log;
 	private final long grace_period_for_expired_items;
 	private final ThreadPoolExecutorFactory executor;
@@ -77,7 +77,7 @@ public final class Store<T> {
 		if (read_cache == null) {
 			throw new NullPointerException("\"read_cache\" can't to be null");
 		}
-		commit_log_cache = new ConcurrentHashMap<>();
+		journal_write_cache = new ConcurrentHashMap<>();
 		this.max_size_for_cached_commit_log = max_size_for_cached_commit_log;
 		if (max_size_for_cached_commit_log < 1l) {
 			throw new NullPointerException("\"max_size_for_cached_commit_log\" can't to be < 1");
@@ -94,17 +94,19 @@ public final class Store<T> {
 		queue = new StoreQueue(getDatabaseName() + "/" + generic_class_name, () -> {
 			return elegiblityToCleanUp();
 		}, () -> {
-			internalDurableWrite();
+			try {
+				journal_write_cache.clear();
+				backend.doDurableWriteAndRotateJournal();
+			} catch (IOException e1) {
+				throw new RuntimeException("Can't do rotate", e1);
+			}
 		}, executor);
 		
-		backend.rotateAndReadCommitlog((key, content) -> {
-			injectCurrentRawDatasInDatabase(key, content);
-		});
-		backend.removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
+		backend.doDurableWriteAndRotateJournal();
 	}
 	
 	public void put(T element, long ttl, TimeUnit unit, Consumer<T> onDone, BiConsumer<T, IOException> onError) {
-		put(item_factory.toItem(element), unit.toMillis(ttl), () -> {
+		put(item_factory.toItem(element).setTTL(unit.toMillis(ttl)), () -> {
 			onDone.accept(element);
 		}, e -> {
 			onError.accept(element, e);
@@ -114,15 +116,13 @@ public final class Store<T> {
 	/**
 	 * @param ttl in ms
 	 */
-	private void put(Item item, long ttl, Runnable onDone, Consumer<IOException> onError) {
+	private void put(Item item, Runnable onDone, Consumer<IOException> onError) {
 		queue.put(() -> {
 			try {
-				item.setTTL(ttl);
 				ItemKey key = item.getKey();
-				commit_log_cache.put(key, item);
+				journal_write_cache.put(key, item);
 				read_cache.remove(key);
-				
-				backend.writeInCommitlog(key, item.toRawContent());
+				backend.writeInJournal(item, item.getDeleteDate() + grace_period_for_expired_items);
 				executor.execute(onDone);
 			} catch (IOException e) {
 				executor.execute(() -> {
@@ -137,7 +137,7 @@ public final class Store<T> {
 			try {
 				ItemKey key = new ItemKey(_id);
 				
-				Item item = commit_log_cache.get(key);
+				Item item = journal_write_cache.get(key);
 				if (item != null) {
 					if (item.isDeleted() == false) {
 						final Item _item = item;
@@ -188,7 +188,7 @@ public final class Store<T> {
 			try {
 				ItemKey key = new ItemKey(_id);
 				
-				if (commit_log_cache.containsKey(key)) {
+				if (journal_write_cache.containsKey(key)) {
 					executor.execute(() -> {
 						onDone.accept(_id, true);
 					});
@@ -219,8 +219,8 @@ public final class Store<T> {
 				ItemKey key = new ItemKey(_id);
 				Item actual_item = null;
 				
-				if (commit_log_cache.containsKey(key)) {
-					actual_item = commit_log_cache.get(key);
+				if (journal_write_cache.containsKey(key)) {
+					actual_item = journal_write_cache.get(key);
 					if (actual_item.isDeleted()) {
 						executor.execute(() -> {
 							onNotFound.accept(_id);
@@ -241,7 +241,7 @@ public final class Store<T> {
 					actual_item = Item.fromRawContent(datas);
 				}
 				
-				put(actual_item.setPayload(new byte[0]), -1, () -> {
+				put(actual_item.setPayload(new byte[0]).setTTL(-1l), () -> {
 					executor.execute(() -> {
 						onDone.accept(_id);
 					});
@@ -264,7 +264,7 @@ public final class Store<T> {
 			read_cache.put(item.getKey(), datas, item.getActualTTL());
 			return item;
 		}).filter(item -> {
-			return commit_log_cache.containsKey(item.getKey()) == false;
+			return journal_write_cache.containsKey(item.getKey()) == false;
 		}).collect(Collectors.toList());
 	}
 	
@@ -281,7 +281,7 @@ public final class Store<T> {
 		queue.put(() -> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
-				List<T> result = accumulateWithCommitLog(stored_items, new HashSet<>(commit_log_cache.values())).map(item -> {
+				List<T> result = accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values())).map(item -> {
 					return item_factory.getFromItem(item);
 				}).collect(Collectors.toList());
 				
@@ -300,7 +300,7 @@ public final class Store<T> {
 		queue.put(() -> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getDatasByPath(path));
-				HashSet<Item> commit_log_filtered = new HashSet<Item>(commit_log_cache.values().stream().filter(item -> {
+				HashSet<Item> commit_log_filtered = new HashSet<Item>(journal_write_cache.values().stream().filter(item -> {
 					return item.getPath().startsWith(path);
 				}).collect(Collectors.toSet()));
 				
@@ -330,11 +330,12 @@ public final class Store<T> {
 			items.forEach(item -> {
 				item.setPayload(new byte[0]);
 				item.setTTL(-1);
+				item.setPath(null);
 				ItemKey key = item.getKey();
-				commit_log_cache.put(key, item);
+				journal_write_cache.put(key, item);
 				read_cache.remove(key);
 				try {
-					backend.writeInCommitlog(key, new byte[0]);
+					backend.writeInJournal(item, System.currentTimeMillis() + grace_period_for_expired_items);
 				} catch (IOException e1) {
 					throw new RuntimeException(e1);
 				}
@@ -374,7 +375,7 @@ public final class Store<T> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
 				remove(stored_items.stream());
-				remove(commit_log_cache.values().stream());
+				remove(journal_write_cache.values().stream());
 				read_cache.purgeAll();
 				doDurableWrite();
 			} catch (IOException e) {
@@ -385,62 +386,17 @@ public final class Store<T> {
 		});
 	}
 	
-	private void injectCurrentRawDatasInDatabase(ItemKey key, byte[] content) {
-		Item item = Item.fromRawContent(content);
-		if (item.isDeletedPurgable(grace_period_for_expired_items) == false) {
-			try {
-				backend.writeInDatabase(key, content, item.getPath(), item.getDeleteDate());
-			} catch (IOException e) {
-				throw new RuntimeException("Can't write in database", e);
-			}
-		}
-	}
-	
 	public String getDatabaseName() {
 		return database_name;
 	}
 	
 	private boolean elegiblityToCleanUp() {
-		long estimate_commit_log_cache_size = commit_log_cache.reduceValuesToLong(MyDMAM.CPU_COUNT, item -> {
+		long estimate_commit_log_cache_size = journal_write_cache.reduceValuesToLong(MyDMAM.CPU_COUNT, item -> {
 			return (long) item.estimateSize();
 		}, 0, (l, r) -> {
 			return l + r;
 		});
 		return estimate_commit_log_cache_size > max_size_for_cached_commit_log;
-	}
-	
-	private void internalDurableWrite() {
-		try {
-			/**
-			 * commit_log_cache >> writeInDatabase
-			 */
-			commit_log_cache.forEach((key, item) -> {
-				if (item.isDeletedPurgable(grace_period_for_expired_items)) {
-					return;
-				}
-				try {
-					backend.writeInDatabase(key, item.toRawContent(), item.getPath(), item.getDeleteDate());
-				} catch (IOException e) {
-					throw new RuntimeException("Can't write in database", e);
-				}
-			});
-			
-			/**
-			 * rotateAndReadCommitlog >> remove commit_log_cache item | writeInDatabase
-			 */
-			backend.rotateAndReadCommitlog((key, content) -> {
-				if (commit_log_cache.remove(key) != null) {
-					return;
-				}
-				injectCurrentRawDatasInDatabase(key, content);
-			});
-			
-			commit_log_cache.clear();
-			
-			backend.removeOutdatedRecordsInDatabase(grace_period_for_expired_items);
-		} catch (Exception e) {
-			log.error("Can't doDurableWrite", e);
-		}
 	}
 	
 	/**
@@ -451,5 +407,6 @@ public final class Store<T> {
 	}
 	
 	// TODO network I/O
+	// TODO do full file GC (with pause)
 	
 }

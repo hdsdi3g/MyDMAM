@@ -35,6 +35,11 @@ public class FileHashTableData {
 		hash_table = new FileHashTableLong(index_file, default_table_size);
 	}
 	
+	public void close() throws IOException {
+		hash_table.close();
+		data.close();
+	}
+	
 	public void clear() throws IOException {
 		data.clear();
 		hash_table.clear();

@@ -42,6 +42,7 @@ class TransactionJournal {
 	// private static Logger log = Logger.getLogger(TransactionJournal.class);
 	private static final byte[] JOURNAL_HEADER = "MYDMAMJOURNAL".getBytes(MyDMAM.UTF8);
 	private static final int JOURNAL_VERSION = 1;
+	private static final int HEADER_LENGTH = JOURNAL_HEADER.length + 4 + 8;
 	
 	private static final byte[] ENTRY_HEADER = "HEAD".getBytes(MyDMAM.UTF8);
 	private static final byte[] ENTRY_SEPARATOR = "NEXT".getBytes(MyDMAM.UTF8);
@@ -57,7 +58,7 @@ class TransactionJournal {
 			throw new NullPointerException("\"file\" can't to be null");
 		}
 		
-		ByteBuffer bytebuffer_header = ByteBuffer.allocate(JOURNAL_HEADER.length + 4 + 8);
+		ByteBuffer bytebuffer_header = ByteBuffer.allocate(HEADER_LENGTH);
 		
 		if (file.exists()) {
 			file_channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
@@ -125,9 +126,9 @@ class TransactionJournal {
 	/**
 	 * @return Null if error
 	 */
-	void write(String database_name, String data_class_name, ItemKey key, byte[] content) throws IOException {
+	void write(ItemKey key, byte[] content, long expiration_date, String path) throws IOException {
 		synchronized (file_channel) {
-			JournalEntry entry = new JournalEntry(database_name, data_class_name, key, content);
+			JournalEntry entry = new JournalEntry(key, content, expiration_date, path);
 			ByteBuffer write_buffer = ByteBuffer.allocate(entry.estimateSize());
 			entry.saveRawEntry(write_buffer);
 			write_buffer.flip();
@@ -142,9 +143,11 @@ class TransactionJournal {
 		}
 	};
 	
-	Stream<JournalEntry> readAll() throws IOException {
+	Stream<JournalEntry> readAll(boolean partial_read) throws IOException {
 		long actual_pos = file_channel.position();
 		long size = file_channel.size();
+		file_channel.position(HEADER_LENGTH);
+		
 		ByteBuffer head_read_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
 		
 		StreamMaker<JournalEntry> s_m = StreamMaker.create(() -> {
@@ -164,7 +167,7 @@ class TransactionJournal {
 					ByteBuffer read_buffer = ByteBuffer.allocate(next_size);
 					file_channel.read(read_buffer);
 					read_buffer.flip();
-					return new JournalEntry(read_buffer);
+					return new JournalEntry(read_buffer, partial_read);
 				}
 				return null;
 			} catch (Exception e) {
@@ -172,7 +175,10 @@ class TransactionJournal {
 			}
 		});
 		
-		return s_m.stream().onClose(() -> {
+		long now = System.currentTimeMillis();
+		return s_m.stream().filter(entry -> {
+			return entry.expiration_date > now;
+		}).onClose(() -> {
 			try {
 				file_channel.position(actual_pos);
 			} catch (IOException e) {
@@ -182,21 +188,13 @@ class TransactionJournal {
 	}
 	
 	class JournalEntry {
-		final String database_name;
-		final String data_class_name;
 		final ItemKey key;
 		final byte[] content;
 		final long date;
+		final long expiration_date;
+		final String path;
 		
-		private JournalEntry(String database_name, String data_class_name, ItemKey key, byte[] content) {
-			this.database_name = database_name;
-			if (database_name == null) {
-				throw new NullPointerException("\"database_name\" can't to be null");
-			}
-			this.data_class_name = data_class_name;
-			if (data_class_name == null) {
-				throw new NullPointerException("\"data_class_name\" can't to be null");
-			}
+		private JournalEntry(ItemKey key, byte[] content, long expiration_date, String path) {
 			this.key = key;
 			if (key == null) {
 				throw new NullPointerException("\"key\" can't to be null");
@@ -204,6 +202,15 @@ class TransactionJournal {
 			this.content = content;
 			if (content == null) {
 				throw new NullPointerException("\"content\" can't to be null");
+			}
+			this.expiration_date = expiration_date;
+			if (expiration_date == 0) {
+				throw new NullPointerException("\"expiration_date\" can't to be equals to 0");
+			}
+			if (path == null) {
+				this.path = "";
+			} else {
+				this.path = path;
 			}
 			date = System.currentTimeMillis();
 		}
@@ -214,30 +221,37 @@ class TransactionJournal {
 		private void saveRawEntry(ByteBuffer write_buffer) {
 			write_buffer.put(ENTRY_HEADER);
 			write_buffer.putLong(date);
-			writeNextBlock(write_buffer, database_name.getBytes(MyDMAM.UTF8));
-			writeNextBlock(write_buffer, data_class_name.getBytes(MyDMAM.UTF8));
+			write_buffer.putLong(expiration_date);
 			writeNextBlock(write_buffer, key.key);
 			writeNextBlock(write_buffer, content);
+			writeNextBlock(write_buffer, path.getBytes(MyDMAM.UTF8));
 		}
 		
 		private int estimateSize() {
-			return ENTRY_HEADER.length + 8 + (4 + database_name.length() * 2) + (4 + data_class_name.length() * 2) + (4 + key.key.length) + (4 + content.length);
+			return ENTRY_HEADER.length + 8 + 8 + (4 + key.key.length) + (4 + content.length) + (4 + path.length() * 2);
 		}
 		
 		/**
 		 * READ
-		 * @param write_buffer not flipped before, not cleared after (only get)
+		 * @param write_buffer not flipped before, but cleared after
+		 * @param partial_read don't read content and path (set null)
 		 */
-		private JournalEntry(ByteBuffer read_buffer) throws IOException {
+		private JournalEntry(ByteBuffer read_buffer, boolean partial_read) throws IOException {
 			readAndEquals(read_buffer, ENTRY_HEADER, header -> {
 				return new IOException("Invalid header for entry: " + String.valueOf(header));
 			});
 			
 			date = read_buffer.getLong();
-			database_name = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
-			data_class_name = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
+			expiration_date = read_buffer.getLong();
 			key = new ItemKey(readNextBlock(read_buffer));
-			content = readNextBlock(read_buffer);
+			if (partial_read == false) {
+				content = readNextBlock(read_buffer);
+				path = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
+			} else {
+				content = null;
+				path = null;
+			}
+			read_buffer.clear();
 		}
 		
 	}
@@ -266,7 +280,7 @@ class TransactionJournal {
 		return b;
 	}
 	
-	long getFileSize() { // TODO external rotate (just recreate : file name is date based)
+	long getFileSize() {
 		return file.length();
 	}
 	
