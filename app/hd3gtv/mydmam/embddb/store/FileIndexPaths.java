@@ -248,6 +248,14 @@ public class FileIndexPaths {
 	}
 	
 	/**
+	 * Not thread safe
+	 */
+	void defragment(FileIndexPaths old_index, FileHashTableData user_keys) throws IOException {
+		// TODO
+		
+	}
+	
+	/**
 	 * @param path null and empty will be ignored
 	 */
 	public void add(ItemKey item_key, String path) throws IOException {

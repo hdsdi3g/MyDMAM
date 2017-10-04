@@ -191,7 +191,7 @@ public class FileBackend {
 		 * NOT Thread safe
 		 * Don't touch to actual journal. Also remove outdated records.
 		 */
-		void cleanUpFiles(long grace_period_for_expired_items) throws IOException {
+		void cleanUpFiles() throws IOException {
 			data_hash_table.close();
 			expiration_dates.close();
 			index_paths.close();
@@ -200,13 +200,21 @@ public class FileBackend {
 			expiration_dates = null;
 			index_paths = null;
 			
-			FileUtils.forceDelete(expiration_dates_file);// TODO not now
-			FileUtils.forceDelete(index_paths_file);// TODO not now
-			FileUtils.forceDelete(index_paths_llists_file);// TODO not now
-			
 			File old_index_file = new File(index_file.getPath() + ".cleanup");
 			File old_data_file = new File(data_file.getPath() + ".cleanup");
+			File old_expiration_dates_file = new File(expiration_dates_file.getPath() + ".cleanup");
+			File old_index_paths_file = new File(index_paths_file.getPath() + ".cleanup");
+			File old_index_paths_llists_file = new File(index_paths_llists_file.getPath() + ".cleanup");
+			
+			FileUtils.moveFile(index_file, old_index_file);
+			FileUtils.moveFile(data_file, old_data_file);
+			FileUtils.moveFile(expiration_dates_file, old_expiration_dates_file);
+			FileUtils.moveFile(index_paths_file, old_index_paths_file);
+			FileUtils.moveFile(index_paths_llists_file, old_index_paths_llists_file);
+			
 			FileHashTableData old_data_hash_table = new FileHashTableData(old_index_file, old_data_file, 0);
+			FileIndexDates old_expiration_dates = new FileIndexDates(old_expiration_dates_file, 0);
+			FileIndexPaths old_index_paths = new FileIndexPaths(old_index_paths_file, old_index_paths_llists_file, 0);
 			
 			int size = FileHashTable.computeHashTableBestSize(old_data_hash_table.size());
 			
@@ -214,34 +222,37 @@ public class FileBackend {
 			expiration_dates = new FileIndexDates(expiration_dates_file, size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, size);
 			
-			@Deprecated
-			class EntryItem {
-				Entry entry;
-				Item item;// TODO dangerous: if entry is not an Item ?! >>> read information from self, from expiration_dates and index_paths
-				
-				EntryItem(Entry entry) {
-					this.entry = entry;
-					item = Item.fromRawContent(entry.value);
-				}
-			}
-			
-			old_data_hash_table.forEachKeyValue().map(entry -> {
-				return new EntryItem(entry);
-			}).filter(ei -> {
-				return ei.item.getDeleteDate() + grace_period_for_expired_items > System.currentTimeMillis();
-			}).forEach(ei -> {
+			old_data_hash_table.forEachKeyValue().forEach(item -> {
 				try {
-					data_hash_table.put(ei.entry.key, ei.entry.value);
-					expiration_dates.put(ei.entry.key, ei.item.getDeleteDate() + grace_period_for_expired_items);
-					index_paths.add(ei.entry.key, ei.item.getPath());
+					long expiration_date = old_expiration_dates.get(item.key);
+					if (expiration_date == 0) {
+						if (old_expiration_dates.has(item.key) == false) {
+							throw new NullPointerException("Can't found a valid expiration_date for " + item.key);
+						}
+					}
+					if (expiration_date < System.currentTimeMillis()) {
+						return;
+					}
+					
+					data_hash_table.put(item.key, item.value);
+					expiration_dates.put(item.key, expiration_date);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			});
 			
+			index_paths.defragment(old_index_paths, data_hash_table);
+			
 			old_data_hash_table.close();
+			old_expiration_dates.close();
+			old_index_paths.close();
+			
 			FileUtils.forceDelete(old_index_file);
 			FileUtils.forceDelete(old_data_file);
+			FileUtils.forceDelete(old_expiration_dates_file);
+			FileUtils.forceDelete(old_index_paths_file);
+			FileUtils.forceDelete(old_index_paths_llists_file);
+			
 		}
 		
 		/**
