@@ -78,7 +78,7 @@ public class TransactionJournalTest extends TestCase {
 		
 		journal_write.channelSync();
 		assertTrue("Empty journal", journal_write.getFileSize() > before_size);
-		journal_write.channelClose();
+		journal_write.close();
 		
 		TransactionJournal.allJournalsByDate(file).forEach(journal_read -> {
 			try {
@@ -97,7 +97,7 @@ public class TransactionJournalTest extends TestCase {
 				});
 				
 				assertEquals("Invalid item count", hash_map.size(), item_count.get());
-				journal_read.delete();
+				journal_read.purge();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

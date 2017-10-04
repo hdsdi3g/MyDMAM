@@ -71,7 +71,7 @@ public final class Store<T> {
 		TypeToken<T> type_factory = new TypeToken<T>() {
 		};
 		generic_class_name = type_factory.getRawType().getSimpleName();
-		backend = file_backend.create(database_name, generic_class_name, expected_item_count);
+		backend = file_backend.get(database_name, generic_class_name, expected_item_count);
 		
 		this.read_cache = read_cache;
 		if (read_cache == null) {
@@ -96,13 +96,13 @@ public final class Store<T> {
 		}, () -> {
 			try {
 				journal_write_cache.clear();
-				backend.doDurableWriteAndRotateJournal();
+				backend.doDurableWritesAndRotateJournal();
 			} catch (IOException e1) {
 				throw new RuntimeException("Can't do rotate", e1);
 			}
 		}, executor);
 		
-		backend.doDurableWriteAndRotateJournal();
+		backend.doDurableWritesAndRotateJournal();
 	}
 	
 	public void put(T element, long ttl, TimeUnit unit, Consumer<T> onDone, BiConsumer<T, IOException> onError) {

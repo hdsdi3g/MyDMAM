@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
@@ -251,8 +252,21 @@ public class FileIndexPaths {
 	 * Not thread safe
 	 */
 	void defragment(FileIndexPaths old_index, FileHashTableData user_keys) throws IOException {
-		// TODO
-		
+		old_index.hash_table.forEach().forEach(idx_item -> {
+			ItemKey current_path_key = idx_item.key;
+			long linked_list_first_index = idx_item.value;
+			
+			old_index.getAllLinkedListItemsForHashEntry(linked_list_first_index).forEach(lle -> {
+				ItemKey user_data_key = new ItemKey(lle.user_data_hash_key);
+				try {
+					if (user_keys.has(user_data_key)) {
+						add(user_data_key, current_path_key);
+					}
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			});
+		});
 	}
 	
 	/**
@@ -268,19 +282,21 @@ public class FileIndexPaths {
 		if (path.isEmpty()) {
 			return;
 		}
-		
-		ItemKey hash_path = new ItemKey(path);
+		add(item_key, new ItemKey(path));
+	}
+	
+	private void add(ItemKey item_key, ItemKey hash_path) throws IOException {
 		long linked_list_first_index = hash_table.getEntry(hash_path);
 		
 		if (linked_list_first_index < 1) {
 			if (log.isTraceEnabled()) {
-				log.trace("Path \"" + path + "\" don't exists, create it and put in the hash table");
+				log.trace("Path \"" + hash_path + "\" don't exists, create it and put in the hash table");
 			}
 			long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(item_key.key));
 			hash_table.put(hash_path, new_linked_list_pointer);
 		} else {
 			if (log.isTraceEnabled()) {
-				log.trace("Search if linked list entry exists for path \"" + path + "\"");
+				log.trace("Search if linked list entry exists for path \"" + hash_path + "\"");
 			}
 			
 			Optional<LinkedListEntry> o_linked_list_item = getAllLinkedListItemsForHashEntry(linked_list_first_index).filter(linked_list_item -> {
@@ -290,13 +306,13 @@ public class FileIndexPaths {
 			if (o_linked_list_item.isPresent() == false) {
 				if (getAllLinkedListItemsForHashEntry(linked_list_first_index).findFirst().isPresent() == false) {
 					if (log.isTraceEnabled()) {
-						log.trace("Append new entry to an empty list for path \"" + path + "\"");
+						log.trace("Append new entry to an empty list for path \"" + hash_path + "\"");
 					}
 					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(item_key.key));
 					hash_table.put(hash_path, new_linked_list_pointer);
 				} else {
 					if (log.isTraceEnabled()) {
-						log.trace("Append new entry to actual list (chain) for path \"" + path + "\"");
+						log.trace("Append new entry to actual list (chain) for path \"" + hash_path + "\"");
 					}
 					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(item_key.key, linked_list_first_index));
 					hash_table.put(hash_path, new_linked_list_pointer);
@@ -361,6 +377,14 @@ public class FileIndexPaths {
 		file_index_write_pointer = FILE_LLIST_HEADER_LENGTH;
 		channel.truncate(FILE_LLIST_HEADER_LENGTH);
 		channel.force(true);
+	}
+	
+	void purge() throws IOException {
+		if (channel.isOpen()) {
+			channel.close();
+		}
+		FileUtils.forceDelete(llist_file);
+		hash_table.purge();
 	}
 	
 }

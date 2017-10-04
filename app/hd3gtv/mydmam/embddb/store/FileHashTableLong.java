@@ -70,4 +70,5 @@ public class FileHashTableLong extends FileHashTable<Long> {
 			return checkLong(entry.value) > 0;
 		});
 	}
+	
 }

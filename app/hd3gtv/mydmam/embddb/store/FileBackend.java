@@ -16,19 +16,24 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.CopyMove;
 
-public class FileBackend {
+public class FileBackend implements Closeable {
+	
+	private static Logger log = Logger.getLogger(FileBackend.class);
 	
 	private final File base_directory;
 	private final ArrayList<StoreBackend> backends;
@@ -55,20 +60,31 @@ public class FileBackend {
 	}
 	
 	/**
+	 * Thread safe
 	 * @param table_size an estimation, will be corrected to 1+2^n
+	 * @return a new backend, or the same as previousely created
 	 */
-	StoreBackend create(String database_name, String class_name, int table_size) throws IOException {
+	StoreBackend get(String database_name, String class_name, int table_size) throws IOException {
 		synchronized (backends) {
-			StoreBackend result = new StoreBackend(database_name, class_name, FileHashTable.computeHashTableBestSize(table_size));
-			backends.add(result);
-			return result;
+			return backends.stream().filter(b -> {
+				return b.database_name.equals(database_name);
+			}).filter(b -> {
+				return b.class_name.equals(class_name);
+			}).findFirst().orElseGet(() -> {
+				try {
+					StoreBackend result = new StoreBackend(database_name, class_name, FileHashTable.computeHashTableBestSize(table_size));
+					backends.add(result);
+					return result;
+				} catch (IOException e) {
+					throw new RuntimeException("Can't create backend", e);
+				}
+			});
 		}
 	}
 	
 	class StoreBackend {
 		private String database_name;
 		private String class_name;
-		private final int default_table_size;
 		
 		private File journal_directory;
 		private TransactionJournal journal;
@@ -91,7 +107,6 @@ public class FileBackend {
 			if (class_name == null) {
 				throw new NullPointerException("\"class_name\" can't to be null");
 			}
-			this.default_table_size = default_table_size;
 			if (default_table_size < 1) {
 				throw new NullPointerException("\"default_table_size\" can't to be < 1 (" + default_table_size + ")");
 			}
@@ -111,6 +126,37 @@ public class FileBackend {
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, default_table_size);
 		}
 		
+		public String toString() {
+			return database_name + " for " + class_name;
+		}
+		
+		private void close() {
+			try {
+				journal.close();
+				journal = null;
+			} catch (IOException e) {
+				log.error("Can't close journal for " + toString());
+			}
+			try {
+				data_hash_table.close();
+				data_hash_table = null;
+			} catch (IOException e) {
+				log.error("Can't close data_hash_table for " + toString());
+			}
+			try {
+				expiration_dates.close();
+				expiration_dates = null;
+			} catch (IOException e) {
+				log.error("Can't close expiration_dates for " + toString());
+			}
+			try {
+				index_paths.close();
+				index_paths = null;
+			} catch (IOException e) {
+				log.error("Can't close index_paths for " + toString());
+			}
+		}
+		
 		private File makeFile(String name) {
 			return new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + name);
 		}
@@ -125,8 +171,8 @@ public class FileBackend {
 		/**
 		 * NOT Thread safe
 		 */
-		void doDurableWriteAndRotateJournal() throws IOException {
-			journal.channelClose();
+		void doDurableWritesAndRotateJournal() throws IOException {
+			journal.close();
 			/**
 			 * To protect future writes... it will throw a NPE
 			 */
@@ -178,7 +224,7 @@ public class FileBackend {
 						}
 					});
 					
-					current_journal.delete();
+					current_journal.purge();
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -311,8 +357,30 @@ public class FileBackend {
 				return value != null;
 			});
 		}
+		
+		void purge() throws IOException {
+			data_hash_table.purge();
+			expiration_dates.purge();
+			index_paths.purge();
+			journal.purge();
+			TransactionJournal.allJournalsByDate(journal_directory).forEach(j -> {
+				try {
+					j.purge();
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			});
+			System.out.println(Arrays.asList(journal_directory.listFiles()));// XXX
+			System.exit(0);// XXX
+			FileUtils.forceDelete(journal_directory);
+			FileUtils.forceDelete(makeFile("").getAbsoluteFile());
+		}
 	}
 	
-	// TODO on close hook : flush all
-	// TODO unit tests for this
+	public void close() {
+		backends.parallelStream().forEach(backend -> {
+			backend.close();
+		});
+	}
+	
 }

@@ -90,7 +90,7 @@ public final class Item {
 		return b;
 	}
 	
-	byte[] toRawContent() {
+	byte[] toRawContent() {// TODO to byte buffer ?
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(path.length() + _id.length() + payload.length);
 		try {
 			DataOutputStream daos = new DataOutputStream(baos);
@@ -113,7 +113,7 @@ public final class Item {
 	private Item() {
 	}
 	
-	static Item fromRawContent(byte[] data) {
+	static Item fromRawContent(byte[] data) {// TODO from byte buffer ?
 		ByteArrayInputStream bias = new ByteArrayInputStream(data);
 		DataInputStream dis = new DataInputStream(bias);
 		
@@ -137,7 +137,11 @@ public final class Item {
 	public Item(String path, String _id, byte[] payload) {
 		setId(_id).setPath(path).setPayload(payload);
 		created = System.currentTimeMillis();
-		deleted = 0;
+		deleted = Long.MAX_VALUE - (System.currentTimeMillis() * 10l);
+	}
+	
+	public Item(String _id, byte[] payload) {
+		this(null, _id, payload);
 	}
 	
 	public Item setId(String _id) {
@@ -147,7 +151,11 @@ public final class Item {
 	}
 	
 	public Item setPath(String path) {
-		this.path = requireNonEmpty(Objects.requireNonNull(path, "\"path\" can't to be null"), "\"path\" can't to be empty");
+		if (path == null) {
+			this.path = "";
+		} else {
+			this.path = path;
+		}
 		updated = System.currentTimeMillis();
 		return this;
 	}

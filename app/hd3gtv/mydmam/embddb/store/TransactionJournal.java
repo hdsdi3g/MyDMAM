@@ -109,17 +109,18 @@ class TransactionJournal {
 		file_channel.force(true);
 	}
 	
-	void channelClose() throws IOException {
+	void close() throws IOException {
 		if (file_channel.isOpen()) {
+			channelSync();
 			file_channel.close();
 		}
 	}
 	
-	/**
-	 * Sync (close + delete)
-	 */
-	void delete() throws IOException {
-		channelClose();
+	void purge() throws IOException {
+		if (file_channel.isOpen()) {
+			file_channel.close();
+		}
+		System.out.println(file);// XXX
 		FileUtils.forceDelete(file);
 	}
 	

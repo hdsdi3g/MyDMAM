@@ -89,4 +89,8 @@ public class FileIndexDates {
 		}).collect(Collectors.toList());/** Less risky during a GC session */
 	}
 	
+	void purge() throws IOException {
+		hash_table.purge();
+	}
+	
 }

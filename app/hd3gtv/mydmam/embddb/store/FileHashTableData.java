@@ -100,4 +100,9 @@ public class FileHashTableData {
 		});
 	}
 	
+	void purge() throws IOException {
+		hash_table.purge();
+		data.purge();
+	}
+	
 }

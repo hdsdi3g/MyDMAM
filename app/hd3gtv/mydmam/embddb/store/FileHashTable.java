@@ -37,6 +37,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.math.IntMath;
@@ -640,6 +641,13 @@ public class FileHashTable<T> {
 			channel.truncate(FILE_INDEX_HEADER_LENGTH);
 			channel.force(true);
 		}
+	}
+	
+	void purge() throws IOException {
+		if (channel.isOpen()) {
+			channel.close();
+		}
+		FileUtils.forceDelete(index_file);
 	}
 	
 	public static final int computeHashTableBestSize(int estimate_number_of_elements) {
