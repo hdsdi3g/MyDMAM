@@ -120,7 +120,6 @@ class TransactionJournal {
 		if (file_channel.isOpen()) {
 			file_channel.close();
 		}
-		System.out.println(file);// XXX
 		FileUtils.forceDelete(file);
 	}
 	

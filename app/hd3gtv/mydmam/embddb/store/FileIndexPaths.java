@@ -20,9 +20,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -249,30 +255,57 @@ public class FileIndexPaths {
 	}
 	
 	/**
-	 * Not thread safe
+	 * hash(path) -> [hash(_id)...]
 	 */
-	void defragment(FileIndexPaths old_index, FileHashTableData user_keys) throws IOException {
-		old_index.hash_table.forEach().forEach(idx_item -> {
-			ItemKey current_path_key = idx_item.key;
+	HashMap<ItemKey, ArrayList<ItemKey>> getAll(Predicate<ItemKey> isUserDataKeyIsStillValid) throws IOException {
+		Map<ItemKey, ArrayList<ItemKey>> r2 = hash_table.forEach().collect(Collectors.toMap(idx_item -> {
+			return idx_item.key;
+		}, idx_item -> {
 			long linked_list_first_index = idx_item.value;
 			
-			old_index.getAllLinkedListItemsForHashEntry(linked_list_first_index).forEach(lle -> {
-				ItemKey user_data_key = new ItemKey(lle.user_data_hash_key);
+			List<ItemKey> r = getAllLinkedListItemsForHashEntry(linked_list_first_index).map(lle -> {
+				return new ItemKey(lle.user_data_hash_key);
+			}).filter(user_data_key -> {
+				return isUserDataKeyIsStillValid.test(user_data_key);
+			}).collect(Collectors.toList());
+			return new ArrayList<>(r);
+		}));
+		
+		return new HashMap<>(r2);
+	}
+	
+	/**
+	 * Do a clear before
+	 */
+	void setAll(HashMap<ItemKey, ArrayList<ItemKey>> items) throws IOException {
+		clear();
+		items.forEach((idx_item, user_data_key_list) -> {
+			if (user_data_key_list.isEmpty()) {
+				return;
+			}
+			
+			AtomicLong previous_linked_list_pointer = new AtomicLong(-1);
+			user_data_key_list.forEach(user_data_key -> {
 				try {
-					if (user_keys.has(user_data_key)) {
-						add(user_data_key, current_path_key);
-					}
+					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(idx_item.key, previous_linked_list_pointer.get()));
+					previous_linked_list_pointer.set(new_linked_list_pointer);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			});
+			try {
+				hash_table.put(idx_item, previous_linked_list_pointer.get());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		});
 	}
 	
 	/**
+	 * Use only for internal tests. Take a lot of time
 	 * @param path null and empty will be ignored
 	 */
-	public void add(ItemKey item_key, String path) throws IOException {
+	void add(ItemKey item_key, String path) throws IOException {
 		if (item_key == null) {
 			throw new NullPointerException("\"item_key\" can't to be null");
 		}

@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -188,11 +187,11 @@ public class FileBackend implements Closeable {
 					current_journal.readAll(true).forEach(entry -> {
 						if (all_last_record_dates.containsKey(entry.key)) {
 							long actual_date = all_last_record_dates.get(entry.key);
-							if (entry.date > actual_date) {
-								all_last_record_dates.put(entry.key, entry.date);
+							if (entry.expiration_date > actual_date) {
+								all_last_record_dates.put(entry.key, entry.expiration_date);
 							}
 						} else {
-							all_last_record_dates.put(entry.key, entry.date);
+							all_last_record_dates.put(entry.key, entry.expiration_date);
 						}
 					});
 				} catch (IOException e) {
@@ -203,13 +202,15 @@ public class FileBackend implements Closeable {
 			/**
 			 * 2nd pass: do writes
 			 */
+			
 			TransactionJournal.allJournalsByDate(journal_directory).forEach(current_journal -> {
 				try {
 					current_journal.readAll(false).forEach(entry -> {
 						if (all_last_record_dates.containsKey(entry.key) == false) {
 							throw new NullPointerException("Can't found key " + entry.key + ", invalid journal read/update during reading");
 						}
-						if (entry.date != all_last_record_dates.get(entry.key)) {
+						
+						if (entry.expiration_date != all_last_record_dates.get(entry.key)) {
 							/**
 							 * Get only the last record, and write only this last.
 							 */
@@ -217,12 +218,20 @@ public class FileBackend implements Closeable {
 						}
 						try {
 							data_hash_table.put(entry.key, entry.content);
-							index_paths.add(entry.key, entry.path);
 							expiration_dates.put(entry.key, entry.expiration_date);
 						} catch (IOException e) {
 							throw new RuntimeException(e);
 						}
 					});
+					
+					HashMap<ItemKey, ArrayList<ItemKey>> all_actual_paths_keys = index_paths.getAll(entry_key -> {
+						try {
+							return data_hash_table.has(entry_key);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
+					index_paths.setAll(all_actual_paths_keys);
 					
 					current_journal.purge();
 				} catch (IOException e) {
@@ -287,7 +296,13 @@ public class FileBackend implements Closeable {
 				}
 			});
 			
-			index_paths.defragment(old_index_paths, data_hash_table);
+			index_paths.setAll(old_index_paths.getAll(entry_key -> {
+				try {
+					return data_hash_table.has(entry_key);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}));
 			
 			old_data_hash_table.close();
 			old_expiration_dates.close();
@@ -370,8 +385,6 @@ public class FileBackend implements Closeable {
 					throw new RuntimeException(e);
 				}
 			});
-			System.out.println(Arrays.asList(journal_directory.listFiles()));// XXX
-			System.exit(0);// XXX
 			FileUtils.forceDelete(journal_directory);
 			FileUtils.forceDelete(makeFile("").getAbsoluteFile());
 		}

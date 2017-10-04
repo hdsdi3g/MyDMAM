@@ -37,10 +37,13 @@ public class FileBackendTest extends TestCase {
 	
 	public FileBackendTest() throws IOException {
 		backend_basedir = new File(System.getProperty("user.home") + File.separator + "mydmam-debug");
+		if (backend_basedir.exists()) {
+			FileUtils.forceDelete(backend_basedir);
+		}
 		all_backends = new FileBackend(backend_basedir, UUID.fromString("00000000-0000-0000-0000-000000000000"));
 	}
 	
-	public void testAll() throws IOException {
+	public void testAll() throws Exception {
 		StoreBackend backend = all_backends.get(DB_NAME, getClass().getSimpleName(), 1000);
 		
 		int size = 10000;
@@ -76,7 +79,7 @@ public class FileBackendTest extends TestCase {
 			}
 		}
 		
-		final String update_path = "/updated";
+		final String UPDATE_PATH = "/updated";
 		
 		/**
 		 * Update some datas in journal.
@@ -88,7 +91,7 @@ public class FileBackendTest extends TestCase {
 			byte[] payload = new byte[random.nextInt(1, 100)];
 			random.nextBytes(payload);
 			try {
-				Item item = new Item(update_path, String.valueOf(i_prime), payload);
+				Item item = new Item(UPDATE_PATH, String.valueOf(i_prime), payload);
 				backend.writeInJournal(item, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -109,19 +112,90 @@ public class FileBackendTest extends TestCase {
 			assertFalse("Item " + item.getId() + " was deleted", item.isDeleted());
 			int i = Integer.parseInt(item.getId());
 			if (primes[i]) {
-				assertEquals("Invalid path update for item " + item.getId(), update_path, item.getPath());
+				assertEquals("Invalid path update for item " + item.getId(), UPDATE_PATH, item.getPath());
 			}
 		}).count();
 		
 		assertEquals("Invalid items retrived count", size, all_items);
 		
-		// TODO new update (remove non prime entries) + DurableWrites
+		/**
+		 * New update (delete non prime entries)
+		 */
+		IntStream.range(0, size).parallel().filter(i -> {
+			return primes[i] == false;
+		}).forEach(i_prime -> {
+			try {
+				Item item = new Item(UPDATE_PATH, String.valueOf(i_prime), new byte[0]);
+				item.setTTL(-1);
+				backend.writeInJournal(item, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(2));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		/**
+		 * Flip the journal
+		 */
+		backend.doDurableWritesAndRotateJournal();
+		
+		/**
+		 * Check deleted items (non primes)
+		 */
+		IntStream.range(0, size).parallel().filter(i -> {
+			return primes[i] == false;
+		}).forEach(i_prime -> {
+			try {
+				ItemKey key = new ItemKey(String.valueOf(i_prime));
+				assertTrue("Not contain " + i_prime, backend.contain(key));
+				byte[] value = backend.read(key);
+				assertNotNull("Expired item: " + i_prime, value);
+				assertTrue("Not marked deleted: " + i_prime, Item.fromRawContent(value).isDeleted());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		/**
+		 * Wait expiration items...
+		 */
+		Thread.sleep(2000);
+		
+		/**
+		 * Check expired items (non primes)
+		 */
+		IntStream.range(0, size).parallel().filter(i -> {
+			return primes[i] == false;
+		}).forEach(i_prime -> {
+			try {
+				ItemKey key = new ItemKey(String.valueOf(i_prime));
+				assertFalse("Contain " + i_prime, backend.contain(key));
+				assertNull("Not deleted item: " + i_prime, backend.read(key));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			} /**/
+		});
+		
+		/**
+		 * Check non expired items (primes)
+		 */
+		IntStream.range(0, size).parallel().filter(i -> {
+			return primes[i];
+		}).forEach(i_prime -> {
+			try {
+				ItemKey key = new ItemKey(String.valueOf(i_prime));
+				assertTrue("Not contain " + i_prime, backend.contain(key));
+				byte[] value = backend.read(key);
+				assertNotNull("Null: " + i_prime, value);
+				assertNotSame("Non empty: " + i_prime, 0, value.length);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		backend.cleanUpFiles();// TODO check sizes before after
 		
 		/*
-		backend.cleanUpFiles();
-		backend.contain(null);
 		backend.getDatasByPath(path);
-		backend.read(key);
 		*/
 		backend.purge();
 		FileUtils.forceDelete(backend_basedir);

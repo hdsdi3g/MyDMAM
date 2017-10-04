@@ -385,7 +385,7 @@ public class FileHashTable<T> {
 		}
 	}
 	
-	public Stream<EntryValue> forEach() throws IOException {
+	public Stream<EntryValue> forEach() throws IOException {// TODO rename to stream
 		return getAllLinkedListItems().map(lle -> {
 			return new EntryValue(new ItemKey(lle.current_key), lle.data);
 		});
