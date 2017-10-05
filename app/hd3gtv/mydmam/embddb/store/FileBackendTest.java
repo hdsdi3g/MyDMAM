@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.SystemUtils;
 
 import hd3gtv.mydmam.embddb.store.FileBackend.StoreBackend;
 import junit.framework.TestCase;
@@ -47,6 +48,8 @@ public class FileBackendTest extends TestCase {
 		StoreBackend backend = all_backends.get(DB_NAME, getClass().getSimpleName(), 1000);
 		
 		int size = 10000;
+		
+		long start_time = System.currentTimeMillis();
 		
 		/**
 		 * Push datas in journal
@@ -118,6 +121,8 @@ public class FileBackendTest extends TestCase {
 		
 		assertEquals("Invalid items retrived count", size, all_items);
 		
+		long estimated_ttl = (System.currentTimeMillis() - start_time);
+		
 		/**
 		 * New update (delete non prime entries)
 		 */
@@ -127,7 +132,7 @@ public class FileBackendTest extends TestCase {
 			try {
 				Item item = new Item(UPDATE_PATH, String.valueOf(i_prime), new byte[0]);
 				item.setTTL(-1);
-				backend.writeInJournal(item, System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(2));
+				backend.writeInJournal(item, System.currentTimeMillis() + estimated_ttl);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -158,7 +163,7 @@ public class FileBackendTest extends TestCase {
 		/**
 		 * Wait expiration items...
 		 */
-		Thread.sleep(2000);
+		Thread.sleep(estimated_ttl);
 		
 		/**
 		 * Check expired items (non primes)
@@ -172,7 +177,7 @@ public class FileBackendTest extends TestCase {
 				assertNull("Not deleted item: " + i_prime, backend.read(key));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
-			} /**/
+			}
 		});
 		
 		/**
@@ -192,13 +197,26 @@ public class FileBackendTest extends TestCase {
 			}
 		});
 		
-		backend.cleanUpFiles();// TODO check sizes before after
+		long data_file_size = backend.getDataFileSize();
+		long index_path_file_size = backend.getIndexPathFileSize();
+		
+		backend.cleanUpFiles();
+		
+		assertTrue("", data_file_size > backend.getDataFileSize());
+		assertTrue("", index_path_file_size == backend.getIndexPathFileSize());// TODO why the same size ?
 		
 		/*
 		backend.getDatasByPath(path);
 		*/
-		backend.purge();
-		FileUtils.forceDelete(backend_basedir);
+		
+		try {
+			backend.purge();
+			FileUtils.forceDelete(backend_basedir);
+		} catch (IOException e) {
+			if (SystemUtils.IS_OS_WINDOWS == false) {
+				throw e;
+			}
+		}
 	}
 	
 	// TODO test fresh open with non-closed journals

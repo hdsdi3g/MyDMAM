@@ -118,6 +118,7 @@ class TransactionJournal {
 	
 	void purge() throws IOException {
 		if (file_channel.isOpen()) {
+			file_channel.force(true);
 			file_channel.close();
 		}
 		FileUtils.forceDelete(file);

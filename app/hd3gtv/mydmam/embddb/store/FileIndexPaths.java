@@ -301,6 +301,21 @@ public class FileIndexPaths {
 		});
 	}
 	
+	static void update(ItemKey item_key, String path, HashMap<ItemKey, ArrayList<ItemKey>> all_item) {
+		if (path == null) {
+			return;
+		}
+		if (path.isEmpty()) {
+			return;
+		}
+		ItemKey path_key = new ItemKey(path);
+		
+		ArrayList<ItemKey> all_items_for_path_key = all_item.putIfAbsent(path_key, new ArrayList<>(1));
+		if (all_items_for_path_key.contains(item_key) == false) {
+			all_items_for_path_key.add(item_key);
+		}
+	}
+	
 	/**
 	 * Use only for internal tests. Take a lot of time
 	 * @param path null and empty will be ignored
