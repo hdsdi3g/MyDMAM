@@ -77,18 +77,20 @@ public class FileIndexPathsTest extends TestCase {
 		
 		assertFalse(file_index.isEmpty());
 		assertEquals(all_parents.size(), file_index.pathCount());
+		assertTrue(all_parents.isEmpty() == false);
 		
-		boolean done = all_parents.parallelStream().allMatch(parent -> {
+		all_parents.parallelStream().forEach(parent -> {
 			try {
-				return file_index.has(parent.getPath()) & file_index.getAllKeysInPath(parent.getPath()).allMatch(sub_file -> {
-					return all_user_files.containsKey(sub_file);
+				assertTrue(file_index.has(parent.getPath()));
+				List<ItemKey> list_item_key = file_index.getAllKeysInPath(parent.getPath()).collect(Collectors.toList());
+				assertTrue(list_item_key.isEmpty() == false);
+				list_item_key.forEach(item_key -> {
+					assertTrue(all_user_files.containsKey(item_key));
 				});
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
-		
-		assertTrue(done);
 		
 		all_parents.forEach(parent -> {
 			try {

@@ -20,12 +20,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -202,6 +202,8 @@ public class FileIndexPaths {
 				return null;
 			}
 			try {
+				// System.out.println(">>> " + next_pointer.get());
+				
 				int s = channel.read(linkedlist_entry_buffer, next_pointer.get());
 				if (s != LLIST_ENTRY_SIZE) {
 					return null;
@@ -214,6 +216,8 @@ public class FileIndexPaths {
 					throw new IOException("Next pointer is this pointer: " + r + " for start " + linked_list_first_index);
 				}
 				next_pointer.set(r.next_linked_list_pointer);
+				
+				// System.out.println(">>> " + new ItemKey(r.user_data_hash_key) + " >> " + next_pointer.get());
 				return r;
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -257,18 +261,18 @@ public class FileIndexPaths {
 	/**
 	 * hash(path) -> [hash(_id)...]
 	 */
-	HashMap<ItemKey, ArrayList<ItemKey>> getAll(Predicate<ItemKey> isUserDataKeyIsStillValid) throws IOException {
-		Map<ItemKey, ArrayList<ItemKey>> r2 = hash_table.forEach().collect(Collectors.toMap(idx_item -> {
+	HashMap<ItemKey, HashSet<ItemKey>> getAll(Predicate<ItemKey> isUserDataKeyIsStillValid) throws IOException {
+		Map<ItemKey, HashSet<ItemKey>> r2 = hash_table.forEach().collect(Collectors.toMap(idx_item -> {
 			return idx_item.key;
 		}, idx_item -> {
 			long linked_list_first_index = idx_item.value;
 			
-			List<ItemKey> r = getAllLinkedListItemsForHashEntry(linked_list_first_index).map(lle -> {
+			Set<ItemKey> r = getAllLinkedListItemsForHashEntry(linked_list_first_index).map(lle -> {
 				return new ItemKey(lle.user_data_hash_key);
 			}).filter(user_data_key -> {
 				return isUserDataKeyIsStillValid.test(user_data_key);
-			}).collect(Collectors.toList());
-			return new ArrayList<>(r);
+			}).collect(Collectors.toSet());
+			return new HashSet<>(r);
 		}));
 		
 		return new HashMap<>(r2);
@@ -277,7 +281,7 @@ public class FileIndexPaths {
 	/**
 	 * Do a clear before
 	 */
-	void setAll(HashMap<ItemKey, ArrayList<ItemKey>> items) throws IOException {
+	void setAll(HashMap<ItemKey, HashSet<ItemKey>> items) throws IOException {
 		clear();
 		items.forEach((idx_item, user_data_key_list) -> {
 			if (user_data_key_list.isEmpty()) {
@@ -287,7 +291,7 @@ public class FileIndexPaths {
 			AtomicLong previous_linked_list_pointer = new AtomicLong(-1);
 			user_data_key_list.forEach(user_data_key -> {
 				try {
-					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(idx_item.key, previous_linked_list_pointer.get()));
+					long new_linked_list_pointer = addNewLinkedlistEntry(new LinkedListEntry(user_data_key.key, previous_linked_list_pointer.get()));
 					previous_linked_list_pointer.set(new_linked_list_pointer);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -301,19 +305,14 @@ public class FileIndexPaths {
 		});
 	}
 	
-	static void update(ItemKey item_key, String path, HashMap<ItemKey, ArrayList<ItemKey>> all_item) {
+	static void update(ItemKey item_key, String path, HashMap<ItemKey, HashSet<ItemKey>> all_item) {
 		if (path == null) {
 			return;
 		}
 		if (path.isEmpty()) {
 			return;
 		}
-		ItemKey path_key = new ItemKey(path);
-		
-		ArrayList<ItemKey> all_items_for_path_key = all_item.putIfAbsent(path_key, new ArrayList<>(1));
-		if (all_items_for_path_key.contains(item_key) == false) {
-			all_items_for_path_key.add(item_key);
-		}
+		all_item.computeIfAbsent(new ItemKey(path), _key -> new HashSet<>()).add(item_key);
 	}
 	
 	/**

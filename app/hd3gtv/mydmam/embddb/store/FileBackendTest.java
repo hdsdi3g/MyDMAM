@@ -45,11 +45,13 @@ public class FileBackendTest extends TestCase {
 	}
 	
 	public void testAll() throws Exception {
-		StoreBackend backend = all_backends.get(DB_NAME, getClass().getSimpleName(), 1000);
+		StoreBackend backend = all_backends.get(DB_NAME, "testAll", 1000);
 		
 		int size = 10000;
 		
 		long start_time = System.currentTimeMillis();
+		
+		final String DEFAULT_PATH = "/default";
 		
 		/**
 		 * Push datas in journal
@@ -59,7 +61,7 @@ public class FileBackendTest extends TestCase {
 			byte[] payload = new byte[random.nextInt(1, 100)];
 			random.nextBytes(payload);
 			try {
-				Item item = new Item(String.valueOf(i), payload);
+				Item item = new Item(DEFAULT_PATH, String.valueOf(i), payload);
 				backend.writeInJournal(item, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -82,7 +84,12 @@ public class FileBackendTest extends TestCase {
 			}
 		}
 		
+		final int PRIME_COUNT = (int) IntStream.range(0, size).parallel().filter(i -> {
+			return primes[i];
+		}).count();
+		
 		final String UPDATE_PATH = "/updated";
+		final String DELETE_PATH = "/deleted";
 		
 		/**
 		 * Update some datas in journal.
@@ -107,7 +114,7 @@ public class FileBackendTest extends TestCase {
 		backend.doDurableWritesAndRotateJournal();
 		
 		/**
-		 * No, read the datas
+		 * Now, read the datas
 		 */
 		int all_items = (int) backend.getAllDatas().parallel().map(entry -> {
 			return Item.fromRawContent(entry);
@@ -116,12 +123,25 @@ public class FileBackendTest extends TestCase {
 			int i = Integer.parseInt(item.getId());
 			if (primes[i]) {
 				assertEquals("Invalid path update for item " + item.getId(), UPDATE_PATH, item.getPath());
+			} else {
+				assertEquals("Invalid path update for item " + item.getId(), DEFAULT_PATH, item.getPath());
 			}
 		}).count();
 		
 		assertEquals("Invalid items retrived count", size, all_items);
 		
-		long estimated_ttl = (System.currentTimeMillis() - start_time);
+		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPath(UPDATE_PATH).count());
+		assertEquals("Bad path founded", 0, backend.getDatasByPath(DELETE_PATH).count());
+		assertEquals("Can't found some objects", size - PRIME_COUNT, backend.getDatasByPath(DEFAULT_PATH).count());
+		
+		backend.getDatasByPath(UPDATE_PATH).forEach(value -> {
+			assertEquals(UPDATE_PATH, Item.fromRawContent(value).getPath());
+		});
+		backend.getDatasByPath(DEFAULT_PATH).forEach(value -> {
+			assertEquals(DEFAULT_PATH, Item.fromRawContent(value).getPath());
+		});
+		
+		long estimated_ttl = (System.currentTimeMillis() - start_time) + 300l;
 		
 		/**
 		 * New update (delete non prime entries)
@@ -130,7 +150,7 @@ public class FileBackendTest extends TestCase {
 			return primes[i] == false;
 		}).forEach(i_prime -> {
 			try {
-				Item item = new Item(UPDATE_PATH, String.valueOf(i_prime), new byte[0]);
+				Item item = new Item(DELETE_PATH, String.valueOf(i_prime), new byte[0]);
 				item.setTTL(-1);
 				backend.writeInJournal(item, System.currentTimeMillis() + estimated_ttl);
 			} catch (IOException e) {
@@ -192,22 +212,31 @@ public class FileBackendTest extends TestCase {
 				byte[] value = backend.read(key);
 				assertNotNull("Null: " + i_prime, value);
 				assertNotSame("Non empty: " + i_prime, 0, value.length);
+				assertEquals("Invalid path for item " + i_prime, UPDATE_PATH, Item.fromRawContent(value).getPath());
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
+		
+		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPath(UPDATE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DELETE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DEFAULT_PATH).count());
 		
 		long data_file_size = backend.getDataFileSize();
 		long index_path_file_size = backend.getIndexPathFileSize();
 		
 		backend.cleanUpFiles();
 		
-		assertTrue("", data_file_size > backend.getDataFileSize());
-		assertTrue("", index_path_file_size == backend.getIndexPathFileSize());// TODO why the same size ?
+		assertTrue("Invalid cleanup", data_file_size > backend.getDataFileSize());
+		assertTrue("Invalid cleanup", index_path_file_size > backend.getIndexPathFileSize());
 		
-		/*
-		backend.getDatasByPath(path);
-		*/
+		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPath(UPDATE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DELETE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DEFAULT_PATH).count());
+		
+		backend.getDatasByPath(UPDATE_PATH).forEach(value -> {
+			assertEquals("Can't found some objects", UPDATE_PATH, Item.fromRawContent(value).getPath());
+		});
 		
 		try {
 			backend.purge();
@@ -219,6 +248,37 @@ public class FileBackendTest extends TestCase {
 		}
 	}
 	
-	// TODO test fresh open with non-closed journals
-	
+	public void testOpenExistantJournal() throws Exception {
+		StoreBackend backend = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000);
+		
+		int size = 10000;
+		
+		/**
+		 * Push datas in journal
+		 */
+		IntStream.range(0, size).parallel().forEach(i -> {
+			ThreadLocalRandom random = ThreadLocalRandom.current();
+			byte[] payload = new byte[random.nextInt(1, 100)];
+			random.nextBytes(payload);
+			try {
+				Item item = new Item(String.valueOf(i), payload);
+				backend.writeInJournal(item, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		all_backends.close();
+		
+		StoreBackend backend2 = all_backends.get(DB_NAME, getClass().getSimpleName(), 1000);
+		
+		/**
+		 * Now, read the datas
+		 */
+		int all_items = (int) backend2.getAllDatas().parallel().map(entry -> {
+			return Item.fromRawContent(entry);
+		}).count();
+		
+		assertEquals("Invalid items retrived count", size, all_items); // XXX 0
+	}
 }

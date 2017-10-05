@@ -101,8 +101,6 @@ public final class Store<T> {
 				throw new RuntimeException("Can't do rotate", e1);
 			}
 		}, executor);
-		
-		backend.doDurableWritesAndRotateJournal();
 	}
 	
 	public void put(T element, long ttl, TimeUnit unit, Consumer<T> onDone, BiConsumer<T, IOException> onError) {

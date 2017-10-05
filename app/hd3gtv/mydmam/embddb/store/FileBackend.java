@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -113,7 +114,6 @@ public class FileBackend implements Closeable {
 			
 			journal_directory = makeFile("journal");
 			FileUtils.forceMkdir(journal_directory);
-			journal = new TransactionJournal(journal_directory, instance);
 			
 			index_file = makeFile("index.myhshtable");
 			data_file = makeFile("data.mydatalist");
@@ -124,6 +124,9 @@ public class FileBackend implements Closeable {
 			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
 			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, default_table_size);
+			
+			doDurableWritesAndRotateJournal();
+			journal = new TransactionJournal(journal_directory, instance);
 		}
 		
 		public String toString() {
@@ -172,7 +175,10 @@ public class FileBackend implements Closeable {
 		 * NOT Thread safe
 		 */
 		void doDurableWritesAndRotateJournal() throws IOException {
-			journal.close();
+			if (journal != null) {
+				journal.close();
+			}
+			
 			/**
 			 * To protect future writes... it will throw a NPE
 			 */
@@ -200,10 +206,13 @@ public class FileBackend implements Closeable {
 				}
 			});
 			
+			HashMap<ItemKey, HashSet<ItemKey>> all_actual_paths_keys = index_paths.getAll(entry_key -> {
+				return true;
+			});
+			
 			/**
 			 * 2nd pass: do writes
 			 */
-			
 			TransactionJournal.allJournalsByDate(journal_directory).forEach(current_journal -> {
 				try {
 					current_journal.readAll(false).forEach(entry -> {
@@ -220,24 +229,11 @@ public class FileBackend implements Closeable {
 						try {
 							data_hash_table.put(entry.key, entry.content);
 							expiration_dates.put(entry.key, entry.expiration_date);
+							FileIndexPaths.update(entry.key, entry.path, all_actual_paths_keys);
 						} catch (IOException e) {
 							throw new RuntimeException(e);
 						}
 					});
-					
-					System.out.println(index_paths.pathCount()); // XXX
-					HashMap<ItemKey, ArrayList<ItemKey>> all_actual_paths_keys = index_paths.getAll(entry_key -> {
-						try {
-							return data_hash_table.has(entry_key);
-						} catch (IOException e) {
-							throw new RuntimeException(e);
-						}
-					});
-					
-					// index_paths.update(item_key, path, all_item);// TODO update for each index_paths
-					
-					index_paths.setAll(all_actual_paths_keys);
-					System.out.println(index_paths.pathCount()); // XXX
 					
 					current_journal.purge();
 				} catch (IOException e) {
@@ -245,6 +241,7 @@ public class FileBackend implements Closeable {
 				}
 			});
 			
+			index_paths.setAll(all_actual_paths_keys);
 			journal = new TransactionJournal(journal_directory, instance);
 		}
 		
@@ -261,8 +258,6 @@ public class FileBackend implements Closeable {
 		 * Don't touch to actual journal. Also remove outdated records.
 		 */
 		void cleanUpFiles() throws IOException {
-			System.out.println(index_paths.pathCount()); // XXX
-			
 			data_hash_table.close();
 			expiration_dates.close();
 			index_paths.close();
@@ -312,17 +307,13 @@ public class FileBackend implements Closeable {
 				}
 			});
 			
-			System.out.println(old_index_paths.pathCount()); // XXX
-			
-			HashMap<ItemKey, ArrayList<ItemKey>> all_path = old_index_paths.getAll(entry_key -> {
+			HashMap<ItemKey, HashSet<ItemKey>> all_path = old_index_paths.getAll(entry_key -> {
 				try {
 					return data_hash_table.has(entry_key);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			});
-			
-			System.out.println(all_path.size()); // XXX
 			
 			index_paths.setAll(all_path);
 			
@@ -413,6 +404,7 @@ public class FileBackend implements Closeable {
 		backends.parallelStream().forEach(backend -> {
 			backend.close();
 		});
+		backends.clear();
 	}
 	
 }
