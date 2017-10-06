@@ -71,8 +71,8 @@ public class FileHashTableDataTest extends TestCase {
 		assertNotNull("Can't found " + key, entry);
 		assertTrue("Not same key", key.equals(entry.key));
 		assertTrue("Not same datas", Arrays.equals(data, entry.value));
-		assertEquals("Not the same Item", key, hash_table.forEachKeys().findFirst().get());
-		assertTrue("Not the same Item content", Arrays.equals(data, hash_table.forEachKeyValue().findFirst().get().value));
+		assertEquals("Not the same Item", key, hash_table.streamKeys().findFirst().get());
+		assertTrue("Not the same Item content", Arrays.equals(data, hash_table.streamKeyValue().findFirst().get().value));
 		
 		hash_table.remove(key);
 		assertNull("Item is not deleted " + key, hash_table.getEntry(key));
@@ -95,8 +95,8 @@ public class FileHashTableDataTest extends TestCase {
 		assertNotNull("Can't found " + key, entry);
 		assertTrue("Not same key", key.equals(entry.key));
 		assertTrue("Not same datas", Arrays.equals(data, entry.value));
-		assertEquals("Not the same Item", key, hash_table.forEachKeys().findFirst().get());
-		assertTrue("Not the same Item content", Arrays.equals(data, hash_table.forEachKeyValue().findFirst().get().value));
+		assertEquals("Not the same Item", key, hash_table.streamKeys().findFirst().get());
+		assertTrue("Not the same Item content", Arrays.equals(data, hash_table.streamKeyValue().findFirst().get().value));
 		
 		assertEquals("Hash file has not recycled its space", file_size, index_file.length());
 	}
@@ -206,7 +206,7 @@ public class FileHashTableDataTest extends TestCase {
 		assertEquals("Invalid number of items", all_items.size(), hash_table.size());
 		assertEquals("Hash file has not recycled its space", file_size, index_file.length());
 		
-		HashSet<ItemKey> for_each_keys = new HashSet<>(hash_table.forEachKeys().collect(Collectors.toSet()));
+		HashSet<ItemKey> for_each_keys = new HashSet<>(hash_table.streamKeys().collect(Collectors.toSet()));
 		assertEquals("Invalid for each size", all_items.size(), for_each_keys.size());
 		
 		all_items.forEach(item -> {
@@ -214,7 +214,7 @@ public class FileHashTableDataTest extends TestCase {
 		});
 		assertTrue("Supplementary keys founded on foreach " + for_each_keys.size(), for_each_keys.isEmpty());
 		
-		HashSet<Entry> for_each_values = new HashSet<>(hash_table.forEachKeyValue().collect(Collectors.toSet()));
+		HashSet<Entry> for_each_values = new HashSet<>(hash_table.streamKeyValue().collect(Collectors.toSet()));
 		assertEquals("Invalid for each size values", all_items.size(), for_each_values.size());
 		all_items.forEach(item -> {
 			assertTrue("Missing key in foreach: " + item.key, for_each_values.removeIf(entry -> {

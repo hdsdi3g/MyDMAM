@@ -262,7 +262,7 @@ public class FileIndexPaths {
 	 * hash(path) -> [hash(_id)...]
 	 */
 	HashMap<ItemKey, HashSet<ItemKey>> getAll(Predicate<ItemKey> isUserDataKeyIsStillValid) throws IOException {
-		Map<ItemKey, HashSet<ItemKey>> r2 = hash_table.forEach().collect(Collectors.toMap(idx_item -> {
+		Map<ItemKey, HashSet<ItemKey>> r2 = hash_table.stream().collect(Collectors.toMap(idx_item -> {
 			return idx_item.key;
 		}, idx_item -> {
 			long linked_list_first_index = idx_item.value;

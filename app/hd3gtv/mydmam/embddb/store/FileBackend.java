@@ -126,7 +126,6 @@ public class FileBackend implements Closeable {
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, default_table_size);
 			
 			doDurableWritesAndRotateJournal();
-			journal = new TransactionJournal(journal_directory, instance);
 		}
 		
 		public String toString() {
@@ -288,7 +287,7 @@ public class FileBackend implements Closeable {
 			expiration_dates = new FileIndexDates(expiration_dates_file, size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, size);
 			
-			old_data_hash_table.forEachKeyValue().forEach(item -> {
+			old_data_hash_table.streamKeyValue().forEach(item -> {
 				try {
 					long expiration_date = old_expiration_dates.get(item.key);
 					if (expiration_date == 0) {
@@ -358,7 +357,7 @@ public class FileBackend implements Closeable {
 		 * @return raw content, without expired items
 		 */
 		Stream<byte[]> getAllDatas() throws IOException {
-			return data_hash_table.forEachKeyValue().filter(entry -> {
+			return data_hash_table.streamKeyValue().filter(entry -> {
 				try {
 					return expiration_dates.get(entry.key) > System.currentTimeMillis();
 				} catch (IOException e) {

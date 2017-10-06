@@ -406,5 +406,6 @@ public final class Store<T> {
 	
 	// TODO network I/O
 	// TODO do full file GC (with pause)
+	// TODO write tests
 	
 }

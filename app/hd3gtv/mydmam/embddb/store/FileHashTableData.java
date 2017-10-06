@@ -84,14 +84,14 @@ public class FileHashTableData {
 		hash_table.put(item_key, pointer);
 	}
 	
-	public Stream<ItemKey> forEachKeys() throws IOException {
-		return hash_table.forEach().map(v -> {
+	public Stream<ItemKey> streamKeys() throws IOException {
+		return hash_table.stream().map(v -> {
 			return v.key;
 		});
 	}
 	
-	public Stream<Entry> forEachKeyValue() throws IOException {
-		return hash_table.forEach().map(v -> {
+	public Stream<Entry> streamKeyValue() throws IOException {
+		return hash_table.stream().map(v -> {
 			try {
 				return data.read(v.value, v.key);
 			} catch (IOException e) {

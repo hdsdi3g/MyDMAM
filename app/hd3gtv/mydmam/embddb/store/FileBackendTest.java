@@ -270,7 +270,7 @@ public class FileBackendTest extends TestCase {
 		
 		all_backends.close();
 		
-		StoreBackend backend2 = all_backends.get(DB_NAME, getClass().getSimpleName(), 1000);
+		StoreBackend backend2 = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000);
 		
 		/**
 		 * Now, read the datas
@@ -279,6 +279,6 @@ public class FileBackendTest extends TestCase {
 			return Item.fromRawContent(entry);
 		}).count();
 		
-		assertEquals("Invalid items retrived count", size, all_items); // XXX 0
+		assertEquals("Invalid items retrived count", size, all_items);
 	}
 }

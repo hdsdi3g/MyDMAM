@@ -65,8 +65,8 @@ public class FileHashTableLong extends FileHashTable<Long> {
 	/**
 	 * @return only values > 0
 	 */
-	public Stream<FileHashTable<Long>.EntryValue> forEach() throws IOException {
-		return super.forEach().filter(entry -> {
+	public Stream<FileHashTable<Long>.EntryValue> stream() throws IOException {
+		return super.stream().filter(entry -> {
 			return checkLong(entry.value) > 0;
 		});
 	}

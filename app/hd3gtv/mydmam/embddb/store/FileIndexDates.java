@@ -67,14 +67,14 @@ public class FileIndexDates {
 	
 	public HashMap<ItemKey, Long> getAll() throws IOException {
 		HashMap<ItemKey, Long> result = new HashMap<>();
-		hash_table.forEach().forEach(v -> {
+		hash_table.stream().forEach(v -> {
 			result.put(v.key, v.value);
 		});
 		return result;
 	}
 	
 	public List<ItemKey> getPastKeys(long relative_date) throws IOException {
-		return hash_table.forEach().filter(v -> {
+		return hash_table.stream().filter(v -> {
 			return v.value < relative_date;
 		}).map(v -> {
 			return v.key;
@@ -82,7 +82,7 @@ public class FileIndexDates {
 	}
 	
 	public List<ItemKey> getFutureKeys(long relative_date) throws IOException {
-		return hash_table.forEach().filter(v -> {
+		return hash_table.stream().filter(v -> {
 			return v.value > relative_date;
 		}).map(v -> {
 			return v.key;
