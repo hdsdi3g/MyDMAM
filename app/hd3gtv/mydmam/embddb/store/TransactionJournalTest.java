@@ -68,9 +68,9 @@ public class TransactionJournalTest extends TestCase {
 			byte[] bytes = new byte[random.nextInt(1, 1000)];
 			random.nextBytes(bytes);
 			try {
-				ItemKey key = new ItemKey(String.valueOf(i));
-				journal_write.write(key, bytes, System.currentTimeMillis() + 1_000_000l, null);
-				hash_map.put(key, bytes.length);
+				Item item = new Item(String.valueOf(i), bytes);
+				journal_write.write(item.getKey(), item, System.currentTimeMillis() + 1_000_000l, null);
+				hash_map.put(item.getKey(), bytes.length);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

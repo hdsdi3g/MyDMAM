@@ -17,10 +17,10 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -33,7 +33,7 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 
 @GsonIgnore
-public final class Item {
+public final class Item implements ByteBufferExporter {
 	
 	private static Logger log = Logger.getLogger(Item.class);
 	
@@ -90,30 +90,11 @@ public final class Item {
 		return b;
 	}
 	
-	byte[] toRawContent() {// TODO to byte buffer ?
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(path.length() + _id.length() + payload.length);
-		try {
-			DataOutputStream daos = new DataOutputStream(baos);
-			writeNextBlock(daos, _id.getBytes(MyDMAM.UTF8));
-			writeNextBlock(daos, path.getBytes(MyDMAM.UTF8));
-			daos.writeLong(created);
-			daos.writeLong(updated);
-			daos.writeLong(deleted);
-			writeNextBlock(daos, payload);
-			writeNextBlock(daos, getDigest());
-			daos.flush();
-			daos.close();
-		} catch (IOException e) {
-			log.error("Can't create raw StoreItem", e);
-			return null;
-		}
-		return baos.toByteArray();
-	}
-	
 	private Item() {
 	}
 	
-	static Item fromRawContent(byte[] data) {// TODO from byte buffer ?
+	@Deprecated
+	static Item fromRawContent(byte[] data) {
 		ByteArrayInputStream bias = new ByteArrayInputStream(data);
 		DataInputStream dis = new DataInputStream(bias);
 		
@@ -147,6 +128,7 @@ public final class Item {
 	public Item setId(String _id) {
 		this._id = requireNonEmpty(Objects.requireNonNull(_id, "\"_id\" can't to be null"), "\"_id\" can't to be empty");
 		updated = System.currentTimeMillis();
+		b_id = null;
 		return this;
 	}
 	
@@ -157,12 +139,14 @@ public final class Item {
 			this.path = path;
 		}
 		updated = System.currentTimeMillis();
+		b_path = null;
 		return this;
 	}
 	
 	public Item setPayload(byte[] payload) {
 		this.payload = Objects.requireNonNull(payload, "\"payload\" can't to be null");
 		updated = System.currentTimeMillis();
+		b_digest = null;
 		return this;
 	}
 	
@@ -278,6 +262,55 @@ public final class Item {
 			return false;
 		}
 		return true;
+	}
+	
+	private transient byte[] b_id;
+	private transient byte[] b_path;
+	private transient byte[] b_digest;
+	
+	public void toByteBuffer(ByteBuffer write_buffer) throws IOException {
+		if (b_id == null | b_path == null | b_digest == null) {
+			getByteBufferWriteSize();
+		}
+		TransactionJournal.writeNextBlock(write_buffer, b_id);
+		TransactionJournal.writeNextBlock(write_buffer, b_path);
+		write_buffer.putLong(created);
+		write_buffer.putLong(updated);
+		write_buffer.putLong(deleted);
+		TransactionJournal.writeNextBlock(write_buffer, payload);
+		TransactionJournal.writeNextBlock(write_buffer, b_digest);
+	}
+	
+	public int getByteBufferWriteSize() {
+		if (b_id == null) {
+			b_id = _id.getBytes(MyDMAM.UTF8);
+		}
+		if (b_path == null) {
+			b_path = path.getBytes(MyDMAM.UTF8);
+		}
+		if (b_digest == null) {
+			b_digest = getDigest();
+		}
+		return (4 + b_id.length) + (4 + b_path.length) + 8 + 8 + 8 + (4 + payload.length) + (4 + b_digest.length);
+	}
+	
+	static Item fromByteBuffer(ByteBuffer read_buffer) {
+		Item item = new Item();
+		item._id = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
+		item.path = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
+		item.created = read_buffer.getLong();
+		item.updated = read_buffer.getLong();
+		item.deleted = read_buffer.getLong();
+		item.payload = TransactionJournal.readNextBlock(read_buffer);
+		
+		try {
+			item.checkDigest(TransactionJournal.readNextBlock(read_buffer));
+		} catch (IOException e) {
+			log.error("Can't read raw StoreItem", e);
+			return null;
+		}
+		
+		return item;
 	}
 	
 }

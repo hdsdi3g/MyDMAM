@@ -71,15 +71,15 @@ public class FileHashTableData {
 	/**
 	 * @return entry can be null if not found.
 	 */
-	public Entry getEntry(ItemKey key) throws IOException {
+	public Entry getEntry(ItemKey key, boolean to_bytebuffer) throws IOException {
 		long pointer = hash_table.getEntry(key);
 		if (pointer < 1) {
 			return null;
 		}
-		return data.read(pointer, key);
+		return data.read(pointer, key, to_bytebuffer);
 	}
 	
-	public void put(ItemKey item_key, byte[] user_data) throws IOException {
+	public void put(ItemKey item_key, byte[] user_data) throws IOException {// TODO put ByteBuffers ?!
 		long pointer = data.write(item_key, user_data);
 		hash_table.put(item_key, pointer);
 	}
@@ -90,10 +90,10 @@ public class FileHashTableData {
 		});
 	}
 	
-	public Stream<Entry> streamKeyValue() throws IOException {
+	public Stream<Entry> streamKeyValue(boolean to_bytebuffer) throws IOException {
 		return hash_table.stream().map(v -> {
 			try {
-				return data.read(v.value, v.key);
+				return data.read(v.value, v.key, to_bytebuffer);
 			} catch (IOException e) {
 				throw new RuntimeException("Can't read from data file", e);
 			}

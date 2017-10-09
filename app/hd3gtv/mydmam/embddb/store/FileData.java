@@ -23,7 +23,6 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.zip.CRC32;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -37,8 +36,6 @@ import hd3gtv.mydmam.MyDMAM;
  */
 class FileData {
 	private static Logger log = Logger.getLogger(FileData.class);
-	
-	private static final ThreadLocal<CRC32> THREAD_CRC = ThreadLocal.withInitial(() -> new CRC32());
 	
 	private static final byte[] FILE_DATA_HEADER = "MYDMAMHSHDTA".getBytes(MyDMAM.UTF8);
 	private static final int FILE_DATA_HEADER_LENGTH = FILE_DATA_HEADER.length + 4;
@@ -97,21 +94,12 @@ class FileData {
 	}
 	
 	/**
-	 * Thread safe
-	 */
-	private static long getCRC(byte[] user_data) {
-		THREAD_CRC.get().reset();
-		THREAD_CRC.get().update(user_data);
-		return THREAD_CRC.get().getValue();
-	}
-	
-	/**
 	 * @return new data_pointer
 	 */
 	long write(ItemKey key, byte[] user_data) throws IOException {
 		/*
-		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
-		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
+		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas size][user's datas][entry footer]
 		 * */
 		
 		int data_entry_size = computeExactlyDataEntrySize(user_data.length);
@@ -120,7 +108,6 @@ class FileData {
 		data_buffer.put(ENTRY_HEADER);
 		data_buffer.put(key.key);
 		data_buffer.put(MARK_VALID_ENTRY);
-		data_buffer.putLong(getCRC(user_data));
 		data_buffer.putInt(user_data.length);
 		data_buffer.put(user_data);
 		data_buffer.put(ENTRY_FOOTER);
@@ -179,8 +166,8 @@ class FileData {
 	
 	void markDelete(long data_pointer, ItemKey expected_key) throws IOException {
 		/*
-		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
-		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
+		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas size][user's datas][entry footer]
 		 */
 		
 		/**
@@ -215,7 +202,7 @@ class FileData {
 		 * Get data size for this entry
 		 */
 		buffer = ByteBuffer.allocate(4);
-		zone_pointer = data_pointer + ENTRY_HEADER.length + ItemKey.SIZE + 1 + 8;
+		zone_pointer = data_pointer + ENTRY_HEADER.length + ItemKey.SIZE + 1;
 		size = channel.read(buffer, zone_pointer);
 		if (size != 4) {
 			throw new IOException("Can't read data size (" + size + ") for pointer " + data_pointer);
@@ -235,13 +222,6 @@ class FileData {
 		}
 	}
 	
-	/*public static <T extends Exception> void readAndEquals(ByteBuffer buffer, int expected, Function<Integer, T> onDifference) throws T {
-		int real_value = buffer.getInt();
-		if (expected != real_value) {
-			throw onDifference.apply(real_value);
-		}
-	}*/
-	
 	public static <T extends Exception> void readByteAndEquals(ByteBuffer buffer, byte expected, Function<Byte, T> onDifference) throws T {
 		byte real_value = buffer.get();
 		if (expected != real_value) {
@@ -250,11 +230,15 @@ class FileData {
 	}
 	
 	Entry read(long data_pointer, ItemKey expected_key) throws IOException {
+		return read(data_pointer, expected_key, false);
+	}
+	
+	Entry read(long data_pointer, ItemKey expected_key, boolean return_bytebuffer) throws IOException {
 		/*
-		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
-		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
+		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas size][user's datas][entry footer]
 		 * */
-		int full_header_len = ENTRY_HEADER.length + ItemKey.SIZE + 1 + 8 + 4;
+		int full_header_len = ENTRY_HEADER.length + ItemKey.SIZE + 1 + 4;
 		ByteBuffer header_buffer = ByteBuffer.allocate(full_header_len);
 		if (log.isTraceEnabled()) {
 			log.trace("Prepare to read data header from " + data_pointer);
@@ -275,7 +259,6 @@ class FileData {
 		readByteAndEquals(header_buffer, MARK_VALID_ENTRY, err -> {
 			return new IOException("Data entry marked as deleted/invalid: " + err + " for " + expected_key);
 		});
-		long expected_crc = header_buffer.getLong();
 		int user_data_length = header_buffer.getInt();
 		if (user_data_length < 0) {
 			throw new IOException("Invalid data size: data_entry_size: " + user_data_length);
@@ -288,44 +271,58 @@ class FileData {
 		}
 		data_buffer.flip();
 		
-		byte[] data;
-		if (user_data_length == 0) {
-			data = new byte[0];
+		ByteBuffer out_bytebuffer = null;
+		
+		Entry result = null;
+		if (return_bytebuffer) {
+			int actual_pos = data_buffer.position();
+			out_bytebuffer = data_buffer.asReadOnlyBuffer();
+			out_bytebuffer.position(actual_pos);
+			out_bytebuffer.limit(actual_pos + user_data_length);
+			result = new Entry(expected_key, out_bytebuffer);
+			data_buffer.position(actual_pos + user_data_length);
 		} else {
-			data = new byte[user_data_length];
-			data_buffer.get(data);
-			if (getCRC(data) != expected_crc) {
-				throw new IOException("Invalid CRC for data entry: " + expected_key);
+			byte[] data;
+			if (user_data_length == 0) {
+				data = new byte[0];
+			} else {
+				data = new byte[user_data_length];
+				data_buffer.get(data);
 			}
+			result = new Entry(expected_key, data);
 		}
 		
 		readByteAndEquals(data_buffer, ENTRY_FOOTER, err -> {
 			return new IOException("Invalid data entry footer: " + err);
 		});
-		
-		return new Entry(expected_key, data);
+		return result;
 	}
 	
 	private int computeExactlyDataEntrySize(int user_data_len) {
 		/*
-		<header size ><key_size><boolean, 1 byte><-- long, 8 bytes --><--int, 4 bytes--->              <-- byte 0 -->
-		[entry header][hash key][ deleted mark  ][user's datas CRC 32][user's datas size][user's datas][entry footer]
+		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
+		[entry header][hash key][ deleted mark  ][user's datas size][user's datas][entry footer]
 		 * */
-		return ENTRY_HEADER.length + ItemKey.SIZE + 1 + 8 + 4 + user_data_len + 1;
+		return ENTRY_HEADER.length + ItemKey.SIZE + 1 + 4 + user_data_len + 1;
 	}
 	
 	public class Entry {
 		public final ItemKey key;
+		@Deprecated
 		public final byte[] value;
+		public final ByteBuffer data;
 		
-		private Entry(byte[] key, byte[] value) {
-			this.key = new ItemKey(key);
-			this.value = value;
-		}
-		
+		@Deprecated
 		private Entry(ItemKey key, byte[] value) {
 			this.key = key;
 			this.value = value;
+			data = null;
+		}
+		
+		private Entry(ItemKey key, ByteBuffer data) {
+			this.key = key;
+			this.data = data;
+			value = null;
 		}
 		
 		public String toString() {

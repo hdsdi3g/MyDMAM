@@ -96,7 +96,7 @@ public class FileDataTest extends TestCase {
 		assertFalse("Try to overwrite old valid datas", new_pos3 == pos);
 		
 		Entry entry3 = file_data.read(new_pos3, key3);
-		assertTrue("Can't read new datas", Arrays.equals(data3, entry3.value));
+		assertTrue("Can't read new datas", Arrays.equals(data3, entry3.data.array()));
 		
 		entry2 = file_data.read(pos, key2);
 		assertTrue("Trouble with overwrite", Arrays.equals(data2, entry2.value));

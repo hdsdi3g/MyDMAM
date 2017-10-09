@@ -125,23 +125,10 @@ class TransactionJournal {
 	}
 	
 	/**
-	 * @return Null if error
+	 * Thread safe
 	 */
-	void write(ItemKey key, byte[] content, long expiration_date, String path) throws IOException {
-		synchronized (file_channel) {
-			JournalEntry entry = new JournalEntry(key, content, expiration_date, path);
-			ByteBuffer write_buffer = ByteBuffer.allocate(entry.estimateSize());
-			entry.saveRawEntry(write_buffer);
-			write_buffer.flip();
-			
-			ByteBuffer head_write_buffer = ByteBuffer.allocate(ENTRY_SEPARATOR.length + 4);
-			head_write_buffer.put(ENTRY_SEPARATOR);
-			head_write_buffer.putInt(write_buffer.remaining());
-			head_write_buffer.flip();
-			
-			file_channel.write(head_write_buffer);
-			file_channel.write(write_buffer);
-		}
+	void write(ItemKey key, ByteBufferExporter data_source, long expiration_date, String path) throws IOException {
+		new JournalEntry(key, data_source, expiration_date, path).write();
 	};
 	
 	Stream<JournalEntry> readAll(boolean partial_read) throws IOException {
@@ -194,15 +181,17 @@ class TransactionJournal {
 		final long date;
 		final long expiration_date;
 		final String path;
+		final ByteBufferExporter data_export_source;
 		
-		private JournalEntry(ItemKey key, byte[] content, long expiration_date, String path) {
+		private JournalEntry(ItemKey key, ByteBufferExporter data_source, long expiration_date, String path) {
 			this.key = key;
 			if (key == null) {
 				throw new NullPointerException("\"key\" can't to be null");
 			}
-			this.content = content;
-			if (content == null) {
-				throw new NullPointerException("\"content\" can't to be null");
+			this.content = null;
+			this.data_export_source = data_source;
+			if (data_source == null) {
+				throw new NullPointerException("\"data_source\" can't to be null");
 			}
 			this.expiration_date = expiration_date;
 			if (expiration_date == 0) {
@@ -217,19 +206,34 @@ class TransactionJournal {
 		}
 		
 		/**
-		 * @param write_buffer not cleared before, not flipped after (only put)
+		 * Thread safe
+		 * @throws IOException
 		 */
-		private void saveRawEntry(ByteBuffer write_buffer) {
+		private void write() throws IOException {
+			byte[] b_path = path.getBytes(MyDMAM.UTF8);
+			
+			int block_size = data_export_source.getByteBufferWriteSize();
+			int data_size = ENTRY_HEADER.length + 8 + 8 + (4 + key.key.length) + (4 + block_size) + (4 + b_path.length);
+			int total_size = ENTRY_SEPARATOR.length + 4 + data_size;
+			
+			ByteBuffer write_buffer = ByteBuffer.allocate(total_size);
+			write_buffer.put(ENTRY_SEPARATOR);
+			write_buffer.putInt(data_size);
 			write_buffer.put(ENTRY_HEADER);
 			write_buffer.putLong(date);
 			write_buffer.putLong(expiration_date);
 			writeNextBlock(write_buffer, key.key);
-			writeNextBlock(write_buffer, content);
-			writeNextBlock(write_buffer, path.getBytes(MyDMAM.UTF8));
-		}
-		
-		private int estimateSize() {
-			return ENTRY_HEADER.length + 8 + 8 + (4 + key.key.length) + (4 + content.length) + (4 + path.length() * 2);
+			write_buffer.putInt(block_size);
+			data_export_source.toByteBuffer(write_buffer);
+			writeNextBlock(write_buffer, b_path);
+			write_buffer.flip();
+			
+			synchronized (file_channel) {
+				int writed_size = file_channel.write(write_buffer);
+				if (writed_size != total_size) {
+					throw new IOException("Can't write journal (" + writed_size + "/" + total_size + ")");
+				}
+			}
 		}
 		
 		/**
@@ -253,6 +257,7 @@ class TransactionJournal {
 				path = null;
 			}
 			read_buffer.clear();
+			data_export_source = null;
 		}
 		
 	}
@@ -265,6 +270,9 @@ class TransactionJournal {
 		}
 	}
 	
+	/**
+	 * Out size = 4 + value.length
+	 */
 	public static void writeNextBlock(ByteBuffer buffer, byte[] value) {
 		buffer.putInt(value.length);
 		if (value.length > 0) {
