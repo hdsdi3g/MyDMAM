@@ -260,7 +260,7 @@ public class DARDB {
 		}
 		long initial_delay = c_first_time_to_start.getTimeInMillis() - System.currentTimeMillis();
 		
-		Loggers.DAReport.info("Prepare regular reports send to " + Loggers.dateLog(c_first_time_to_start.getTimeInMillis()) + " (in " + initial_delay / 1000 + " sec), every the " + start_time_after_midnight / 1000 + " ms after midnight, for " + name);
+		Loggers.DAReport.info("Prepare regular reports send to " + Loggers.dateLog(c_first_time_to_start.getTimeInMillis()) + " (in " + initial_delay / 1000 + " sec), every the " + start_time_after_midnight / 1000 + " sec after midnight, for " + name);
 		
 		DARDB.instance.scheduled_ex_service.scheduleAtFixedRate(() -> {
 			try {
