@@ -268,7 +268,7 @@ public class DARDB {
 			} catch (Exception e) {
 				Loggers.DAReport.error("Can't send report for " + name, e);
 			}
-		}, initial_delay, 1, TimeUnit.DAYS);
+		}, initial_delay, TimeUnit.DAYS.toMillis(1), TimeUnit.MILLISECONDS);
 	}
 	
 }
