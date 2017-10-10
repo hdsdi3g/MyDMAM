@@ -18,11 +18,11 @@ package hd3gtv.mydmam.embddb.store;
 
 public interface Cache {
 	
-	public void put(ItemKey key, byte[] datas, long ttl);
+	public void put(Item item);
 	
-	public void putIfExists(ItemKey key, byte[] datas, long ttl);
+	// public void putIfExists(Item item);
 	
-	public byte[] get(ItemKey key);
+	public Item get(ItemKey key);
 	
 	public boolean has(ItemKey key);
 	

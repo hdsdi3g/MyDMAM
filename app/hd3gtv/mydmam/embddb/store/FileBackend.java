@@ -227,7 +227,7 @@ public class FileBackend implements Closeable {
 							return;
 						}
 						try {
-							data_hash_table.put(entry.key, entry.content);
+							data_hash_table.put(entry.key, entry.data_export_source);
 							expiration_dates.put(entry.key, entry.expiration_date);
 							FileIndexPaths.update(entry.key, entry.path, all_actual_paths_keys);
 						} catch (IOException e) {
@@ -288,7 +288,7 @@ public class FileBackend implements Closeable {
 			expiration_dates = new FileIndexDates(expiration_dates_file, size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, size);
 			
-			old_data_hash_table.streamKeyValue(false).forEach(item -> {
+			old_data_hash_table.streamKeyValue().forEach(item -> {
 				try {
 					long expiration_date = old_expiration_dates.get(item.key);
 					if (expiration_date == 0) {
@@ -300,7 +300,7 @@ public class FileBackend implements Closeable {
 						return;
 					}
 					
-					data_hash_table.put(item.key, item.value);
+					data_hash_table.put(item.key, item.data);
 					expiration_dates.put(item.key, expiration_date);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -332,27 +332,11 @@ public class FileBackend implements Closeable {
 		 * Thread safe
 		 * @return raw content
 		 */
-		@Deprecated
-		byte[] read(ItemKey key) throws IOException {
+		ByteBuffer read(ItemKey key) throws IOException {
 			if (expiration_dates.get(key) < System.currentTimeMillis()) {
 				return null;
 			}
-			Entry result = data_hash_table.getEntry(key, false);
-			if (result == null) {
-				return null;
-			}
-			return result.value;
-		}
-		
-		/**
-		 * Thread safe
-		 * @return raw content
-		 */
-		ByteBuffer readBytebuffer(ItemKey key) throws IOException {
-			if (expiration_dates.get(key) < System.currentTimeMillis()) {
-				return null;
-			}
-			Entry result = data_hash_table.getEntry(key, true);
+			Entry result = data_hash_table.getEntry(key);
 			if (result == null) {
 				return null;
 			}
@@ -373,25 +357,8 @@ public class FileBackend implements Closeable {
 		 * Thread safe
 		 * @return raw content, without expired items
 		 */
-		@Deprecated
-		Stream<byte[]> getAllDatas() throws IOException {
-			return data_hash_table.streamKeyValue(false).filter(entry -> {
-				try {
-					return expiration_dates.get(entry.key) > System.currentTimeMillis();
-				} catch (IOException e) {
-					throw new RuntimeException("Can't read in expiration_dates file", e);
-				}
-			}).map(entry -> {
-				return entry.value;
-			});
-		}
-		
-		/**
-		 * Thread safe
-		 * @return raw content, without expired items
-		 */
-		Stream<ByteBuffer> getAllDatasByteBuffers() throws IOException {
-			return data_hash_table.streamKeyValue(true).filter(entry -> {
+		Stream<ByteBuffer> getAllDatas() throws IOException {
+			return data_hash_table.streamKeyValue().filter(entry -> {
 				try {
 					return expiration_dates.get(entry.key) > System.currentTimeMillis();
 				} catch (IOException e) {
@@ -406,27 +373,10 @@ public class FileBackend implements Closeable {
 		 * Thread safe
 		 * @return raw content
 		 */
-		@Deprecated
-		Stream<byte[]> getDatasByPath(String path) throws IOException {
+		Stream<ByteBuffer> getDatasByPath(String path) throws IOException {
 			return index_paths.getAllKeysInPath(path).map(item_key -> {
 				try {
 					return read(item_key);
-				} catch (IOException e) {
-					throw new RuntimeException("Can't read data", e);
-				}
-			}).filter(value -> {
-				return value != null;
-			});
-		}
-		
-		/**
-		 * Thread safe
-		 * @return raw content
-		 */
-		Stream<ByteBuffer> getDatasByPathByteBuffers(String path) throws IOException {
-			return index_paths.getAllKeysInPath(path).map(item_key -> {
-				try {
-					return readBytebuffer(item_key);
 				} catch (IOException e) {
 					throw new RuntimeException("Can't read data", e);
 				}

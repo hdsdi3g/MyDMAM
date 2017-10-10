@@ -117,8 +117,8 @@ public class FileBackendTest extends TestCase {
 		/**
 		 * Now, read the datas
 		 */
-		int all_items = (int) backend.getAllDatasByteBuffers().parallel().map(entry -> {
-			return Item.fromByteBuffer(entry);
+		int all_items = (int) backend.getAllDatas().parallel().map(entry -> {
+			return new Item(entry);
 		}).peek(item -> {
 			assertFalse("Item " + item.getId() + " was deleted", item.isDeleted());
 			int i = Integer.parseInt(item.getId());
@@ -131,15 +131,15 @@ public class FileBackendTest extends TestCase {
 		
 		assertEquals("Invalid items retrived count", size, all_items);
 		
-		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPathByteBuffers(UPDATE_PATH).count());
-		assertEquals("Bad path founded", 0, backend.getDatasByPathByteBuffers(DELETE_PATH).count());
-		assertEquals("Can't found some objects", size - PRIME_COUNT, backend.getDatasByPathByteBuffers(DEFAULT_PATH).count());
+		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPath(UPDATE_PATH).count());
+		assertEquals("Bad path founded", 0, backend.getDatasByPath(DELETE_PATH).count());
+		assertEquals("Can't found some objects", size - PRIME_COUNT, backend.getDatasByPath(DEFAULT_PATH).count());
 		
-		backend.getDatasByPathByteBuffers(UPDATE_PATH).forEach(value -> {
-			assertEquals(UPDATE_PATH, Item.fromByteBuffer(value).getPath());
+		backend.getDatasByPath(UPDATE_PATH).forEach(value -> {
+			assertEquals(UPDATE_PATH, new Item(value).getPath());
 		});
-		backend.getDatasByPathByteBuffers(DEFAULT_PATH).forEach(value -> {
-			assertEquals(DEFAULT_PATH, Item.fromByteBuffer(value).getPath());
+		backend.getDatasByPath(DEFAULT_PATH).forEach(value -> {
+			assertEquals(DEFAULT_PATH, new Item(value).getPath());
 		});
 		
 		long estimated_ttl = (System.currentTimeMillis() - start_time) + 300l;
@@ -173,9 +173,9 @@ public class FileBackendTest extends TestCase {
 			try {
 				ItemKey key = new ItemKey(String.valueOf(i_prime));
 				assertTrue("Not contain " + i_prime, backend.contain(key));
-				ByteBuffer value = backend.readBytebuffer(key);
+				ByteBuffer value = backend.read(key);
 				assertNotNull("Expired item: " + i_prime, value);
-				assertTrue("Not marked deleted: " + i_prime, Item.fromByteBuffer(value).isDeleted());
+				assertTrue("Not marked deleted: " + i_prime, new Item(value).isDeleted());
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -195,7 +195,7 @@ public class FileBackendTest extends TestCase {
 			try {
 				ItemKey key = new ItemKey(String.valueOf(i_prime));
 				assertFalse("Contain " + i_prime, backend.contain(key));
-				assertNull("Not deleted item: " + i_prime, backend.readBytebuffer(key));
+				assertNull("Not deleted item: " + i_prime, backend.read(key));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -210,18 +210,18 @@ public class FileBackendTest extends TestCase {
 			try {
 				ItemKey key = new ItemKey(String.valueOf(i_prime));
 				assertTrue("Not contain " + i_prime, backend.contain(key));
-				ByteBuffer value = backend.readBytebuffer(key);
+				ByteBuffer value = backend.read(key);
 				assertNotNull("Null: " + i_prime, value);
 				assertNotSame("Non empty: " + i_prime, 0, value.remaining());
-				assertEquals("Invalid path for item " + i_prime, UPDATE_PATH, Item.fromByteBuffer(value).getPath());
+				assertEquals("Invalid path for item " + i_prime, UPDATE_PATH, new Item(value).getPath());
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
 		
-		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPathByteBuffers(UPDATE_PATH).count());
-		assertEquals("Found deleted objects", 0, backend.getDatasByPathByteBuffers(DELETE_PATH).count());
-		assertEquals("Found deleted objects", 0, backend.getDatasByPathByteBuffers(DEFAULT_PATH).count());
+		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPath(UPDATE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DELETE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DEFAULT_PATH).count());
 		
 		long data_file_size = backend.getDataFileSize();
 		long index_path_file_size = backend.getIndexPathFileSize();
@@ -231,12 +231,12 @@ public class FileBackendTest extends TestCase {
 		assertTrue("Invalid cleanup", data_file_size > backend.getDataFileSize());
 		assertTrue("Invalid cleanup", index_path_file_size > backend.getIndexPathFileSize());
 		
-		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPathByteBuffers(UPDATE_PATH).count());
-		assertEquals("Found deleted objects", 0, backend.getDatasByPathByteBuffers(DELETE_PATH).count());
-		assertEquals("Found deleted objects", 0, backend.getDatasByPathByteBuffers(DEFAULT_PATH).count());
+		assertEquals("Bad path founded", PRIME_COUNT, (int) backend.getDatasByPath(UPDATE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DELETE_PATH).count());
+		assertEquals("Found deleted objects", 0, backend.getDatasByPath(DEFAULT_PATH).count());
 		
-		backend.getDatasByPathByteBuffers(UPDATE_PATH).forEach(value -> {
-			assertEquals("Can't found some objects", UPDATE_PATH, Item.fromByteBuffer(value).getPath());
+		backend.getDatasByPath(UPDATE_PATH).forEach(value -> {
+			assertEquals("Can't found some objects", UPDATE_PATH, new Item(value).getPath());
 		});
 		
 		try {
@@ -276,8 +276,8 @@ public class FileBackendTest extends TestCase {
 		/**
 		 * Now, read the datas
 		 */
-		int all_items = (int) backend2.getAllDatasByteBuffers().parallel().map(entry -> {
-			return Item.fromByteBuffer(entry);
+		int all_items = (int) backend2.getAllDatas().parallel().map(entry -> {
+			return new Item(entry);
 		}).count();
 		
 		assertEquals("Invalid items retrived count", size, all_items);

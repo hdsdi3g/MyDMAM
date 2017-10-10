@@ -93,7 +93,7 @@ public class TransactionJournalTest extends TestCase {
 					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date, last_date.get() <= entry.date);
 					last_date.set(entry.date);
 					assertTrue("Unknow key in #" + item_count.get() + ": " + entry.key, hash_map.containsKey(entry.key));
-					assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), entry.content.length);
+					assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), entry.data_export_source.getByteBufferWriteSize());
 				});
 				
 				assertEquals("Invalid item count", hash_map.size(), item_count.get());

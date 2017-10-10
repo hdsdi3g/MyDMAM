@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.stream.Stream;
 
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
@@ -71,16 +72,21 @@ public class FileHashTableData {
 	/**
 	 * @return entry can be null if not found.
 	 */
-	public Entry getEntry(ItemKey key, boolean to_bytebuffer) throws IOException {
+	public Entry getEntry(ItemKey key) throws IOException {
 		long pointer = hash_table.getEntry(key);
 		if (pointer < 1) {
 			return null;
 		}
-		return data.read(pointer, key, to_bytebuffer);
+		return data.read(pointer, key);
 	}
 	
-	public void put(ItemKey item_key, byte[] user_data) throws IOException {// TODO put ByteBuffers ?!
-		long pointer = data.write(item_key, user_data);
+	public void put(ItemKey item_key, ByteBuffer data_source) throws IOException {
+		long pointer = data.write(item_key, data_source);
+		hash_table.put(item_key, pointer);
+	}
+	
+	public void put(ItemKey item_key, ByteBufferExporter data_source) throws IOException {
+		long pointer = data.write(item_key, data_source);
 		hash_table.put(item_key, pointer);
 	}
 	
@@ -90,10 +96,10 @@ public class FileHashTableData {
 		});
 	}
 	
-	public Stream<Entry> streamKeyValue(boolean to_bytebuffer) throws IOException {
+	public Stream<Entry> streamKeyValue() throws IOException {
 		return hash_table.stream().map(v -> {
 			try {
-				return data.read(v.value, v.key, to_bytebuffer);
+				return data.read(v.value, v.key);
 			} catch (IOException e) {
 				throw new RuntimeException("Can't read from data file", e);
 			}

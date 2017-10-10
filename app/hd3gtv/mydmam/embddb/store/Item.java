@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -64,55 +61,14 @@ public final class Item implements ByteBufferExporter {
 		return _id.length() + path.length() + payload.length + 3 * 8;
 	}
 	
-	void checkDigest(byte[] data) throws IOException {
+	void checkDigest(byte[] data) {
 		byte[] this_digest = getDigest();
 		if (Arrays.equals(data, this_digest) == false) {
 			if (log.isTraceEnabled()) {
 				log.trace("Invalid raw datas: " + Hexview.LINESEPARATOR + this.getPayloadHexview());
 			}
-			throw new IOException("Invalid digest !");
+			throw new RuntimeException("Invalid digest !");
 		}
-	}
-	
-	public static void writeNextBlock(DataOutputStream daos, byte[] value) throws IOException {
-		daos.writeInt(value.length);
-		if (value.length > 0) {
-			daos.write(value);
-		}
-	}
-	
-	public static byte[] readNextBlock(DataInputStream dis) throws IOException {
-		int size = dis.readInt();
-		byte[] b = new byte[size];
-		if (size > 0) {
-			dis.read(b);
-		}
-		return b;
-	}
-	
-	private Item() {
-	}
-	
-	@Deprecated
-	static Item fromRawContent(byte[] data) {
-		ByteArrayInputStream bias = new ByteArrayInputStream(data);
-		DataInputStream dis = new DataInputStream(bias);
-		
-		Item item = new Item();
-		try {
-			item._id = new String(readNextBlock(dis), MyDMAM.UTF8);
-			item.path = new String(readNextBlock(dis), MyDMAM.UTF8);
-			item.created = dis.readLong();
-			item.updated = dis.readLong();
-			item.deleted = dis.readLong();
-			item.payload = readNextBlock(dis);
-			item.checkDigest(readNextBlock(dis));
-		} catch (IOException e) {
-			log.error("Can't read raw StoreItem", e);
-			return null;
-		}
-		
-		return item;
 	}
 	
 	public Item(String path, String _id, byte[] payload) {
@@ -123,6 +79,16 @@ public final class Item implements ByteBufferExporter {
 	
 	public Item(String _id, byte[] payload) {
 		this(null, _id, payload);
+	}
+	
+	Item(ByteBuffer read_buffer) {
+		_id = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
+		path = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
+		created = read_buffer.getLong();
+		updated = read_buffer.getLong();
+		deleted = read_buffer.getLong();
+		payload = TransactionJournal.readNextBlock(read_buffer);
+		checkDigest(TransactionJournal.readNextBlock(read_buffer));
 	}
 	
 	public Item setId(String _id) {
@@ -292,25 +258,6 @@ public final class Item implements ByteBufferExporter {
 			b_digest = getDigest();
 		}
 		return (4 + b_id.length) + (4 + b_path.length) + 8 + 8 + 8 + (4 + payload.length) + (4 + b_digest.length);
-	}
-	
-	static Item fromByteBuffer(ByteBuffer read_buffer) {
-		Item item = new Item();
-		item._id = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
-		item.path = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
-		item.created = read_buffer.getLong();
-		item.updated = read_buffer.getLong();
-		item.deleted = read_buffer.getLong();
-		item.payload = TransactionJournal.readNextBlock(read_buffer);
-		
-		try {
-			item.checkDigest(TransactionJournal.readNextBlock(read_buffer));
-		} catch (IOException e) {
-			log.error("Can't read raw StoreItem", e);
-			return null;
-		}
-		
-		return item;
 	}
 	
 }

@@ -96,26 +96,50 @@ class FileData {
 	/**
 	 * @return new data_pointer
 	 */
-	long write(ItemKey key, byte[] user_data) throws IOException {
+	long write(ItemKey key, ByteBuffer data_source) throws IOException {
+		int size = data_source.remaining();
+		int pos = data_source.position();
+		final ByteBuffer read_buffer = data_source.asReadOnlyBuffer();
+		read_buffer.position(pos);
+		read_buffer.limit(pos + size);
+		data_source.position(pos + size);
+		
+		return write(key, new ByteBufferExporter() {
+			
+			public void toByteBuffer(ByteBuffer write_buffer) throws IOException {
+				write_buffer.put(read_buffer);
+			}
+			
+			public int getByteBufferWriteSize() {
+				return size;
+			}
+		});
+	}
+	
+	/**
+	 * @return new data_pointer
+	 */
+	long write(ItemKey key, ByteBufferExporter data_source) throws IOException {
 		/*
 		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
 		[entry header][hash key][ deleted mark  ][user's datas size][user's datas][entry footer]
 		 * */
+		int user_data_size = data_source.getByteBufferWriteSize();
 		
-		int data_entry_size = computeExactlyDataEntrySize(user_data.length);
+		int data_entry_size = computeExactlyDataEntrySize(user_data_size);
 		ByteBuffer data_buffer = ByteBuffer.allocate(data_entry_size);
 		
 		data_buffer.put(ENTRY_HEADER);
 		data_buffer.put(key.key);
 		data_buffer.put(MARK_VALID_ENTRY);
-		data_buffer.putInt(user_data.length);
-		data_buffer.put(user_data);
+		data_buffer.putInt(user_data_size);
+		data_source.toByteBuffer(data_buffer);
 		data_buffer.put(ENTRY_FOOTER);
 		data_buffer.flip();
 		
 		synchronized (deleted_entries) {
 			Optional<DeletedEntry> best_deleted_entry = deleted_entries.stream().filter(d_entry -> {
-				return d_entry.data_size >= user_data.length;
+				return d_entry.data_size >= user_data_size;
 			}).min((l, r) -> {
 				return Long.compare(l.data_size, r.data_size);
 			});
@@ -230,10 +254,6 @@ class FileData {
 	}
 	
 	Entry read(long data_pointer, ItemKey expected_key) throws IOException {
-		return read(data_pointer, expected_key, false);
-	}
-	
-	Entry read(long data_pointer, ItemKey expected_key, boolean return_bytebuffer) throws IOException {
 		/*
 		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
 		[entry header][hash key][ deleted mark  ][user's datas size][user's datas][entry footer]
@@ -273,28 +293,18 @@ class FileData {
 		
 		ByteBuffer out_bytebuffer = null;
 		
-		Entry result = null;
-		if (return_bytebuffer) {
-			int actual_pos = data_buffer.position();
-			out_bytebuffer = data_buffer.asReadOnlyBuffer();
-			out_bytebuffer.position(actual_pos);
-			out_bytebuffer.limit(actual_pos + user_data_length);
-			result = new Entry(expected_key, out_bytebuffer);
-			data_buffer.position(actual_pos + user_data_length);
-		} else {
-			byte[] data;
-			if (user_data_length == 0) {
-				data = new byte[0];
-			} else {
-				data = new byte[user_data_length];
-				data_buffer.get(data);
-			}
-			result = new Entry(expected_key, data);
-		}
+		int actual_pos = data_buffer.position();
+		out_bytebuffer = data_buffer.asReadOnlyBuffer();
+		out_bytebuffer.position(actual_pos);
+		out_bytebuffer.limit(actual_pos + user_data_length);
+		
+		Entry result = new Entry(expected_key, out_bytebuffer);
+		data_buffer.position(actual_pos + user_data_length);
 		
 		readByteAndEquals(data_buffer, ENTRY_FOOTER, err -> {
 			return new IOException("Invalid data entry footer: " + err);
 		});
+		
 		return result;
 	}
 	
@@ -306,27 +316,33 @@ class FileData {
 		return ENTRY_HEADER.length + ItemKey.SIZE + 1 + 4 + user_data_len + 1;
 	}
 	
-	public class Entry {
+	public final class Entry {
 		public final ItemKey key;
-		@Deprecated
-		public final byte[] value;
 		public final ByteBuffer data;
-		
-		@Deprecated
-		private Entry(ItemKey key, byte[] value) {
-			this.key = key;
-			this.value = value;
-			data = null;
-		}
 		
 		private Entry(ItemKey key, ByteBuffer data) {
 			this.key = key;
 			this.data = data;
-			value = null;
 		}
 		
 		public String toString() {
-			return key + " > " + MyDMAM.byteToString(value);
+			return key.toString();
+		}
+		
+		private volatile byte[] _data;
+		
+		public byte[] toBytes() {
+			if (_data == null) {
+				synchronized (data) {
+					int size = data.remaining();
+					int pos = data.position();
+					_data = new byte[size];
+					data.get(_data);
+					data.position(pos);
+				}
+			}
+			
+			return _data;
 		}
 		
 	}

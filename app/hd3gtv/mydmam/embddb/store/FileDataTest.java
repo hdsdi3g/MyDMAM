@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -55,10 +56,10 @@ public class FileDataTest extends TestCase {
 		
 		byte[] data = new byte[rnd.nextInt(10000) + 1];
 		rnd.nextBytes(data);
-		long pos = file_data.write(key, data);
+		long pos = file_data.write(key, ByteBuffer.wrap(data));
 		assertTrue("Invalid write pos", pos > 0);
 		Entry entry = file_data.read(pos, key);
-		checkValidity(key, data, entry.key, entry.value);
+		checkValidity(key, data, entry.key, entry.toBytes());
 	}
 	
 	private static void checkValidity(ItemKey key_source, byte[] data_source, ItemKey key_dest, byte[] data_dest) {
@@ -69,10 +70,10 @@ public class FileDataTest extends TestCase {
 	public void testWriteReadOverwriteSimple() throws IOException {
 		ItemKey key = new ItemKey("test");
 		byte[] data = "TestData".getBytes(MyDMAM.UTF8);
-		long pos = file_data.write(key, data);
+		long pos = file_data.write(key, ByteBuffer.wrap(data));
 		assertTrue("Invalid write pos", pos > 0);
 		Entry entry = file_data.read(pos, key);
-		checkValidity(key, data, entry.key, entry.value);
+		checkValidity(key, data, entry.key, entry.toBytes());
 		file_data.markDelete(pos, key);
 		
 		IOException expected = null;
@@ -85,21 +86,21 @@ public class FileDataTest extends TestCase {
 		
 		ItemKey key2 = new ItemKey("test2");
 		byte[] data2 = "Test2".getBytes(MyDMAM.UTF8);
-		long new_pos = file_data.write(key2, data2);
+		long new_pos = file_data.write(key2, ByteBuffer.wrap(data2));
 		assertEquals("Can't re-map old datas", new_pos, pos);
 		Entry entry2 = file_data.read(pos, key2);
-		assertTrue("Can't overwrite new datas", Arrays.equals(data2, entry2.value));
+		assertTrue("Can't overwrite new datas", Arrays.equals(data2, entry2.toBytes()));
 		
 		ItemKey key3 = new ItemKey("test2");
 		byte[] data3 = "Test3WithMoreDatas".getBytes(MyDMAM.UTF8);
-		long new_pos3 = file_data.write(key2, data3);
+		long new_pos3 = file_data.write(key2, ByteBuffer.wrap(data3));
 		assertFalse("Try to overwrite old valid datas", new_pos3 == pos);
 		
 		Entry entry3 = file_data.read(new_pos3, key3);
-		assertTrue("Can't read new datas", Arrays.equals(data3, entry3.data.array()));
+		assertTrue("Can't read new datas", Arrays.equals(data3, entry3.toBytes()));
 		
 		entry2 = file_data.read(pos, key2);
-		assertTrue("Trouble with overwrite", Arrays.equals(data2, entry2.value));
+		assertTrue("Trouble with overwrite", Arrays.equals(data2, entry2.toBytes()));
 	}
 	
 	public void testWriteReadMultipleParallel() throws IOException {
@@ -131,7 +132,7 @@ public class FileDataTest extends TestCase {
 		 */
 		all_items.parallelStream().forEach(item -> {
 			try {
-				item.data_pos = file_data.write(item.key, item.data);
+				item.data_pos = file_data.write(item.key, ByteBuffer.wrap(item.data));
 				assertTrue("Invalid write pos", item.data_pos > 0);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -144,7 +145,7 @@ public class FileDataTest extends TestCase {
 		all_items.parallelStream().forEach(item -> {
 			try {
 				Entry entry = file_data.read(item.data_pos, item.key);
-				checkValidity(item.key, item.data, entry.key, entry.value);
+				checkValidity(item.key, item.data, entry.key, entry.toBytes());
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -181,7 +182,7 @@ public class FileDataTest extends TestCase {
 		 */
 		all_items.stream().forEach(item -> {
 			try {
-				item.data_pos = file_data.write(item.key, item.data);
+				item.data_pos = file_data.write(item.key, ByteBuffer.wrap(item.data));
 				assertTrue("Invalid write pos", item.data_pos > 0);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -206,7 +207,7 @@ public class FileDataTest extends TestCase {
 		 */
 		all_items.stream().forEach(item -> {
 			try {
-				item.data_pos = file_data.write(item.key, Arrays.copyOf(item.data, item.data.length - item.data.length / 2));
+				item.data_pos = file_data.write(item.key, ByteBuffer.wrap(item.data, 0, item.data.length - item.data.length / 2));
 				assertTrue("Invalid write pos", item.data_pos > 0);
 			} catch (IOException e) {
 				throw new RuntimeException(e);

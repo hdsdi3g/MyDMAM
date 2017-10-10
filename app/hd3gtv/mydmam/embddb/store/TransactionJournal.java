@@ -177,7 +177,6 @@ class TransactionJournal {
 	
 	class JournalEntry {
 		final ItemKey key;
-		final byte[] content;
 		final long date;
 		final long expiration_date;
 		final String path;
@@ -188,7 +187,6 @@ class TransactionJournal {
 			if (key == null) {
 				throw new NullPointerException("\"key\" can't to be null");
 			}
-			this.content = null;
 			this.data_export_source = data_source;
 			if (data_source == null) {
 				throw new NullPointerException("\"data_source\" can't to be null");
@@ -250,14 +248,30 @@ class TransactionJournal {
 			expiration_date = read_buffer.getLong();
 			key = new ItemKey(readNextBlock(read_buffer));
 			if (partial_read == false) {
-				content = readNextBlock(read_buffer);
+				int size = read_buffer.getInt();
+				
+				int actual_pos = read_buffer.position();
+				final ByteBuffer output_bytebuffer = read_buffer.asReadOnlyBuffer();
+				output_bytebuffer.limit(actual_pos + size);
+				output_bytebuffer.position(actual_pos);
+				
+				data_export_source = new ByteBufferExporter() {
+					
+					public void toByteBuffer(ByteBuffer write_buffer) throws IOException {
+						write_buffer.put(output_bytebuffer);
+					}
+					
+					public int getByteBufferWriteSize() {
+						return size;
+					}
+				};
+				
+				read_buffer.position(actual_pos + size);
 				path = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
 			} else {
-				content = null;
+				data_export_source = null;
 				path = null;
 			}
-			read_buffer.clear();
-			data_export_source = null;
 		}
 		
 	}

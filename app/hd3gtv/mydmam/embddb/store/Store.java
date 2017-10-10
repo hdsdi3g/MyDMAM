@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -150,19 +151,19 @@ public final class Store<T> {
 					return;
 				}
 				
-				byte[] datas = read_cache.get(key);
-				if (datas != null) {
-					final byte[] _datas = datas;
+				item = read_cache.get(key);
+				if (item != null) {
+					final Item _item = item;
 					executor.execute(() -> {
-						onDone.accept(_id, item_factory.getFromItem(Item.fromRawContent(_datas)));
+						onDone.accept(_id, item_factory.getFromItem(_item));
 					});
 					return;
 				}
 				
-				datas = backend.read(key);
-				if (datas != null) {
-					item = Item.fromRawContent(datas);
-					read_cache.put(key, datas, item.getActualTTL());
+				ByteBuffer read_buffer = backend.read(key);
+				if (read_buffer != null) {
+					item = new Item(read_buffer);
+					read_cache.put(item);
 					final Item _item = item;
 					executor.execute(() -> {
 						onDone.accept(_id, item_factory.getFromItem(_item));
@@ -226,17 +227,17 @@ public final class Store<T> {
 						return;
 					}
 				} else {
-					byte[] datas = read_cache.get(key);
-					if (datas == null) {
-						datas = backend.read(key);
+					actual_item = read_cache.get(key);
+					if (actual_item == null) {
+						ByteBuffer read_buffer = backend.read(key);
+						if (read_buffer == null) {
+							executor.execute(() -> {
+								onNotFound.accept(_id);
+							});
+							return;
+						}
+						actual_item = new Item(read_buffer);
 					}
-					if (datas == null) {
-						executor.execute(() -> {
-							onNotFound.accept(_id);
-						});
-						return;
-					}
-					actual_item = Item.fromRawContent(datas);
 				}
 				
 				put(actual_item.setPayload(new byte[0]).setTTL(-1l), () -> {
@@ -256,10 +257,10 @@ public final class Store<T> {
 		});
 	}
 	
-	private List<Item> mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(Stream<byte[]> source) {
-		return source.map(datas -> {
-			Item item = Item.fromRawContent(datas);
-			read_cache.put(item.getKey(), datas, item.getActualTTL());
+	private List<Item> mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(Stream<ByteBuffer> source) {
+		return source.map(read_buffer -> {
+			Item item = new Item(read_buffer);
+			read_cache.put(item);
 			return item;
 		}).filter(item -> {
 			return journal_write_cache.containsKey(item.getKey()) == false;
