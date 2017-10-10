@@ -576,7 +576,7 @@ user.prefeditor.tablehead.display=Afficher l'éditeur de configuration utilisate
 # crud.field.userprofile.selectedbasketname=Panier selectionné
 # crud.field.userprofile.keep_index_deleted_basket_items=Conserver les éléments supprimés de l'index dans les paniers
 
-mailtemplate.please_not_respond=Merci de ne pas y répondre à ce mail.
+mailtemplate.please_not_respond=Merci de ne pas répondre à ce mail.
 
 ftpserver.addusermail.title=Création de compte FTP
 ftpserver.addusermail.logonsetup=Voici les informations de connexion :
@@ -714,7 +714,7 @@ dareport.report.pagewithjobname=Rapport d'activité : %s
 dareport.report.changeevent=Selectionner un autre événement
 dareport.report.send=Envoyer le rapport
 dareport.report.send.tips=Une copie vous sera envoyé par mail.
-dareport.report.send.disclamer=Les rapports sont conservés en base de données pendant un mois (31 jours). Seul les utilisateurs autorisés peuvent accéder aux rapports, mais ils ne peuvent pas les modifier ni les supprimer. Il n’est pas non plus possible de modifier ni de supprimer son rapport après son envoi.
+dareport.report.send.disclamer=Les rapports sont conservés en base de données pendant un mois (31 jours). Seuls les utilisateurs autorisés peuvent accéder aux rapports, mais ils ne peuvent pas les modifier ni les supprimer. Il n’est pas non plus possible de modifier ni de supprimer son rapport après son envoi.
 dareport.report.send.tipsnoready=Veuillez valider tous les champs
 dareport.report.send.ok=Le rapport est envoyé
 dareport.report.send.nok=Le rapport n'a pas plus être envoyé. Veuillez contacter le support ou réessayer.
@@ -723,7 +723,7 @@ dareport.report.events.select=Sélectionnez un événement :
 dareport.report.event.no=Non
 dareport.report.event.yes=Oui
 dareport.mail.subject=Rapport d'activité du %s
-dareport.mail.nothingtoreport=Rien n'a signaler en particulier
+dareport.mail.nothingtoreport=Rien à signaler en particulier
 dareport.mail.check.no=%s : non
 dareport.mail.check.yes=%s : oui
 dareport.mail.reportsendat=Envoyé à %s
