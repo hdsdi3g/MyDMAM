@@ -43,7 +43,7 @@ public final class Store<T> {
 	private static Logger log = Logger.getLogger(Store.class);
 	
 	protected final String database_name;
-	private final Cache read_cache;
+	private final ReadCache read_cache;
 	private final StoreBackend backend;
 	private final ItemFactory<T> item_factory;
 	private final StoreQueue queue;
@@ -57,7 +57,7 @@ public final class Store<T> {
 	/**
 	 * @param read_cache dedicated cache for this store
 	 */
-	public Store(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, Cache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count) throws IOException {
+	public Store(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count) throws IOException {
 		this.database_name = database_name;
 		if (database_name == null) {
 			throw new NullPointerException("\"database_name\" can't to be null");

@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
@@ -30,7 +31,7 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 
 @GsonIgnore
-public final class Item implements ByteBufferExporter {
+public final class Item implements ByteBufferExporter, Serializable {
 	
 	private static Logger log = Logger.getLogger(Item.class);
 	
@@ -42,6 +43,9 @@ public final class Item implements ByteBufferExporter {
 	private long deleted;
 	
 	private transient ItemKey key;
+	private transient byte[] b_id;
+	private transient byte[] b_path;
+	private transient byte[] b_digest;
 	
 	ItemKey getKey() {
 		if (key == null) {
@@ -229,10 +233,6 @@ public final class Item implements ByteBufferExporter {
 		}
 		return true;
 	}
-	
-	private transient byte[] b_id;
-	private transient byte[] b_path;
-	private transient byte[] b_digest;
 	
 	public void toByteBuffer(ByteBuffer write_buffer) throws IOException {
 		if (b_id == null | b_path == null | b_digest == null) {

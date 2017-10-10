@@ -18,6 +18,7 @@ package hd3gtv.mydmam;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -189,6 +190,10 @@ public final class Loggers {
 	
 	public static final String dateLog(long date) {
 		return date_log.format(new Date(date));
+	}
+	
+	public static String numberFormat(long value) {
+		return NumberFormat.getInstance().format(value); // also exists with double
 	}
 	
 	public static final String dateFilename(long date) {

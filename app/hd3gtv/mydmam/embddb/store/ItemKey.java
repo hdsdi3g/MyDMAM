@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import com.google.common.hash.Hashing;
@@ -25,7 +26,7 @@ import hd3gtv.mydmam.MyDMAM;
 /**
  * A byte[] wrapper
  */
-final class ItemKey {
+final class ItemKey implements Serializable {
 	
 	final byte[] key;
 	

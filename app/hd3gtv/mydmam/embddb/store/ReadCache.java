@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
-public interface Cache {
+public interface ReadCache {
 	
 	public void put(Item item);
 	
