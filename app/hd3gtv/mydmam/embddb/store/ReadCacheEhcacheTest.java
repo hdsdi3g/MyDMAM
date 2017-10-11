@@ -119,29 +119,42 @@ public class ReadCacheEhcacheTest extends TestCase {
 		/**
 		 * Test parallel random I/O
 		 */
-		final int secure_size = size / 10;
+		final int secure_size = size / 10000;
 		final ThreadPoolExecutorFactory pool = new ThreadPoolExecutorFactory("test-cache");
 		final String NEW_PATH = "newpath";
 		final byte[] NEW_PAYLOAD = "newpayload".getBytes(MyDMAM.UTF8);
-		IntStream.range(1, secure_size).forEach(i -> {
+		
+		IntStream.range(1, secure_size).forEach(i -> {// TODO buggy add...
 			pool.execute(() -> {
 				byte[] bytes = new byte[i];
 				final String _id = String.valueOf(i);
-				cache.put(new Item(_id, bytes));
+				Item new_item = new Item(_id, bytes);
+				cache.put(new_item);
+				ItemKey key = new_item.getKey();
 				
 				pool.execute(() -> {
-					Item updated = cache.get(new ItemKey(_id)).setPath(NEW_PATH).setPayload(NEW_PAYLOAD);
+					Item updated = cache.get(key).setPath(NEW_PATH).setPayload(NEW_PAYLOAD);
 					pool.execute(() -> {
 						cache.put(updated);
-						// TODO read...
+						pool.execute(() -> {
+							Item get_updated = cache.get(key);
+							assertEquals(NEW_PATH, get_updated.getPath());
+							assertEquals(NEW_PAYLOAD, get_updated.getPayload());
+							cache.remove(key);
+							pool.execute(() -> {
+								assertFalse(cache.has(key));
+								System.out.print(".");
+							});
+						});
 					});
 				});
 			});
 		});
 		
-		/*
-		TODO test put/get in parallel
-		 * */
+		while (pool.getThreadPoolExecutor().getActiveCount() > 0 | pool.getThreadPoolExecutor().getQueue().size() > 0) {//
+			Thread.sleep(10);
+		}
+		
 		// objc[75364]: Class JavaLaunchHelper is implemented in both /Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home/bin/java (0x10ff274c0) and /Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home/jre/lib/libinstrument.dylib (0x12f7fb4e0). One of the two will be used. Which one is undefined.
 	}
 }

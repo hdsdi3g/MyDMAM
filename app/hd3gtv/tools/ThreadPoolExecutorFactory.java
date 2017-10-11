@@ -59,6 +59,12 @@ public class ThreadPoolExecutorFactory {
 		}
 		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 		executor.setRejectedExecutionHandler((r, executor) -> {
+			if (executor != null) {
+				if (executor.isShutdown() | executor.isTerminated() | executor.isTerminating()) {
+					log.error("Can't add newer task: executor for \"" + base_thread_name + "\" is closed/pending closing !");
+					return;
+				}
+			}
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
 		});
 		executor.setThreadFactory(runnable -> {
