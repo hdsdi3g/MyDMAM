@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -61,7 +62,15 @@ class StoreQueue {
 		
 		new LoopProcessor();
 		
-		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor();
+		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setDaemon(false);
+				t.setName("Store cleaner for " + name);
+				t.setPriority(Thread.MIN_PRIORITY + 2);
+				return t;
+			}
+		});
 		scheduled_ex_service.scheduleAtFixedRate(() -> {
 			if (elegiblityToCleanUp.get()) {
 				log.debug("Store " + name + " needs to be clean");
@@ -72,7 +81,7 @@ class StoreQueue {
 	
 	private class LoopProcessor extends Thread {
 		public LoopProcessor() {
-			setDaemon(true);
+			setDaemon(false);
 			setName("EMBDDB Store Queue " + name);
 			setPriority(Thread.MIN_PRIORITY + 1);
 			start();

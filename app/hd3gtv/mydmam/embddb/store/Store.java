@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -28,8 +29,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
-
-import com.google.common.reflect.TypeToken;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.FileBackend.StoreBackend;
@@ -51,7 +50,7 @@ public final class Store<T> {
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final long max_size_for_cached_commit_log;
 	private final long grace_period_for_expired_items;
-	private final ThreadPoolExecutorFactory executor;
+	private final ThreadPoolExecutorFactory executor;// TODO remove internal access...
 	private final String generic_class_name;
 	
 	/**
@@ -69,9 +68,8 @@ public final class Store<T> {
 		if (file_backend == null) {
 			throw new NullPointerException("\"file_backend\" can't to be null");
 		}
-		TypeToken<T> type_factory = new TypeToken<T>() {
-		};
-		generic_class_name = type_factory.getRawType().getSimpleName();
+		
+		generic_class_name = item_factory.getType().getSimpleName();
 		backend = file_backend.get(database_name, generic_class_name, expected_item_count);
 		
 		this.read_cache = read_cache;
@@ -104,13 +102,23 @@ public final class Store<T> {
 		}, executor);
 	}
 	
-	public void put(T element, long ttl, TimeUnit unit, Consumer<T> onDone, BiConsumer<T, IOException> onError) {
+	public CompletableFuture<Void> put(T element, long ttl, TimeUnit unit) {
+		CompletableFuture<Void> result = new CompletableFuture<>();
+		put(item_factory.toItem(element).setTTL(unit.toMillis(ttl)), () -> {
+			result.complete(null);
+		}, e -> {
+			result.completeExceptionally(e);
+		});
+		return result;
+	}
+	
+	/*public void put(T element, long ttl, TimeUnit unit, Consumer<T> onDone, BiConsumer<T, IOException> onError) {
 		put(item_factory.toItem(element).setTTL(unit.toMillis(ttl)), () -> {
 			onDone.accept(element);
 		}, e -> {
 			onError.accept(element, e);
 		});
-	}
+	}*/
 	
 	/**
 	 * @param ttl in ms
@@ -131,7 +139,12 @@ public final class Store<T> {
 		});
 	}
 	
-	public void get(String _id, BiConsumer<String, T> onDone, Consumer<String> onNotFound, BiConsumer<String, IOException> onError) {
+	/**
+	 * @return null if not found
+	 */
+	public CompletableFuture<T> get(String _id) {
+		CompletableFuture<T> result = new CompletableFuture<>();
+		
 		queue.put(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
@@ -139,24 +152,16 @@ public final class Store<T> {
 				Item item = journal_write_cache.get(key);
 				if (item != null) {
 					if (item.isDeleted() == false) {
-						final Item _item = item;
-						executor.execute(() -> {
-							onDone.accept(_id, item_factory.getFromItem(_item));
-						});
+						result.complete(item_factory.getFromItem(item));
 					} else {
-						executor.execute(() -> {
-							onNotFound.accept(_id);
-						});
+						result.complete(null);
 					}
 					return;
 				}
 				
 				item = read_cache.get(key);
 				if (item != null) {
-					final Item _item = item;
-					executor.execute(() -> {
-						onDone.accept(_id, item_factory.getFromItem(_item));
-					});
+					result.complete(item_factory.getFromItem(item));
 					return;
 				}
 				
@@ -164,22 +169,17 @@ public final class Store<T> {
 				if (read_buffer != null) {
 					item = new Item(read_buffer);
 					read_cache.put(item);
-					final Item _item = item;
-					executor.execute(() -> {
-						onDone.accept(_id, item_factory.getFromItem(_item));
-					});
+					result.complete(item_factory.getFromItem(item));
 					return;
 				}
 				
-				executor.execute(() -> {
-					onNotFound.accept(_id);
-				});
+				result.complete(null);
 			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(_id, e);
-				});
+				result.completeExceptionally(e);
 			}
 		});
+		
+		return result;
 	}
 	
 	/**

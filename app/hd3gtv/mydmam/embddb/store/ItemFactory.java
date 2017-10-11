@@ -18,8 +18,10 @@ package hd3gtv.mydmam.embddb.store;
 
 public interface ItemFactory<T> {
 	
+	public Item toItem(T element);
+	
 	public T getFromItem(Item item);
 	
-	public Item toItem(T element);
+	Class<T> getType();
 	
 }

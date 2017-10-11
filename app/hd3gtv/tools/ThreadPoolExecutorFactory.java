@@ -69,7 +69,7 @@ public class ThreadPoolExecutorFactory {
 		});
 		executor.setThreadFactory(runnable -> {
 			Thread t = new Thread(runnable);
-			t.setDaemon(true);
+			t.setDaemon(false);
 			t.setName(base_thread_name);
 			t.setPriority(thread_priority);
 			t.setUncaughtExceptionHandler((thread, throwable) -> {
@@ -81,6 +81,14 @@ public class ThreadPoolExecutorFactory {
 			});
 			return t;
 		});
+		
+		/*Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}, "Executor closer for \"" + base_thread_name + "\""));*/
 	}
 	
 	public ThreadPoolExecutorFactory(String base_thread_name) {
