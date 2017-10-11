@@ -25,6 +25,8 @@ import org.apache.log4j.Logger;
 import com.google.common.math.IntMath;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
 public class ReadCacheEhcacheTest extends TestCase {
@@ -37,6 +39,10 @@ public class ReadCacheEhcacheTest extends TestCase {
 		
 		final long max_bytes_local_heap = cache.getMaxBytesLocalHeap();
 		
+		/**
+		 * Compute best number of items to be sure to overload the cache size.
+		 * Triangular numbers for 10^n
+		 */
 		final int size = IntStream.range(1, Integer.MAX_VALUE).map(i -> {
 			return IntMath.pow(10, i);
 		}).filter(i -> {
@@ -45,16 +51,17 @@ public class ReadCacheEhcacheTest extends TestCase {
 		
 		log.info("Put " + size + " items in cache");
 		
-		long total_size = IntStream.range(1, size)/*.parallel()*/.mapToLong(i -> {
+		/**
+		 * Big data push (only 0)
+		 */
+		long total_size = IntStream.range(1, size).mapToLong(i -> {
 			byte[] bytes = new byte[i];
 			cache.put(new Item(String.valueOf(i), bytes));
 			return (long) bytes.length;
 		}).sum();
 		
 		log.info("Total size pushed: " + Loggers.numberFormat(total_size) + " bytes");
-		
 		assertTrue("Invalid real pushed data size", cache.getMaxBytesLocalHeap() < total_size);
-		
 		assertNull("Found a never pushed item", cache.get(new ItemKey(String.valueOf(0))));
 		assertNull("Found a \"should-be in garbage\" item", cache.get(new ItemKey(String.valueOf(1))));
 		
@@ -62,12 +69,14 @@ public class ReadCacheEhcacheTest extends TestCase {
 		 * Check the last item
 		 */
 		ItemKey last_item_key = new ItemKey(String.valueOf(size - 1));
-		// cache.put(new Item(String.valueOf(size - 1), new byte[size - 1]));
 		assertTrue("Can't found the last pushed item", cache.has(last_item_key));
 		Item last_pushed_item = cache.get(last_item_key);
 		assertNotNull("Can't found the last pushed item", last_pushed_item);
 		assertEquals("Invalid data size for the last pushed item", size - 1, last_pushed_item.getPayload().length);
 		
+		/**
+		 * Check efficiency and total size for stored items
+		 */
 		long total_readed_size = IntStream.range(1, size).parallel().mapToLong(i -> {
 			ItemKey current_key = new ItemKey(String.valueOf(i));
 			Item current_item = cache.get(current_key);
@@ -81,14 +90,58 @@ public class ReadCacheEhcacheTest extends TestCase {
 		log.info("Total size readed (keeped in memory): " + Loggers.numberFormat(total_readed_size) + " bytes");
 		assertTrue(total_readed_size <= max_bytes_local_heap);
 		
-		/*
-		TODO test re-put with ttl (in parallel)
-		TODO test clear
-		public boolean has(ItemKey key);
-		public void remove(ItemKey key);
-		public void purgeAll();
-		 * */
+		double efficiency = 100d * (double) total_readed_size / (double) max_bytes_local_heap;
+		assertTrue("Bad cache efficiency (" + efficiency + "%)", efficiency > 98d);
 		
+		/**
+		 * Test TTL and natural cache expiration
+		 */
+		long wait_time = 100l;
+		byte[] new_payload = "AAA".getBytes(MyDMAM.UTF8);
+		last_pushed_item.setPayload(new_payload);
+		last_pushed_item.setTTL(wait_time);
+		cache.put(last_pushed_item);
+		assertTrue("Can't found the last pushed item", cache.has(last_item_key));
+		last_pushed_item = cache.get(last_item_key);
+		assertNotNull("Can't found the last pushed item", last_pushed_item);
+		assertEquals("Invalid payload", new_payload, last_pushed_item.getPayload());
+		Thread.sleep(wait_time);
+		assertNull("The last pushed item has not expired", cache.get(last_item_key));
+		
+		/**
+		 * Test full purge
+		 */
+		ItemKey last_previous_item_key = new ItemKey(String.valueOf(size - 2));
+		assertTrue("Can't found the last pushed item", cache.has(last_previous_item_key));
+		cache.purgeAll();
+		assertFalse("Don't purge all", cache.has(last_previous_item_key));
+		
+		/**
+		 * Test parallel random I/O
+		 */
+		final int secure_size = size / 10;
+		final ThreadPoolExecutorFactory pool = new ThreadPoolExecutorFactory("test-cache");
+		final String NEW_PATH = "newpath";
+		final byte[] NEW_PAYLOAD = "newpayload".getBytes(MyDMAM.UTF8);
+		IntStream.range(1, secure_size).forEach(i -> {
+			pool.execute(() -> {
+				byte[] bytes = new byte[i];
+				final String _id = String.valueOf(i);
+				cache.put(new Item(_id, bytes));
+				
+				pool.execute(() -> {
+					Item updated = cache.get(new ItemKey(_id)).setPath(NEW_PATH).setPayload(NEW_PAYLOAD);
+					pool.execute(() -> {
+						cache.put(updated);
+						// TODO read...
+					});
+				});
+			});
+		});
+		
+		/*
+		TODO test put/get in parallel
+		 * */
 		// objc[75364]: Class JavaLaunchHelper is implemented in both /Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home/bin/java (0x10ff274c0) and /Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home/jre/lib/libinstrument.dylib (0x12f7fb4e0). One of the two will be used. Which one is undefined.
 	}
 }

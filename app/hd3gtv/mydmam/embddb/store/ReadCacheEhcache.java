@@ -82,9 +82,20 @@ public final class ReadCacheEhcache implements ReadCache {
 		return lh_cache.getCacheConfiguration().getMaxBytesLocalHeap();
 	}
 	
+	/**
+	 * Set Item real ttl to internal Cache (second rounded)
+	 */
 	public void put(Item item) {
-		// TODO read + set cache ttl (ttl, not expiration)
-		lh_cache.put(new Element(item.getKey(), item));
+		Element element = new Element(item.getKey(), item);
+		long ttl = item.getActualTTL();
+		if (ttl > 0l && ttl / 1000l < (long) Integer.MAX_VALUE) {
+			if (ttl < 1000) {
+				element.setTimeToLive(1);
+			} else {
+				element.setTimeToLive((int) (ttl / 1000l));
+			}
+		}
+		lh_cache.put(element);
 	}
 	
 	public Item get(ItemKey key) {
@@ -92,7 +103,11 @@ public final class ReadCacheEhcache implements ReadCache {
 		if (element == null) {
 			return null;
 		}
-		return (Item) element.getObjectValue();
+		Item result = (Item) element.getObjectValue();
+		if (result.isDeleted()) {
+			return null;
+		}
+		return result;
 	}
 	
 	public boolean has(ItemKey key) {

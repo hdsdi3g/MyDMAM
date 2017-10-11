@@ -18,12 +18,21 @@ package hd3gtv.mydmam.embddb.store;
 
 public interface ReadCache {
 	
+	/**
+	 * Set Item real ttl to internal cache
+	 */
 	public void put(Item item);
 	
 	// public void putIfExists(Item item);
 	
+	/**
+	 * Check Item real ttl
+	 */
 	public Item get(ItemKey key);
 	
+	/**
+	 * Don't check Item real ttl
+	 */
 	public boolean has(ItemKey key);
 	
 	public void remove(ItemKey key);

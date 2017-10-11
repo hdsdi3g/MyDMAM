@@ -182,6 +182,9 @@ public final class Store<T> {
 		});
 	}
 	
+	/**
+	 * Don't check item TTL/deleted, just reference presence.
+	 */
 	public void exists(String _id, BiConsumer<String, Boolean> onDone, BiConsumer<String, IOException> onError) {
 		queue.put(() -> {
 			try {
