@@ -122,15 +122,6 @@ public class DARDB {
 	private ScheduledExecutorService scheduled_ex_service;
 	
 	private DARDB() {
-		/*
-		scheduled_ex_service.shutdown();
-		try {
-			scheduled_ex_service.awaitTermination(500, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException e1) {
-		}
-		scheduled_ex_service.shutdownNow();
-		 */
-		
 		scheduled_ex_service = Executors.newScheduledThreadPool(MyDMAM.CPU_COUNT, r -> {
 			Thread t = new Thread(r);
 			t.setDaemon(true);
