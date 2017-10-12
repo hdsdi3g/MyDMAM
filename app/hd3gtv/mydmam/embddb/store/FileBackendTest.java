@@ -262,7 +262,7 @@ public class FileBackendTest extends TestCase {
 			byte[] payload = new byte[random.nextInt(1, 100)];
 			random.nextBytes(payload);
 			try {
-				Item item = new Item(String.valueOf(i), payload);
+				Item item = new Item(null, String.valueOf(i), payload);
 				backend.writeInJournal(item, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
 			} catch (IOException e) {
 				throw new RuntimeException(e);

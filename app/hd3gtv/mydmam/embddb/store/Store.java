@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,7 +48,6 @@ public final class Store<T> {
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final long max_size_for_cached_commit_log;
 	private final long grace_period_for_expired_items;
-	private final ThreadPoolExecutorFactory executor;// TODO remove internal access...
 	private final String generic_class_name;
 	
 	/**
@@ -86,7 +83,7 @@ public final class Store<T> {
 			throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1");
 		}
 		
-		executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
+		ThreadPoolExecutorFactory executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for " + database_name + "/" + generic_class_name, e);
 		});
 		
@@ -102,41 +99,30 @@ public final class Store<T> {
 		}, executor);
 	}
 	
-	public CompletableFuture<Void> put(T element, long ttl, TimeUnit unit) {
+	public CompletableFuture<Void> put(String _id, T element, long ttl, TimeUnit unit) {
+		return put(_id, null, element, ttl, unit);
+	}
+	
+	public CompletableFuture<Void> put(String _id, String path, T element, long ttl, TimeUnit unit) {
 		CompletableFuture<Void> result = new CompletableFuture<>();
-		put(item_factory.toItem(element).setTTL(unit.toMillis(ttl)), () -> {
-			result.complete(null);
-		}, e -> {
-			result.completeExceptionally(e);
+		
+		queue.put(() -> {
+			try {
+				put(item_factory.toItem(element).setPath(path).setId(_id).setTTL(unit.toMillis(ttl)));
+				result.complete(null);
+			} catch (Exception e) {
+				result.completeExceptionally(e);
+			}
 		});
+		
 		return result;
 	}
 	
-	/*public void put(T element, long ttl, TimeUnit unit, Consumer<T> onDone, BiConsumer<T, IOException> onError) {
-		put(item_factory.toItem(element).setTTL(unit.toMillis(ttl)), () -> {
-			onDone.accept(element);
-		}, e -> {
-			onError.accept(element, e);
-		});
-	}*/
-	
-	/**
-	 * @param ttl in ms
-	 */
-	private void put(Item item, Runnable onDone, Consumer<IOException> onError) {
-		queue.put(() -> {
-			try {
-				ItemKey key = item.getKey();
-				journal_write_cache.put(key, item);
-				read_cache.remove(key);
-				backend.writeInJournal(item, item.getDeleteDate() + grace_period_for_expired_items);
-				executor.execute(onDone);
-			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(e);
-				});
-			}
-		});
+	private void put(Item item) throws IOException {
+		ItemKey key = item.getKey();
+		journal_write_cache.put(key, item);
+		read_cache.remove(key);
+		backend.writeInJournal(item, item.getDeleteDate() + grace_period_for_expired_items);
 	}
 	
 	/**
@@ -185,37 +171,33 @@ public final class Store<T> {
 	/**
 	 * Don't check item TTL/deleted, just reference presence.
 	 */
-	public void exists(String _id, BiConsumer<String, Boolean> onDone, BiConsumer<String, IOException> onError) {
+	public CompletableFuture<Boolean> exists(String _id) {
+		CompletableFuture<Boolean> result = new CompletableFuture<>();
+		
 		queue.put(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
 				
 				if (journal_write_cache.containsKey(key)) {
-					executor.execute(() -> {
-						onDone.accept(_id, true);
-					});
+					result.complete(true);
 				} else if (read_cache.has(key)) {
-					executor.execute(() -> {
-						onDone.accept(_id, true);
-					});
+					result.complete(true);
 				} else if (backend.contain(key)) {
-					executor.execute(() -> {
-						onDone.accept(_id, true);
-					});
+					result.complete(true);
 				} else {
-					executor.execute(() -> {
-						onDone.accept(_id, true);
-					});
+					result.complete(false);
 				}
-			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(_id, e);
-				});
+			} catch (Exception e) {
+				result.completeExceptionally(e);
 			}
 		});
+		
+		return result;
 	}
 	
-	public void removeById(String _id, Consumer<String> onDone, Consumer<String> onNotFound, BiConsumer<String, IOException> onError) {
+	public CompletableFuture<Void> removeById(String _id) {
+		CompletableFuture<Void> result = new CompletableFuture<>();
+		
 		queue.put(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
@@ -224,9 +206,7 @@ public final class Store<T> {
 				if (journal_write_cache.containsKey(key)) {
 					actual_item = journal_write_cache.get(key);
 					if (actual_item.isDeleted()) {
-						executor.execute(() -> {
-							onNotFound.accept(_id);
-						});
+						result.complete(null);
 						return;
 					}
 				} else {
@@ -234,30 +214,22 @@ public final class Store<T> {
 					if (actual_item == null) {
 						ByteBuffer read_buffer = backend.read(key);
 						if (read_buffer == null) {
-							executor.execute(() -> {
-								onNotFound.accept(_id);
-							});
+							result.complete(null);
 							return;
 						}
 						actual_item = new Item(read_buffer);
 					}
 				}
 				
-				put(actual_item.setPayload(new byte[0]).setTTL(-1l), () -> {
-					executor.execute(() -> {
-						onDone.accept(_id);
-					});
-				}, e -> {
-					executor.execute(() -> {
-						onError.accept(_id, e);
-					});
-				});
-			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(_id, e);
-				});
+				put(actual_item.setPayload(new byte[0]).setTTL(-1l));
+				result.complete(null);
+			} catch (Exception e) {
+				result.completeExceptionally(e);
 			}
 		});
+		
+		return result;
+		
 	}
 	
 	private List<Item> mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(Stream<ByteBuffer> source) {
@@ -279,52 +251,43 @@ public final class Store<T> {
 		return commit_log_filtered.stream();
 	}
 	
-	public void getAll(Consumer<List<T>> onDone, Consumer<IOException> onError) {
+	public CompletableFuture<List<T>> getAll() {
+		CompletableFuture<List<T>> result = new CompletableFuture<>();
 		queue.put(() -> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
-				List<T> result = accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values())).map(item -> {
-					return item_factory.getFromItem(item);
-				}).collect(Collectors.toList());
 				
-				executor.execute(() -> {
-					onDone.accept(result);
-				});
-			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(e);
-				});
+				result.complete(accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values())).map(item -> {
+					return item_factory.getFromItem(item);
+				}).collect(Collectors.toList()));
+			} catch (Exception e) {
+				result.completeExceptionally(e);
 			}
 		});
+		return result;
 	}
 	
-	private void internalGetByPath(String path, Consumer<Stream<Item>> onDone, Consumer<IOException> onError) {
+	private Stream<Item> internalGetByPath(String path) throws IOException {
+		List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getDatasByPath(path));
+		HashSet<Item> commit_log_filtered = new HashSet<Item>(journal_write_cache.values().stream().filter(item -> {
+			return item.getPath().startsWith(path);
+		}).collect(Collectors.toSet()));
+		
+		return accumulateWithCommitLog(stored_items, commit_log_filtered);
+	}
+	
+	public CompletableFuture<List<T>> getByPath(String path) {
+		CompletableFuture<List<T>> result = new CompletableFuture<List<T>>();
 		queue.put(() -> {
 			try {
-				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getDatasByPath(path));
-				HashSet<Item> commit_log_filtered = new HashSet<Item>(journal_write_cache.values().stream().filter(item -> {
-					return item.getPath().startsWith(path);
-				}).collect(Collectors.toSet()));
-				
-				onDone.accept(accumulateWithCommitLog(stored_items, commit_log_filtered));
-			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(e);
-				});
+				result.complete(internalGetByPath(path).map(item -> {
+					return item_factory.getFromItem(item);
+				}).collect(Collectors.toList()));
+			} catch (Exception e) {
+				result.completeExceptionally(e);
 			}
 		});
-	}
-	
-	public void getByPath(String path, Consumer<List<T>> onDone, Consumer<IOException> onError) {
-		internalGetByPath(path, item_stream -> {
-			List<T> result = item_stream.map(item -> {
-				return item_factory.getFromItem(item);
-			}).collect(Collectors.toList());
-			
-			executor.execute(() -> {
-				onDone.accept(result);
-			});
-		}, onError);
+		return result;
 	}
 	
 	private void remove(Stream<Item> items) throws IOException {
@@ -351,28 +314,22 @@ public final class Store<T> {
 		}
 	}
 	
-	public void removeAllByPath(String path, Consumer<String> onDone, BiConsumer<String, IOException> onError) {
+	public CompletableFuture<Void> removeAllByPath(String path) {
+		CompletableFuture<Void> result = new CompletableFuture<>();
 		queue.put(() -> {
-			internalGetByPath(path, item_stream -> {
-				try {
-					remove(item_stream);
-					executor.execute(() -> {
-						onDone.accept(path);
-					});
-				} catch (IOException e1) {
-					executor.execute(() -> {
-						onError.accept(path, e1);
-					});
-				}
-			}, e -> {
-				executor.execute(() -> {
-					onError.accept(path, e);
-				});
-			});
+			try {
+				remove(internalGetByPath(path));
+				result.complete(null);
+			} catch (Exception e) {
+				result.completeExceptionally(e);
+			}
 		});
+		return result;
 	}
 	
-	public void truncate(Runnable onDone, Consumer<IOException> onError) {
+	public CompletableFuture<Void> truncate() {
+		CompletableFuture<Void> result = new CompletableFuture<>();
+		
 		queue.put(() -> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
@@ -380,12 +337,13 @@ public final class Store<T> {
 				remove(journal_write_cache.values().stream());
 				read_cache.purgeAll();
 				doDurableWrite();
-			} catch (IOException e) {
-				executor.execute(() -> {
-					onError.accept(e);
-				});
+				result.complete(null);
+			} catch (Exception e) {
+				result.completeExceptionally(e);
 			}
 		});
+		
+		return result;
 	}
 	
 	public String getDatabaseName() {
@@ -402,7 +360,7 @@ public final class Store<T> {
 	}
 	
 	/**
-	 * Async: this request is put in a pool, and will be executed after the next Store request.
+	 * Blocking: this request is put in a pool, and will be executed after the next Store request.
 	 */
 	public void doDurableWrite() {
 		queue.cleanUp();
@@ -410,6 +368,5 @@ public final class Store<T> {
 	
 	// TODO network I/O
 	// TODO do full file GC (with pause)
-	// TODO write tests
 	
 }

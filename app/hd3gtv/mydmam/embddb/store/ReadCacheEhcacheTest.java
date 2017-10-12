@@ -57,7 +57,7 @@ public class ReadCacheEhcacheTest extends TestCase {
 		 */
 		long total_size = IntStream.range(1, size).mapToLong(i -> {
 			byte[] bytes = new byte[i];
-			cache.put(new Item(String.valueOf(i), bytes));
+			cache.put(new Item(null, String.valueOf(i), bytes));
 			return (long) bytes.length;
 		}).sum();
 		
@@ -130,7 +130,7 @@ public class ReadCacheEhcacheTest extends TestCase {
 			pool.execute(() -> {
 				byte[] bytes = new byte[i];
 				final String _id = String.valueOf(i);
-				Item new_item = new Item(_id, bytes);
+				Item new_item = new Item(null, _id, bytes);
 				cache.put(new_item);
 				ItemKey key = new_item.getKey();
 				

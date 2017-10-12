@@ -18,7 +18,6 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -28,40 +27,20 @@ import junit.framework.TestCase;
 
 public class StoreTest extends TestCase {
 	
-	private class Generic {
-		private int pos;
-		private String path;
-		private UUID value;
-		
-		Generic() {
-		}
-		
-		Generic(int pos, String path, UUID value) {
-			this.pos = pos;
-			this.path = path;
-			this.value = value;
-		}
-	}
-	
 	public void testAll() throws Exception {
 		
-		ItemFactory<Generic> factory = new ItemFactory<Generic>() {
+		ItemFactory<UUID> factory = new ItemFactory<UUID>() {
 			
-			public Item toItem(Generic element) {
-				Item item = new Item(element.path, String.valueOf(element.pos), MyDMAM.gson_kit.getGsonSimple().toJson(element.value).getBytes());
-				return item;
+			public Item toItem(UUID element) {
+				return new Item(MyDMAM.gson_kit.getGsonSimple().toJson(element).getBytes());
 			};
 			
-			public Generic getFromItem(Item item) {
-				Generic element = new Generic();
-				element.path = item.getPath();
-				element.pos = Integer.valueOf(item.getId());
-				element.value = MyDMAM.gson_kit.getGsonSimple().fromJson(new String(item.getPayload()), UUID.class);
-				return element;
+			public UUID getFromItem(Item item) {
+				return MyDMAM.gson_kit.getGsonSimple().fromJson(new String(item.getPayload()), UUID.class);
 			}
 			
-			public Class<Generic> getType() {
-				return Generic.class;
+			public Class<UUID> getType() {
+				return UUID.class;
 			}
 			
 		};
@@ -72,17 +51,19 @@ public class StoreTest extends TestCase {
 		}
 		FileBackend backend = new FileBackend(backend_basedir, UUID.fromString("00000000-0000-0000-0000-000000000000"));
 		
-		Store<Generic> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 1_000_000, 10_000, 10000);
+		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 1_000_000, 10_000, 10000);
 		
 		UUID newer = UUID.randomUUID();
-		CompletableFuture<Void> result = store.put(new Generic(0, null, newer), 1, TimeUnit.DAYS);
-		result.get();
-		System.out.println(newer);
-		
-		CompletableFuture<Generic> result2 = store.get(String.valueOf(0));
-		System.out.println(result2.get().value);
+		store.put(String.valueOf(0), newer, 1, TimeUnit.DAYS).thenRun(() -> {
+			store.get(String.valueOf(0)).thenAccept(actual -> {
+				assertNotSame(newer, actual);
+			});
+		}).get();// XXX do blocking...
+		System.out.println("+");
 		
 		// TODO tests:
+		// check NPE with completable
+		
 		// store.doDurableWrite();
 		// store.exists(_id, onDone, onError);
 		// store.get(_id, onDone, onNotFound, onError);

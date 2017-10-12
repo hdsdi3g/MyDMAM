@@ -75,14 +75,16 @@ public final class Item implements ByteBufferExporter, Serializable {
 		}
 	}
 	
-	public Item(String path, String _id, byte[] payload) {
+	Item(String path, String _id, byte[] payload) {
 		setId(_id).setPath(path).setPayload(payload);
 		created = System.currentTimeMillis();
 		deleted = Long.MAX_VALUE - (System.currentTimeMillis() * 10l);
 	}
 	
-	public Item(String _id, byte[] payload) {
-		this(null, _id, payload);
+	public Item(byte[] payload) {
+		setPayload(payload);
+		created = System.currentTimeMillis();
+		deleted = Long.MAX_VALUE - (System.currentTimeMillis() * 10l);
 	}
 	
 	Item(ByteBuffer read_buffer) {
