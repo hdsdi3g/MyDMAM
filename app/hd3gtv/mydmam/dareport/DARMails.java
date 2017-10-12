@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -45,15 +46,10 @@ public class DARMails {
 		HashMap<DAREvent, List<DARReport>> reports_by_events = new HashMap<>();
 		
 		/**
-		 * Get yesterday
+		 * Get all events for yesterday
 		 */
-		long start_bounded_date = dardb.getYesterdayStartOfTime();
-		long end_bounded_date = dardb.getYesterdayEndOfTime();
-		
-		/**
-		 * Get all events for day
-		 */
-		ArrayList<DAREvent> events_for_yesterday = DAREvent.datesBoundedList(start_bounded_date, end_bounded_date);
+		long now = System.currentTimeMillis();
+		ArrayList<DAREvent> events_for_yesterday = DAREvent.datesBoundedList(now - TimeUnit.DAYS.toMillis(1), now);
 		if (events_for_yesterday.isEmpty()) {
 			Loggers.DAReport.info("No events recorded for yesterday");
 			return;
@@ -73,6 +69,9 @@ public class DARMails {
 			return;
 		}
 		
+		/**
+		 * Get & display events without reports
+		 */
 		final ArrayList<String> events_that_not_had_reports = new ArrayList<>(1);
 		yesterday_reports_by_events_names.forEach((event_name, report_list_for_event) -> {
 			if (report_list_for_event.isEmpty()) {
@@ -81,7 +80,7 @@ public class DARMails {
 				reports_by_events.put(yesterday_events_by_events_names.get(event_name), report_list_for_event);
 			}
 		});
-		if (events_that_not_had_reports.isEmpty()) {
+		if (events_that_not_had_reports.isEmpty() == false) {
 			Loggers.DAReport.info("Nobody has created reports for some events recorded yesterday. Events: " + events_that_not_had_reports.stream().collect(Collectors.joining(", ")));
 		}
 		
@@ -95,7 +94,7 @@ public class DARMails {
 		}
 		
 		/**
-		 * Get reports users mail from all reports from all events. Check if the mail addr exists and is valid.
+		 * Get reports users addr mails from all reports from all events. Check if the mail addr exists and it's valid.
 		 */
 		ArrayList<String> no_mails_user_list = new ArrayList<>();
 		AuthTurret auth = MyDMAM.getPlayBootstrapper().getAuth();

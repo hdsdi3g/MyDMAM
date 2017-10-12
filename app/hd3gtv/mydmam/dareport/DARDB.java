@@ -219,20 +219,6 @@ public class DARDB {
 		return c.getTimeInMillis();
 	}
 	
-	/**
-	 * This is maybe shitty
-	 */
-	long getYesterdayStartOfTime() {
-		return getPreviousSendTime() - TimeUnit.DAYS.toMillis(1);
-	}
-	
-	/**
-	 * This is maybe shitty
-	 */
-	long getYesterdayEndOfTime() {
-		return getPreviousSendTime();
-	}
-	
 	public static void setPlannedTask() {
 		if (Configuration.global.isElementExists("dareport_setup") == false) {
 			return;
