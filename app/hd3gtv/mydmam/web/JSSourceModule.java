@@ -21,7 +21,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
@@ -34,7 +39,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.web.NodeJSBabel.Operation;
 import hd3gtv.tools.CopyMove;
-import hd3gtv.tools.FunctionWithException;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 import play.exceptions.NoRouteFoundException;
 import play.libs.IO;
@@ -96,7 +100,7 @@ public class JSSourceModule {
 		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "_" + module_name + "_" + "concated.js.gz");
 		reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 		
-		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), 100);
+		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), Thread.NORM_PRIORITY);
 		
 		Loggers.Play_JSSource.debug("Init source module, module_name: " + module_name + ", module_path: " + module_path + ", transformed_directory: " + transformed_directory + ", reduced_directory: " + reduced_directory + ", allfiles_concated_file: " + allfiles_concated_file + ", reduced_declaration_file: " + reduced_declaration_file);
 	}
@@ -200,66 +204,79 @@ public class JSSourceModule {
 				Loggers.Play_JSSource.info("Start Babel processing for " + file_count + " JS files, in module " + module_name);
 			}
 			
-			final FunctionWithException<JSSourceDatabaseEntry, String> jsFileProcessing = jsentry -> {
-				long start_time = System.currentTimeMillis();
-				
-				String source_scope = jsentry.computeJSScope();
-				File source_file = jsentry.getRealFile(module_path);
-				
-				Loggers.Play_JSSource.trace("Prepare processing for " + jsentry + ", with source_scope: " + source_scope + ", source_file: " + source_file);
-				
-				JSProcessor processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath(), node_js_babel);
-				
-				if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
+			LinkedHashMap<JSSourceDatabaseEntry, CompletableFuture<Void>> cf_process_map = new LinkedHashMap<>(must_process_source_files.size() + 1);
+			
+			must_process_source_files.forEach(jsentry -> {
+				cf_process_map.put(jsentry, CompletableFuture.runAsync(() -> {
 					try {
+						long start_time = System.currentTimeMillis();
+						
+						String source_scope = jsentry.computeJSScope();
+						File source_file = jsentry.getRealFile(module_path);
+						
+						Loggers.Play_JSSource.trace("Prepare processing for " + jsentry + ", with source_scope: " + source_scope + ", source_file: " + source_file);
+						
+						JSProcessor processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath(), node_js_babel);
+						
+						if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
+							try {
+								/**
+								 * Process file JSX -> vanilla JS
+								 */
+								Loggers.Play_JSSource.trace("Transform JSX processing for " + jsentry);
+								processor.transformJSX();
+							} catch (BabelException e) {
+								processor.wrapTransformationError(e);
+							}
+						}
+						
+						if (source_scope != null) {
+							/**
+							 * Add JS wrapper for place source file in a scope
+							 */
+							processor.wrapScopeDeclaration(source_scope, jsentry.getHash());
+						}
+						
 						/**
-						 * Process file JSX -> vanilla JS
+						 * Write current processed file. If this file is not processed, it will be a simple copy here.
 						 */
-						Loggers.Play_JSSource.trace("Transform JSX processing for " + jsentry);
-						processor.transformJSX();
-					} catch (BabelException e) {
-						processor.wrapTransformationError(e);
+						processor.writeTo(jsentry.computeTransformedFilepath(module_path, transformed_directory), Operation.TRANSFORM);
+						
+						try {
+							/**
+							 * Reduce the JS to a production standard.
+							 */
+							Loggers.Play_JSSource.trace("Reduce JS processing for " + jsentry);
+							processor.reduceJS();
+						} catch (BabelException e) {
+							processor.wrapTransformationError(e);
+						}
+						
+						processor.writeTo(jsentry.computeReducedFilepath(module_path, reduced_directory), Operation.REDUCE);
+						
+						if (play_bootstrap.getJSRessourceProcessTimeLog() != null) {
+							play_bootstrap.getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
+						}
+						
+						/*return*/ jsentry.getRealFile(module_path).getPath();
+					} catch (Exception e) {
+						throw new RuntimeException(e);
 					}
-				}
-				
-				if (source_scope != null) {
-					/**
-					 * Add JS wrapper for place source file in a scope
-					 */
-					processor.wrapScopeDeclaration(source_scope, jsentry.getHash());
-				}
-				
-				/**
-				 * Write current processed file. If this file is not processed, it will be a simple copy here.
-				 */
-				processor.writeTo(jsentry.computeTransformedFilepath(module_path, transformed_directory), Operation.TRANSFORM);
-				
+				}, executor));
+			});
+			
+			AtomicInteger fail_count = new AtomicInteger(0);
+			
+			cf_process_map.forEach((jsentry, cf) -> {
 				try {
-					/**
-					 * Reduce the JS to a production standard.
-					 */
-					Loggers.Play_JSSource.trace("Reduce JS processing for " + jsentry);
-					processor.reduceJS();
-				} catch (BabelException e) {
-					processor.wrapTransformationError(e);
+					cf.get(3, TimeUnit.SECONDS);
+				} catch (InterruptedException | ExecutionException | TimeoutException e) {
+					Loggers.Play_JSSource.error("Can't process with babel " + jsentry.getRealFile(module_path).getAbsolutePath(), e);
+					fail_count.incrementAndGet();
 				}
-				
-				processor.writeTo(jsentry.computeReducedFilepath(module_path, reduced_directory), Operation.REDUCE);
-				
-				if (play_bootstrap.getJSRessourceProcessTimeLog() != null) {
-					play_bootstrap.getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
-				}
-				
-				return jsentry.getRealFile(module_path).getPath();
-			};
+			});
 			
-			long fail_count = executor.multipleProcessing(must_process_source_files.stream(), jsFileProcessing, 3, TimeUnit.SECONDS).filter(result -> {
-				return result.error != null;
-			}).peek(result -> {
-				Loggers.Play_JSSource.error("Can't process with babel " + result.source.getRealFile(module_path).getAbsolutePath(), result.error);
-			}).count();
-			
-			if (fail_count > 0) {
+			if (fail_count.get() > 0) {
 				throw new IOException("Babel processing exception for " + fail_count + " problematic file(s)");
 			}
 		}

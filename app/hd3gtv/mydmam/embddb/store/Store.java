@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,7 +44,8 @@ public final class Store<T> {
 	private final ReadCache read_cache;
 	private final StoreBackend backend;
 	private final ItemFactory<T> item_factory;
-	private final StoreQueue queue;
+	// private final StoreQueue queue;
+	private final Executor executor;
 	
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final long max_size_for_cached_commit_log;
@@ -83,11 +85,13 @@ public final class Store<T> {
 			throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1");
 		}
 		
-		ThreadPoolExecutorFactory executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
+		ThreadPoolExecutorFactory thread_pool_executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for " + database_name + "/" + generic_class_name, e);
 		});
 		
-		queue = new StoreQueue(getDatabaseName() + "/" + generic_class_name, () -> {
+		executor = thread_pool_executor;
+		
+		/* TODO queue = new StoreQueue(getDatabaseName() + "/" + generic_class_name, () -> {
 			return elegiblityToCleanUp();
 		}, () -> {
 			try {
@@ -96,7 +100,7 @@ public final class Store<T> {
 			} catch (IOException e1) {
 				throw new RuntimeException("Can't do rotate", e1);
 			}
-		}, executor);
+		}, executor);*/
 	}
 	
 	public CompletableFuture<Void> put(String _id, T element, long ttl, TimeUnit unit) {
@@ -104,18 +108,13 @@ public final class Store<T> {
 	}
 	
 	public CompletableFuture<Void> put(String _id, String path, T element, long ttl, TimeUnit unit) {
-		CompletableFuture<Void> result = new CompletableFuture<>();
-		
-		queue.put(() -> {
+		return CompletableFuture.runAsync(() -> {
 			try {
 				put(item_factory.toItem(element).setPath(path).setId(_id).setTTL(unit.toMillis(ttl)));
-				result.complete(null);
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		
-		return result;
+		}, executor);
 	}
 	
 	private void put(Item item) throws IOException {
@@ -129,76 +128,61 @@ public final class Store<T> {
 	 * @return null if not found
 	 */
 	public CompletableFuture<T> get(String _id) {
-		CompletableFuture<T> result = new CompletableFuture<>();
-		
-		queue.put(() -> {
+		return CompletableFuture.supplyAsync(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
 				
 				Item item = journal_write_cache.get(key);
 				if (item != null) {
 					if (item.isDeleted() == false) {
-						result.complete(item_factory.getFromItem(item));
-					} else {
-						result.complete(null);
+						return item_factory.getFromItem(item);
 					}
-					return;
+					return null;
 				}
 				
 				item = read_cache.get(key);
 				if (item != null) {
-					result.complete(item_factory.getFromItem(item));
-					return;
+					return item_factory.getFromItem(item);
 				}
 				
 				ByteBuffer read_buffer = backend.read(key);
 				if (read_buffer != null) {
 					item = new Item(read_buffer);
 					read_cache.put(item);
-					result.complete(item_factory.getFromItem(item));
-					return;
+					return item_factory.getFromItem(item);
 				}
 				
-				result.complete(null);
+				return null;
 			} catch (IOException e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		
-		return result;
+		}, executor);
 	}
 	
 	/**
 	 * Don't check item TTL/deleted, just reference presence.
 	 */
 	public CompletableFuture<Boolean> exists(String _id) {
-		CompletableFuture<Boolean> result = new CompletableFuture<>();
-		
-		queue.put(() -> {
+		return CompletableFuture.supplyAsync(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
-				
 				if (journal_write_cache.containsKey(key)) {
-					result.complete(true);
+					return true;
 				} else if (read_cache.has(key)) {
-					result.complete(true);
+					return true;
 				} else if (backend.contain(key)) {
-					result.complete(true);
+					return true;
 				} else {
-					result.complete(false);
+					return false;
 				}
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		
-		return result;
+		}, executor);
 	}
 	
 	public CompletableFuture<Void> removeById(String _id) {
-		CompletableFuture<Void> result = new CompletableFuture<>();
-		
-		queue.put(() -> {
+		return CompletableFuture.runAsync(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
 				Item actual_item = null;
@@ -206,7 +190,6 @@ public final class Store<T> {
 				if (journal_write_cache.containsKey(key)) {
 					actual_item = journal_write_cache.get(key);
 					if (actual_item.isDeleted()) {
-						result.complete(null);
 						return;
 					}
 				} else {
@@ -214,7 +197,6 @@ public final class Store<T> {
 					if (actual_item == null) {
 						ByteBuffer read_buffer = backend.read(key);
 						if (read_buffer == null) {
-							result.complete(null);
 							return;
 						}
 						actual_item = new Item(read_buffer);
@@ -222,14 +204,11 @@ public final class Store<T> {
 				}
 				
 				put(actual_item.setPayload(new byte[0]).setTTL(-1l));
-				result.complete(null);
+				return;
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		
-		return result;
-		
+		}, executor);
 	}
 	
 	private List<Item> mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(Stream<ByteBuffer> source) {
@@ -252,19 +231,17 @@ public final class Store<T> {
 	}
 	
 	public CompletableFuture<List<T>> getAll() {
-		CompletableFuture<List<T>> result = new CompletableFuture<>();
-		queue.put(() -> {
+		return CompletableFuture.supplyAsync(() -> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
 				
-				result.complete(accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values())).map(item -> {
+				return accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values())).map(item -> {
 					return item_factory.getFromItem(item);
-				}).collect(Collectors.toList()));
+				}).collect(Collectors.toList());
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		return result;
+		}, executor);
 	}
 	
 	private Stream<Item> internalGetByPath(String path) throws IOException {
@@ -277,73 +254,55 @@ public final class Store<T> {
 	}
 	
 	public CompletableFuture<List<T>> getByPath(String path) {
-		CompletableFuture<List<T>> result = new CompletableFuture<List<T>>();
-		queue.put(() -> {
+		return CompletableFuture.supplyAsync(() -> {
 			try {
-				result.complete(internalGetByPath(path).map(item -> {
+				return internalGetByPath(path).map(item -> {
 					return item_factory.getFromItem(item);
-				}).collect(Collectors.toList()));
+				}).collect(Collectors.toList());
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		return result;
+		}, executor);
 	}
 	
-	private void remove(Stream<Item> items) throws IOException {
-		try {
-			items.forEach(item -> {
-				item.setPayload(new byte[0]);
-				item.setTTL(-1);
-				item.setPath(null);
-				ItemKey key = item.getKey();
-				journal_write_cache.put(key, item);
-				read_cache.remove(key);
-				try {
-					backend.writeInJournal(item, System.currentTimeMillis() + grace_period_for_expired_items);
-				} catch (IOException e1) {
-					throw new RuntimeException(e1);
-				}
-			});
-		} catch (RuntimeException e2) {
-			if (e2.getCause() instanceof IOException) {
-				throw (IOException) e2.getCause();
-			} else {
-				throw new IOException(e2);
+	private void remove(Stream<Item> items) {
+		items.forEach(item -> {
+			item.setPayload(new byte[0]);
+			item.setTTL(-1);
+			item.setPath(null);
+			ItemKey key = item.getKey();
+			journal_write_cache.put(key, item);
+			read_cache.remove(key);
+			try {
+				backend.writeInJournal(item, System.currentTimeMillis() + grace_period_for_expired_items);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
 			}
-		}
+		});
 	}
 	
 	public CompletableFuture<Void> removeAllByPath(String path) {
-		CompletableFuture<Void> result = new CompletableFuture<>();
-		queue.put(() -> {
+		return CompletableFuture.runAsync(() -> {
 			try {
 				remove(internalGetByPath(path));
-				result.complete(null);
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		return result;
+		}, executor);
 	}
 	
 	public CompletableFuture<Void> truncate() {
-		CompletableFuture<Void> result = new CompletableFuture<>();
-		
-		queue.put(() -> {
+		return CompletableFuture.runAsync(() -> {
 			try {
 				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
 				remove(stored_items.stream());
 				remove(journal_write_cache.values().stream());
 				read_cache.purgeAll();
 				doDurableWrite();
-				result.complete(null);
 			} catch (Exception e) {
-				result.completeExceptionally(e);
+				throw new RuntimeException(e);
 			}
-		});
-		
-		return result;
+		}, executor);
 	}
 	
 	public String getDatabaseName() {
@@ -363,7 +322,7 @@ public final class Store<T> {
 	 * Blocking: this request is put in a pool, and will be executed after the next Store request.
 	 */
 	public void doDurableWrite() {
-		queue.cleanUp();
+		// XXX queue.cleanUp();
 	}
 	
 	// TODO network I/O

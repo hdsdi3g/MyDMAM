@@ -122,7 +122,7 @@ public class ReadCacheEhcacheTest extends TestCase {
 		 */
 		final int secure_size = Math.round((float) size / 2.5f);
 		final AtomicInteger action_count = new AtomicInteger(0);
-		final ThreadPoolExecutorFactory pool = new ThreadPoolExecutorFactory("test-cache");
+		final ThreadPoolExecutorFactory pool = new ThreadPoolExecutorFactory("test-cache", Thread.NORM_PRIORITY);
 		final String NEW_PATH = "newpath";
 		final byte[] NEW_PAYLOAD = "newpayload".getBytes(MyDMAM.UTF8);
 		
@@ -157,7 +157,7 @@ public class ReadCacheEhcacheTest extends TestCase {
 			});
 		});
 		
-		while (pool.getThreadPoolExecutor().getActiveCount() > 0 | pool.getThreadPoolExecutor().getQueue().size() > 0) {
+		while (pool.getTotalActive() > 0 | pool.getQueueSize() > 0) {
 			Thread.sleep(1);
 		}
 		assertEquals(secure_size, action_count.get() + 1);

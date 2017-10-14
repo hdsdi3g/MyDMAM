@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
+@Deprecated
 class StoreQueue {
 	
 	private static Logger log = Logger.getLogger(StoreQueue.class);

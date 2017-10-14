@@ -21,8 +21,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
@@ -44,7 +46,6 @@ import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.mydmam.storage.Storage;
-import hd3gtv.tools.FunctionWithException;
 import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
@@ -70,7 +71,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		process_list = new ArrayList<SourcePathIndexerElement>();
 		this.no_parallelized = no_parallelized;
 		metadata_extractor_to_reprocess = null;
-		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), 1000);
+		executor = new ThreadPoolExecutorFactory(getClass().getSimpleName(), Thread.NORM_PRIORITY);
 	}
 	
 	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
@@ -148,36 +149,40 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			es_bulk.setWindowUpdateSize(process_count);
 		}
 		
-		final String STOP = "Stop process";
+		LinkedHashMap<SourcePathIndexerElement, CompletableFuture<Void>> cf_process_map = new LinkedHashMap<>(process_list.size() + 1);
 		
-		FunctionWithException<SourcePathIndexerElement, Void> processor = item_to_analyst -> {
-			if (isWantToStopCurrentProcessing()) {
-				throw new Exception(STOP);
-			}
-			
-			if (processFoundedElement(item_to_analyst, es_bulk, current_create_job_list) == false) {
-				throw new Exception(STOP);
-			}
-			
-			if (progression != null) {
-				synchronized (lock) {
-					progression.updateProgress(pos.getAndIncrement(), process_list.size());
+		process_list.forEach(item_to_analyst -> {
+			cf_process_map.put(item_to_analyst, CompletableFuture.runAsync(() -> {
+				if (isWantToStopCurrentProcessing()) {
+					return;
 				}
-			}
-			return null;
-		};
-		
-		boolean is_stopped = executor.multipleProcessing(process_list.stream(), processor, 0, TimeUnit.SECONDS).filter(result -> {
-			return result.error != null;
-		}).peek(result -> {
-			if (result.error.getMessage().equalsIgnoreCase(STOP) == false) {
-				Loggers.Metadata.warn("Can't analyst metadatas for " + result.source.toString(), result.error);
-			}
-		}).anyMatch(result -> {
-			return result.error.getMessage().equalsIgnoreCase(STOP);
+				
+				try {
+					if (processFoundedElement(item_to_analyst, es_bulk, current_create_job_list) == false) {
+						stop_analysis = true;
+						return;
+					}
+				} catch (Exception e) {
+					throw new RuntimeException("Error during processing", e);
+				}
+				
+				if (progression != null) {
+					synchronized (lock) {
+						progression.updateProgress(pos.getAndIncrement(), process_list.size());
+					}
+				}
+			}, executor));
 		});
 		
-		if (is_stopped) {
+		cf_process_map.forEach((src, cf) -> {
+			try {
+				cf.get();
+			} catch (InterruptedException | ExecutionException e) {
+				Loggers.Metadata.warn("Can't analyst metadatas for " + src.toString(), e.getCause());
+			}
+		});
+		
+		if (isWantToStopCurrentProcessing()) {
 			return null;
 		}
 		

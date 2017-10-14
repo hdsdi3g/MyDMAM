@@ -16,19 +16,19 @@
 */
 package hd3gtv.tools;
 
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
@@ -38,10 +38,10 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 
 @GsonIgnore
-public class ThreadPoolExecutorFactory {
+public class ThreadPoolExecutorFactory implements Executor {
 	
 	private static Logger log = Logger.getLogger(ThreadPoolExecutorFactory.class);
-	private final ThreadPoolExecutor executor;
+	private final PausableThreadPoolExecutor executor;
 	
 	/**
 	 * @param thread_priority @see Thread.MIN_PRIORITY and Thread.MAX_PRIORITY
@@ -57,7 +57,7 @@ public class ThreadPoolExecutorFactory {
 		if (thread_priority < Thread.MIN_PRIORITY) {
 			throw new IndexOutOfBoundsException("thread_priority can be < " + Thread.MIN_PRIORITY);
 		}
-		executor = new ThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+		executor = new PausableThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 		executor.setRejectedExecutionHandler((r, executor) -> {
 			if (executor != null) {
 				if (executor.isShutdown() | executor.isTerminated() | executor.isTerminating()) {
@@ -81,25 +81,6 @@ public class ThreadPoolExecutorFactory {
 			});
 			return t;
 		});
-		
-		/*Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}, "Executor closer for \"" + base_thread_name + "\""));*/
-	}
-	
-	public ThreadPoolExecutorFactory(String base_thread_name) {
-		this(base_thread_name, Thread.NORM_PRIORITY, null);
-	}
-	
-	/**
-	 * @param uncaughtException can be null
-	 */
-	public ThreadPoolExecutorFactory(String base_thread_name, Consumer<Throwable> uncaughtException) {
-		this(base_thread_name, Thread.NORM_PRIORITY, uncaughtException);
 	}
 	
 	/**
@@ -115,12 +96,24 @@ public class ThreadPoolExecutorFactory {
 		return this;
 	}
 	
-	public ThreadPoolExecutor getThreadPoolExecutor() {
+	/*public ThreadPoolExecutor getThreadPoolExecutor() {
 		return executor;
+	}*/
+	
+	public AsynchronousChannelGroup createAsynchronousChannelGroup() throws IOException {
+		return AsynchronousChannelGroup.withThreadPool(executor);
 	}
 	
 	public boolean isRunning() {
-		return executor.isShutdown() == false && executor.isTerminated() == false && executor.isTerminating() == false;
+		return executor.isShutdown() == false | executor.isTerminated() == false | executor.isTerminating() == false;
+	}
+	
+	public int getTotalActive() {
+		return executor.total_active.get();
+	}
+	
+	public int getQueueSize() {
+		return executor.getQueue().size();
 	}
 	
 	public void awaitTerminationAndShutdown(long timeout, TimeUnit unit) {
@@ -130,67 +123,6 @@ public class ThreadPoolExecutorFactory {
 		} catch (InterruptedException e) {
 			log.error("Can't wait to stop executor...", e);
 			executor.shutdownNow();
-		}
-	}
-	
-	public class SourcedCompletableFuture<T, R> {
-		public final T processed_item;
-		public final CompletableFuture<R> c_future;
-		public final long queuing_date;
-		private long start_date;
-		private long end_date;
-		private Throwable processing_error;
-		
-		private SourcedCompletableFuture(T processed_item, FunctionWithException<T, R> processor) {
-			this.processed_item = processed_item;
-			this.c_future = CompletableFuture.supplyAsync(() -> {
-				try {
-					start_date = System.currentTimeMillis();
-					R result = processor.get(processed_item);
-					end_date = System.currentTimeMillis();
-					return result;
-				} catch (Throwable e) {
-					end_date = System.currentTimeMillis();
-					processing_error = e;
-					return null;
-				}
-			}, executor);
-			queuing_date = System.currentTimeMillis();
-		}
-		
-		/**
-		 * queuing + processing
-		 * @return -1 if no process
-		 */
-		public long getTotalProcessTime() {
-			if (end_date > 0) {
-				return end_date - queuing_date;
-			} else {
-				return -1;
-			}
-		}
-		
-		/**
-		 * Only processing
-		 * @return -1 if no process
-		 */
-		public long getProcessTime() {
-			if (end_date > 0) {
-				return end_date - start_date;
-			} else {
-				return -1;
-			}
-		}
-		
-		public boolean hasProcessingError() {
-			if (c_future.isDone() == false) {
-				return false;
-			}
-			return processing_error != null;
-		}
-		
-		public Throwable getProcessingError() {
-			return processing_error;
 		}
 	}
 	
@@ -204,75 +136,6 @@ public class ThreadPoolExecutorFactory {
 	
 	public <T> Future<T> submit(Callable<T> task) {
 		return executor.submit(task);
-	}
-	
-	/**
-	 * @param items_to_process called by the CompletableFuture return.
-	 * @return the CompletableFuture for preparation (queue stream processing)
-	 * @throws RejectedExecutionException if the initial preparation can't to be done.
-	 */
-	public <T, R> CompletableFuture<Void> asyncProcessing(Supplier<Stream<T>> items_to_process, FunctionWithException<T, R> processor, Consumer<Stream<SourcedCompletableFuture<T, R>>> allProcess) {
-		return CompletableFuture.supplyAsync(() -> {
-			allProcess.accept(items_to_process.get().map(item -> {
-				return new SourcedCompletableFuture<T, R>(item, processor);
-			}));
-			return null;
-		}, executor);
-	}
-	
-	private class IntermediateProcessor<T, R> {
-		T source;
-		CompletableFuture<ProcessingResult<T, R>> c_future;
-		
-		IntermediateProcessor(T source, Function<T, ProcessingResult<T, R>> processor) {
-			this.source = source;
-			c_future = CompletableFuture.supplyAsync(() -> {
-				return (ProcessingResult<T, R>) (processor.apply(source));
-			}, executor);
-		}
-		
-		ProcessingResult<T, R> get(long timeout, TimeUnit unit) {
-			try {
-				if (timeout > 0) {
-					return c_future.get(timeout, unit);
-				} else {
-					return c_future.get();
-				}
-			} catch (InterruptedException | ExecutionException | TimeoutException e) {
-				return new ProcessingResult<T, R>(source, e);
-			}
-		}
-		
-	}
-	
-	/**
-	 * Blocking !
-	 * @param timeout_for_each_task can be null
-	 * @return all results, never null.
-	 */
-	public <T, R> Stream<ProcessingResult<T, R>> multipleProcessing(Stream<T> items_to_process, FunctionWithException<T, R> processor, long timeout_for_each_task, TimeUnit unit) {
-		Function<T, ProcessingResult<T, R>> doProcess = item -> {
-			try {
-				return new ProcessingResult<T, R>(item, processor.get(item));
-			} catch (Throwable e) {
-				return new ProcessingResult<T, R>(item, e);
-			}
-		};
-		
-		return items_to_process.parallel().map(item -> {
-			return new IntermediateProcessor<T, R>(item, doProcess);
-		}).map(c -> {
-			return c.get(timeout_for_each_task, unit);
-		});
-	}
-	
-	/**
-	 * Blocking !
-	 * @param timeout_for_each_task can be null
-	 * @return all results, never null.
-	 */
-	public <T, R> Stream<ProcessingResult<T, R>> multipleProcessing(Stream<T> items_to_process, FunctionWithException<T, R> processor) {
-		return multipleProcessing(items_to_process, processor, 0, TimeUnit.SECONDS);
 	}
 	
 	public void toTableList(TableList table) {
@@ -300,4 +163,66 @@ public class ThreadPoolExecutorFactory {
 		return jo_executor_pool;
 	}
 	
+	/**
+	 * Blocking.
+	 * @param task will be run in this current Thread, not queued.
+	 */
+	public void insertPauseTask(Runnable task) throws Exception {
+		executor.pause_lock.lock();
+		if (executor.is_paused) {
+			executor.pause_lock.unlock();
+			throw new Exception("Already locked");
+		}
+		
+		executor.is_paused = true;
+		
+		try {
+			while (getTotalActive() > 0) {
+				Thread.sleep(1);
+			}
+			task.run();
+		} finally {
+			try {
+				executor.is_paused = false;
+				executor.unpaused.signalAll();
+			} finally {
+				executor.pause_lock.unlock();
+			}
+		}
+	}
+	
+	/**
+	 * @see ThreadPoolExecutor (free Java inspiration)
+	 */
+	private class PausableThreadPoolExecutor extends ThreadPoolExecutor {
+		
+		private boolean is_paused;
+		private ReentrantLock pause_lock = new ReentrantLock();
+		private Condition unpaused = pause_lock.newCondition();
+		private AtomicInteger total_active = new AtomicInteger(0);
+		
+		public PausableThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
+			super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
+		}
+		
+		protected void beforeExecute(Thread t, Runnable r) {
+			super.beforeExecute(t, r);
+			pause_lock.lock();
+			try {
+				while (is_paused) {
+					unpaused.await();
+				}
+			} catch (InterruptedException ie) {
+				t.interrupt();
+			} finally {
+				pause_lock.unlock();
+			}
+			total_active.incrementAndGet();
+		}
+		
+		protected void afterExecute(Runnable r, Throwable t) {
+			super.afterExecute(r, t);
+			total_active.decrementAndGet();
+		}
+	}
 }

@@ -112,7 +112,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		local_servers = new ArrayList<>();
 		
 		executor = new ThreadPoolExecutorFactory("PoolManager", Thread.MAX_PRIORITY - 1);
-		channel_group = AsynchronousChannelGroup.withThreadPool(executor.getThreadPoolExecutor());
+		channel_group = executor.createAsynchronousChannelGroup();
 		
 		pressure_measurement_sended = new PressureMeasurement();
 		pressure_measurement_recevied = new PressureMeasurement();

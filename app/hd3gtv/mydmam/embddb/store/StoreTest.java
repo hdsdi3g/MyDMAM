@@ -18,16 +18,58 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
 public class StoreTest extends TestCase {
 	
-	public void testAll() throws Exception {
+	public void testPause() throws Exception {
+		
+		ThreadPoolExecutorFactory exec = new ThreadPoolExecutorFactory("test", Thread.NORM_PRIORITY);
+		AtomicBoolean is_locked = new AtomicBoolean(false);
+		
+		IntStream.range(0, 100).forEach(i -> {
+			exec.execute(() -> {
+				if (is_locked.get()) {
+					throw new RuntimeException("WAS LOCKED !");
+				}
+				System.out.print("<"/* + Thread.currentThread().getId() + ">"*/);
+				try {
+					Thread.sleep(ThreadLocalRandom.current().nextInt(100, 1000));
+				} catch (InterruptedException e) {
+				}
+				System.out.print(/*"</" + Thread.currentThread().getId() +*/ ">");
+				if (is_locked.get()) {
+					throw new RuntimeException("WAS LOCKED !");
+				}
+			});
+		});
+		
+		IntStream.range(0, 10).forEach(i -> {
+			try {
+				Thread.sleep(ThreadLocalRandom.current().nextInt(500, 1000));
+				
+				exec.insertPauseTask(() -> {
+					is_locked.set(true);
+					System.out.println(i);
+					is_locked.set(false);
+				});
+			} catch (Exception e) {
+			}
+		});
+		
+		exec.awaitTerminationAndShutdown(1, TimeUnit.HOURS);
+	}
+	
+	public void AtestAll() throws Exception {// XXX
 		
 		ItemFactory<UUID> factory = new ItemFactory<UUID>() {
 			
