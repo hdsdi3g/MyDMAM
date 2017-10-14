@@ -22,14 +22,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.FileBackend.StoreBackend;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
@@ -44,8 +42,7 @@ public final class Store<T> {
 	private final ReadCache read_cache;
 	private final StoreBackend backend;
 	private final ItemFactory<T> item_factory;
-	// private final StoreQueue queue;
-	private final Executor executor;
+	private final ThreadPoolExecutorFactory executor;
 	
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final long max_size_for_cached_commit_log;
@@ -85,22 +82,10 @@ public final class Store<T> {
 			throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1");
 		}
 		
-		ThreadPoolExecutorFactory thread_pool_executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
+		executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for " + database_name + "/" + generic_class_name, e);
 		});
 		
-		executor = thread_pool_executor;
-		
-		/* TODO queue = new StoreQueue(getDatabaseName() + "/" + generic_class_name, () -> {
-			return elegiblityToCleanUp();
-		}, () -> {
-			try {
-				journal_write_cache.clear();
-				backend.doDurableWritesAndRotateJournal();
-			} catch (IOException e1) {
-				throw new RuntimeException("Can't do rotate", e1);
-			}
-		}, executor);*/
 	}
 	
 	public CompletableFuture<Void> put(String _id, T element, long ttl, TimeUnit unit) {
@@ -298,7 +283,7 @@ public final class Store<T> {
 				remove(stored_items.stream());
 				remove(journal_write_cache.values().stream());
 				read_cache.purgeAll();
-				doDurableWrite();
+				// doDurableWrites(); XXX NOT IN CF
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -310,22 +295,51 @@ public final class Store<T> {
 	}
 	
 	private boolean elegiblityToCleanUp() {
-		long estimate_commit_log_cache_size = journal_write_cache.reduceValuesToLong(MyDMAM.CPU_COUNT, item -> {
-			return (long) item.estimateSize();
-		}, 0, (l, r) -> {
-			return l + r;
-		});
-		return estimate_commit_log_cache_size > max_size_for_cached_commit_log;
+		return backend.currentJournalSize() > max_size_for_cached_commit_log;
 	}
 	
 	/**
-	 * Blocking: this request is put in a pool, and will be executed after the next Store request.
+	 * Blocking.
 	 */
-	public void doDurableWrite() {
-		// XXX queue.cleanUp();
+	public void doDurableWrites() throws Exception {
+		executor.insertPauseTask(() -> {
+			try {
+				backend.doDurableWritesAndRotateJournal();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+			journal_write_cache.clear();
+		});
+	}
+	
+	/**
+	 * Blocking.
+	 */
+	public void cleanUpFiles() throws Exception {
+		executor.insertPauseTask(() -> {
+			try {
+				backend.cleanUpFiles();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+	
+	/**
+	 * Blocking.
+	 */
+	public void doDurableWritesAndCleanUpFiles() throws Exception {
+		executor.insertPauseTask(() -> {
+			try {
+				backend.doDurableWritesAndRotateJournal();
+				journal_write_cache.clear();
+				backend.cleanUpFiles();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 	
 	// TODO network I/O
-	// TODO do full file GC (with pause)
 	
 }

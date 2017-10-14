@@ -76,6 +76,14 @@ public final class ReadCacheEhcache implements ReadCache {
 		cacheManager.addCache(lh_cache);
 		lh_cache.bootstrap();
 		// cache = cacheManager.getCache(cacheName);
+		
+		// XXX lh_cache.getCacheEventNotificationService()
+		// lh_cache.getCacheExceptionHandler()
+		// lh_cache.getCacheManager()
+		// lh_cache.getCacheStatisticsSampler()
+		// lh_cache.getLiveCacheStatistics()
+		// lh_cache.getMemoryStoreEvictionPolicy()
+		// ...
 	}
 	
 	long getMaxBytesLocalHeap() {

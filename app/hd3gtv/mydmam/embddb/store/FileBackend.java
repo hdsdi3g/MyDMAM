@@ -171,6 +171,13 @@ public class FileBackend implements Closeable {
 			journal.write(item.getKey(), item, expiration_date, item.getPath());
 		}
 		
+		long currentJournalSize() {
+			if (journal == null) {
+				return 0;
+			}
+			return journal.getFileSize();
+		}
+		
 		/**
 		 * NOT Thread safe
 		 */
