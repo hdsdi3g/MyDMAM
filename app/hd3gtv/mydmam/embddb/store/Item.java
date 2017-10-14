@@ -61,10 +61,6 @@ public final class Item implements ByteBufferExporter, Serializable {
 		return Hashing.crc32().hashBytes(payload).asBytes();
 	}
 	
-	int estimateSize() {
-		return _id.length() + path.length() + payload.length + 3 * 8;
-	}
-	
 	void checkDigest(byte[] data) {
 		byte[] this_digest = getDigest();
 		if (Arrays.equals(data, this_digest) == false) {
@@ -259,7 +255,7 @@ public final class Item implements ByteBufferExporter, Serializable {
 		if (b_digest == null) {
 			b_digest = getDigest();
 		}
-		return (4 + b_id.length) + (4 + b_path.length) + 8 + 8 + 8 + (4 + payload.length) + (4 + b_digest.length);
+		return (4 + b_id.length) + (4 + b_path.length) + 8 + 8 + 8 + (4 + payload.length) + (4 + b_digest.length);// 48
 	}
 	
 }

@@ -19,6 +19,7 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -90,10 +91,19 @@ public class TransactionJournalTest extends TestCase {
 				journal_read.readAll(false).forEach(entry -> {
 					item_count.incrementAndGet();
 					
-					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date, last_date.get() <= entry.date);
+					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date + 2l, last_date.get() <= entry.date + 2l);
 					last_date.set(entry.date);
 					assertTrue("Unknow key in #" + item_count.get() + ": " + entry.key, hash_map.containsKey(entry.key));
-					assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), entry.data_export_source.getByteBufferWriteSize());
+					
+					try {
+						ByteBuffer read_buffer = ByteBuffer.allocate(entry.data_export_source.getByteBufferWriteSize());
+						entry.data_export_source.toByteBuffer(read_buffer);
+						read_buffer.flip();
+						Item read_item = new Item(read_buffer);
+						assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), read_item.getPayload().length);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
 				});
 				
 				assertEquals("Invalid item count", hash_map.size(), item_count.get());

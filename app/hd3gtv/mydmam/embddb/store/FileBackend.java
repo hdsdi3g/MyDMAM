@@ -171,13 +171,6 @@ public class FileBackend implements Closeable {
 			journal.write(item.getKey(), item, expiration_date, item.getPath());
 		}
 		
-		long currentJournalSize() {
-			if (journal == null) {
-				return 0;
-			}
-			return journal.getFileSize();
-		}
-		
 		/**
 		 * NOT Thread safe
 		 */
@@ -404,6 +397,24 @@ public class FileBackend implements Closeable {
 			
 			FileUtils.forceDelete(journal_directory);
 			FileUtils.forceDelete(makeFile("").getAbsoluteFile());
+		}
+		
+		/**
+		 * NOT Thread safe
+		 */
+		void clear() throws IOException {
+			data_hash_table.clear();
+			expiration_dates.clear();
+			index_paths.clear();
+			
+			if (journal != null) {
+				journal.purge();
+				journal = null;
+			}
+			Arrays.asList(journal_directory.listFiles()).forEach(f -> {
+				f.delete();
+			});
+			journal = new TransactionJournal(journal_directory, instance);
 		}
 	}
 	

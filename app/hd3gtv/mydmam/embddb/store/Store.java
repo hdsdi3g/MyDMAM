@@ -22,7 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,7 +49,7 @@ public final class Store<T> {
 	private final ThreadPoolExecutorFactory executor;
 	
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
-	private final long max_size_for_cached_commit_log;
+	private final AtomicLong journal_write_cache_size;
 	private final long grace_period_for_expired_items;
 	private final String generic_class_name;
 	
@@ -73,7 +77,7 @@ public final class Store<T> {
 			throw new NullPointerException("\"read_cache\" can't to be null");
 		}
 		journal_write_cache = new ConcurrentHashMap<>();
-		this.max_size_for_cached_commit_log = max_size_for_cached_commit_log;
+		journal_write_cache_size = new AtomicLong(0);
 		if (max_size_for_cached_commit_log < 1l) {
 			throw new NullPointerException("\"max_size_for_cached_commit_log\" can't to be < 1");
 		}
@@ -85,6 +89,27 @@ public final class Store<T> {
 		executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for " + database_name + "/" + generic_class_name, e);
 		});
+		
+		final ScheduledExecutorService scheduled_ex_service = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setDaemon(false);
+				t.setName("Store durable writes for " + database_name + "_" + generic_class_name);
+				t.setPriority(Thread.MIN_PRIORITY + 2);
+				return t;
+			}
+		});
+		
+		scheduled_ex_service.scheduleAtFixedRate(() -> {
+			if (journal_write_cache_size.get() > max_size_for_cached_commit_log) {
+				try {
+					doDurableWrites();
+				} catch (Exception e1) {
+					log.error("Error during durable writes for store " + database_name + "/" + generic_class_name, e1);
+					scheduled_ex_service.shutdown();
+				}
+			}
+		}, 1, 1, TimeUnit.SECONDS);
 		
 	}
 	
@@ -104,7 +129,11 @@ public final class Store<T> {
 	
 	private void put(Item item) throws IOException {
 		ItemKey key = item.getKey();
-		journal_write_cache.put(key, item);
+		Item old_item = journal_write_cache.put(key, item);
+		if (old_item != null) {
+			journal_write_cache_size.getAndAdd(-old_item.getPayload().length);
+		}
+		journal_write_cache_size.getAndAdd(item.getPayload().length);
 		read_cache.remove(key);
 		backend.writeInJournal(item, item.getDeleteDate() + grace_period_for_expired_items);
 	}
@@ -256,7 +285,10 @@ public final class Store<T> {
 			item.setTTL(-1);
 			item.setPath(null);
 			ItemKey key = item.getKey();
-			journal_write_cache.put(key, item);
+			Item old_item = journal_write_cache.put(key, item);
+			if (old_item != null) {
+				journal_write_cache_size.getAndAdd(-old_item.getPayload().length);
+			}
 			read_cache.remove(key);
 			try {
 				backend.writeInJournal(item, System.currentTimeMillis() + grace_period_for_expired_items);
@@ -276,26 +308,24 @@ public final class Store<T> {
 		}, executor);
 	}
 	
-	public CompletableFuture<Void> truncate() {
-		return CompletableFuture.runAsync(() -> {
+	/**
+	 * Blocking.
+	 */
+	public void truncate() throws Exception {
+		executor.insertPauseTask(() -> {
+			journal_write_cache_size.set(0);
+			journal_write_cache.clear();
+			read_cache.purgeAll();
 			try {
-				List<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
-				remove(stored_items.stream());
-				remove(journal_write_cache.values().stream());
-				read_cache.purgeAll();
-				// doDurableWrites(); XXX NOT IN CF
-			} catch (Exception e) {
+				backend.clear();
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-		}, executor);
+		});
 	}
 	
 	public String getDatabaseName() {
 		return database_name;
-	}
-	
-	private boolean elegiblityToCleanUp() {
-		return backend.currentJournalSize() > max_size_for_cached_commit_log;
 	}
 	
 	/**
@@ -308,6 +338,7 @@ public final class Store<T> {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
+			journal_write_cache_size.set(0);
 			journal_write_cache.clear();
 		});
 	}
@@ -332,6 +363,7 @@ public final class Store<T> {
 		executor.insertPauseTask(() -> {
 			try {
 				backend.doDurableWritesAndRotateJournal();
+				journal_write_cache_size.set(0);
 				journal_write_cache.clear();
 				backend.cleanUpFiles();
 			} catch (IOException e) {
