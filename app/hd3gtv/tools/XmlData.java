@@ -42,7 +42,6 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.xml.sax.SAXException;
 
-@SuppressWarnings("nls")
 /**
  * @author hdsdi3g
  * @version 1.1 Add getTextContentValue()

@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-@SuppressWarnings("nls")
 /**
  * @author hdsdi3g
  * @version 1.1 Add OutputStreamHandler
