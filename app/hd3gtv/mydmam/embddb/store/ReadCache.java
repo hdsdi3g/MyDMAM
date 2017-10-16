@@ -37,6 +37,6 @@ public interface ReadCache {
 	
 	public void remove(ItemKey key);
 	
-	public void purgeAll();
+	public void clear();
 	
 }

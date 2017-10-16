@@ -117,7 +117,7 @@ public final class ReadCacheEhcache implements ReadCache {
 		lh_cache.remove(key);
 	}
 	
-	public void purgeAll() {
+	public void clear() {
 		lh_cache.removeAll();
 	}
 	

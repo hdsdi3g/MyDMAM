@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -24,7 +23,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -33,15 +35,16 @@ import org.apache.log4j.Logger;
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.CopyMove;
 
-public class FileBackend implements Closeable {
+public class FileBackend {
 	
 	private static Logger log = Logger.getLogger(FileBackend.class);
 	
 	private final File base_directory;
 	private final ArrayList<StoreBackend> backends;
 	private final UUID instance;
+	private final Consumer<ItemKey> previous_pushed_items_in_journals;
 	
-	public FileBackend(File base_directory, UUID instance) throws IOException {
+	public FileBackend(File base_directory, UUID instance, Consumer<ItemKey> previous_pushed_items_in_journals) throws IOException {
 		this.base_directory = base_directory;
 		if (base_directory == null) {
 			throw new NullPointerException("\"base_directory\" can't to be null");
@@ -49,6 +52,10 @@ public class FileBackend implements Closeable {
 		this.instance = instance;
 		if (instance == null) {
 			throw new NullPointerException("\"instance\" can't to be null");
+		}
+		this.previous_pushed_items_in_journals = previous_pushed_items_in_journals;
+		if (previous_pushed_items_in_journals == null) {
+			throw new NullPointerException("\"previous_pushed_items_in_journals\" can't to be null");
 		}
 		
 		if (base_directory.exists()) {
@@ -59,6 +66,11 @@ public class FileBackend implements Closeable {
 			FileUtils.forceMkdir(base_directory);
 		}
 		backends = new ArrayList<>();
+	}
+	
+	public FileBackend(File base_directory, UUID instance) throws IOException {
+		this(base_directory, instance, key -> {
+		});
 	}
 	
 	/**
@@ -125,15 +137,15 @@ public class FileBackend implements Closeable {
 			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
 			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, default_table_size);
-			
-			doDurableWritesAndRotateJournal();
+			doDurableWritesAndRotateJournal().forEach(previous_pushed_items_in_journals);
 		}
 		
 		public String toString() {
 			return database_name + " for " + class_name;
 		}
 		
-		private void close() {
+		void close() {
+			backends.remove(this);
 			try {
 				journal.close();
 				journal = null;
@@ -173,8 +185,9 @@ public class FileBackend implements Closeable {
 		
 		/**
 		 * NOT Thread safe
+		 * @return updated keys
 		 */
-		void doDurableWritesAndRotateJournal() throws IOException {
+		List<ItemKey> doDurableWritesAndRotateJournal() throws IOException {
 			if (journal != null) {
 				journal.close();
 			}
@@ -213,9 +226,9 @@ public class FileBackend implements Closeable {
 			/**
 			 * 2nd pass: do writes
 			 */
-			TransactionJournal.allJournalsByDate(journal_directory).forEach(current_journal -> {
+			List<ItemKey> all_updated_keys = TransactionJournal.allJournalsByDate(journal_directory).stream().map(current_journal -> {
 				try {
-					current_journal.readAll(false).forEach(entry -> {
+					List<ItemKey> updated_keys = current_journal.readAll(false).map(entry -> {
 						if (all_last_record_dates.containsKey(entry.key) == false) {
 							throw new NullPointerException("Can't found key " + entry.key + ", invalid journal read/update during reading");
 						}
@@ -224,25 +237,31 @@ public class FileBackend implements Closeable {
 							/**
 							 * Get only the last record, and write only this last.
 							 */
-							return;
+							return null;
 						}
 						try {
 							data_hash_table.put(entry.key, entry.data_export_source);
 							expiration_dates.put(entry.key, entry.expiration_date);
 							FileIndexPaths.update(entry.key, entry.path, all_actual_paths_keys);
+							return entry.key;
 						} catch (IOException e) {
 							throw new RuntimeException(e);
 						}
-					});
+					}).collect(Collectors.toList());
 					
 					current_journal.purge();
+					return updated_keys;
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
-			});
+			}).flatMap(k_l -> {
+				return k_l.stream();
+			}).distinct().collect(Collectors.toList());
 			
 			index_paths.setAll(all_actual_paths_keys);
 			journal = new TransactionJournal(journal_directory, instance);
+			
+			return all_updated_keys;
 		}
 		
 		long getDataFileSize() {
@@ -418,11 +437,11 @@ public class FileBackend implements Closeable {
 		}
 	}
 	
-	public void close() {
+	/*void close() {
 		backends.parallelStream().forEach(backend -> {
 			backend.close();
 		});
 		backends.clear();
-	}
+	}*/
 	
 }

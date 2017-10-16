@@ -225,4 +225,17 @@ public class ThreadPoolExecutorFactory implements Executor {
 			total_active.decrementAndGet();
 		}
 	}
+	
+	public void shutdownAndTerminate() {
+		executor.shutdown();
+		while (executor.isTerminated() == false) {
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		executor.total_active.set(0);
+	}
+	
 }

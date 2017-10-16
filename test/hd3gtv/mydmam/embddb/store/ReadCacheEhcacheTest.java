@@ -114,7 +114,7 @@ public class ReadCacheEhcacheTest extends TestCase {
 		 */
 		ItemKey last_previous_item_key = new ItemKey(String.valueOf(size - 2));
 		assertTrue("Can't found the last pushed item", cache.has(last_previous_item_key));
-		cache.purgeAll();
+		cache.clear();
 		assertFalse("Don't purge all", cache.has(last_previous_item_key));
 		
 		/**

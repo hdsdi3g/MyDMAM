@@ -269,7 +269,7 @@ public class FileBackendTest extends TestCase {
 			}
 		});
 		
-		all_backends.close();
+		backend.close();
 		
 		StoreBackend backend2 = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000);
 		
