@@ -19,7 +19,6 @@ package hd3gtv.tools;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
-@SuppressWarnings("nls")
 /**
  * @author hdsdi3g
  * @version 1.1 add getHumanFilesize()

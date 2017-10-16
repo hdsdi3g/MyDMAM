@@ -16,7 +16,6 @@
 */
 package hd3gtv.tools;
 
-@SuppressWarnings("nls")
 /**
  * @author hdsdi3g
  * @version 1.0

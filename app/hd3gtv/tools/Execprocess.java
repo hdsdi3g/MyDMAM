@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-@SuppressWarnings("nls")
 /**
  * @author hdsdi3g
  * @version 1.01 set public constructor
