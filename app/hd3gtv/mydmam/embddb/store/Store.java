@@ -485,6 +485,10 @@ public final class Store<T> implements Closeable {
 	}
 	
 	private static final String XML_ROOT_ELEMENT = "embddb_store";
+	private static final String XML_ROOT_ELEMENT_ATTR_VERSION = "version";
+	private static final String XML_ROOT_ELEMENT_ATTR_CREATED = "created";
+	private static final String XML_ROOT_ELEMENT_ATTR_DATABASE = "database";
+	private static final String XML_ROOT_ELEMENT_ATTR_CLASSNAME = "classname";
 	
 	public CompletableFuture<File> xmlExport() {
 		if (closed) {
@@ -509,10 +513,10 @@ public final class Store<T> implements Closeable {
 				 * Headers
 				 */
 				AttributesImpl atts = new AttributesImpl();
-				atts.addAttribute("", "", "version", "CDATA", String.valueOf(XML_DOCUMENT_VERSION));
-				atts.addAttribute("", "", "created", "CDATA", String.valueOf(System.currentTimeMillis()));
-				atts.addAttribute("", "", "database", "CDATA", database_name);
-				atts.addAttribute("", "", "classname", "CDATA", generic_class_name);
+				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_VERSION, "CDATA", String.valueOf(XML_DOCUMENT_VERSION));
+				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_CREATED, "CDATA", String.valueOf(System.currentTimeMillis()));
+				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_DATABASE, "CDATA", database_name);
+				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_CLASSNAME, "CDATA", generic_class_name);
 				
 				serializer.startElement("", "", XML_ROOT_ELEMENT, atts);
 				serializer.comment("created: " + Loggers.dateLog(System.currentTimeMillis()));
@@ -528,7 +532,7 @@ public final class Store<T> implements Closeable {
 					}
 				});
 				
-				serializer.endElement("", "", "embddb_store");
+				serializer.endElement("", "", XML_ROOT_ELEMENT);
 				serializer.endDocument();
 				
 				return destination;
@@ -587,44 +591,74 @@ public final class Store<T> implements Closeable {
 	private class XMLImport extends DefaultHandler implements ErrorHandler, LexicalHandler {
 		
 		StringBuilder rawtext = null;
+		String current_raw_payload = null;
 		
 		public void startDocument() throws SAXException {
 			rawtext = new StringBuilder();
 		}
 		
+		Attributes current_item_attributes;
+		
 		public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-			// XXX
-			// XML_ROOT_ELEMENT
-			// Item.XML_ITEM_ELEMENT;
-			// XML_DOCUMENT_VERSION
-			
-			rawtext = new StringBuilder();
+			if (qName.equals(XML_ROOT_ELEMENT)) {
+				int current_version = Integer.parseInt(attributes.getValue(XML_ROOT_ELEMENT_ATTR_VERSION));
+				if (current_version != XML_DOCUMENT_VERSION) {
+					throw new SAXException("Invalid XML version " + current_version);
+				}
+				String current_database_name = attributes.getValue(XML_ROOT_ELEMENT_ATTR_DATABASE);
+				String current_generic_class_name = attributes.getValue(XML_ROOT_ELEMENT_ATTR_CLASSNAME);
+				
+				if (database_name.equalsIgnoreCase(current_database_name) == false) {
+					throw new SAXException("Invalid database name: " + current_database_name + " (this is " + database_name + ")");
+				} else if (generic_class_name.equalsIgnoreCase(current_generic_class_name) == false) {
+					throw new SAXException("Invalid database name: " + current_generic_class_name + " (this is " + generic_class_name + ")");
+				}
+				
+				log.debug("XML creation date: " + Loggers.dateLog(Long.valueOf(attributes.getIndex(XML_ROOT_ELEMENT_ATTR_CREATED))));
+			} else if (qName.equals(Item.XML_ITEM_ELEMENT)) {
+				current_item_attributes = attributes;
+				current_raw_payload = "";
+			} else {
+				throw new SAXException("Unknown XML qName: " + qName);
+			}
 		}
 		
 		public void endElement(String uri, String localName, String qName) throws SAXException {
-			// XXX
+			if (qName.equals(Item.XML_ITEM_ELEMENT)) {
+				try {
+					put(new Item(current_item_attributes, current_raw_payload));
+					rawtext = null;
+					current_raw_payload = null;
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 		
-		@Override
 		public void startCDATA() throws SAXException {
-			// TODO Auto-generated method stub
-			
+			rawtext = new StringBuilder();
 		}
 		
-		@Override
 		public void endCDATA() throws SAXException {
-			// TODO Auto-generated method stub
-			
+			current_raw_payload += rawtext.toString();
 		}
 		
-		@Override
+		public void characters(char[] ch, int start, int length) throws SAXException {
+			if (rawtext != null) {
+				rawtext.append(new String(ch, start, length));
+			}
+		}
+		
 		public void comment(char[] ch, int start, int length) throws SAXException {
-			// TODO Auto-generated method stub
-			
+			if (log.isTraceEnabled()) {
+				String comment = new String(ch, start, length);
+				if (comment.trim().isEmpty() == false) {
+					log.trace("XML Comment: " + comment);
+				}
+			}
 		}
 		
 		public void endDocument() throws SAXException {
-			// TODO Auto-generated method stub
 		}
 		
 		public void error(SAXParseException e) throws SAXException {
@@ -637,10 +671,6 @@ public final class Store<T> implements Closeable {
 		
 		public void warning(SAXParseException e) throws SAXException {
 			log.error("XML Parsing warning", e);
-		}
-		
-		public void characters(char[] ch, int start, int length) throws SAXException {
-			rawtext.append(new String(ch, start, length).trim());
 		}
 		
 		public void startDTD(String name, String publicId, String systemId) throws SAXException {

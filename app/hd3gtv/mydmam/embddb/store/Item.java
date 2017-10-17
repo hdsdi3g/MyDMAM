@@ -24,6 +24,7 @@ import java.util.Objects;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
+import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -308,6 +309,13 @@ public final class Item implements ByteBufferExporter, Serializable {
 		serializer.endCDATA();
 		
 		serializer.endElement("", "", "item");
+	}
+	
+	/**
+	 * Import from XML
+	 */
+	Item(Attributes attributes, String coded_payload) {
+		// TODO Auto-generated constructor stub
 	}
 	
 	public static boolean validChars(byte[] text) {
