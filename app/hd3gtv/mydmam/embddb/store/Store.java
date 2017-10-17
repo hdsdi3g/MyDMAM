@@ -16,10 +16,13 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
+import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
@@ -34,11 +37,17 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.codec.net.QuotedPrintableCodec;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
 import org.apache.log4j.Logger;
-import org.xml.sax.ContentHandler;
+import org.xml.sax.Attributes;
 import org.xml.sax.ErrorHandler;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -475,83 +484,175 @@ public final class Store<T> implements Closeable {
 		});
 	}
 	
-	/**
-	 * Blocking.
-	 */
-	public CompletableFuture<File> xmlExport() throws Exception {
+	private static final String XML_ROOT_ELEMENT = "embddb_store";
+	
+	public CompletableFuture<File> xmlExport() {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
 		return CompletableFuture.supplyAsync(() -> {
+			FileOutputStream fileoutputstream = null;
 			try {
 				File destination = new File("out.xml"); // TODO create real file name
-				XMLExport xml_engine = new XMLExport(destination);
+				
+				fileoutputstream = new FileOutputStream(destination);
+				OutputFormat of = new OutputFormat();
+				of.setMethod("xml");
+				of.setEncoding("UTF-8");
+				of.setVersion("1.0");
+				of.setIndenting(true);
+				of.setIndent(2);
+				XMLSerializer serializer = new XMLSerializer(fileoutputstream, of);
+				serializer.startDocument();
+				
+				/**
+				 * Headers
+				 */
+				AttributesImpl atts = new AttributesImpl();
+				atts.addAttribute("", "", "version", "CDATA", String.valueOf(XML_DOCUMENT_VERSION));
+				atts.addAttribute("", "", "created", "CDATA", String.valueOf(System.currentTimeMillis()));
+				atts.addAttribute("", "", "database", "CDATA", database_name);
+				atts.addAttribute("", "", "classname", "CDATA", generic_class_name);
+				
+				serializer.startElement("", "", XML_ROOT_ELEMENT, atts);
+				serializer.comment("created: " + Loggers.dateLog(System.currentTimeMillis()));
+				
 				Stream<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
 				Stream<Item> stored_items_with_comit_log = accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values()));
-				xml_engine.export(stored_items_with_comit_log);
-				xml_engine.close();
+				
+				stored_items_with_comit_log.forEach(item -> {
+					try {
+						item.toXML(serializer);
+					} catch (SAXException | IOException e) {
+						throw new RuntimeException(e);
+					}
+				});
+				
+				serializer.endElement("", "", "embddb_store");
+				serializer.endDocument();
+				
 				return destination;
 			} catch (Exception e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (fileoutputstream != null) {
+					try {
+						fileoutputstream.close();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
 			}
 		}, executor);
 	}
 	
 	public static final int XML_DOCUMENT_VERSION = 1;
 	
-	private class XMLExport extends DefaultHandler implements ErrorHandler, Closeable {
-		private QuotedPrintableCodec quotedprintablecodec;
-		private FileOutputStream fileoutputstream;
-		private ContentHandler content;
-		private StringBuffer rawtext;
-		
-		XMLExport(File destination) throws IOException, SAXException {
-			quotedprintablecodec = new QuotedPrintableCodec("UTF-8");
-			
-			/**
-			 * Preparation
-			 */
-			fileoutputstream = new FileOutputStream(destination);
-			
-			OutputFormat of = new OutputFormat();
-			of.setMethod("xml");
-			of.setEncoding("UTF-8");
-			of.setVersion("1.0");
-			of.setIndenting(true);
-			of.setIndent(2);
-			
-			XMLSerializer serializer = new XMLSerializer(fileoutputstream, of);
-			content = serializer.asContentHandler();
-			content.startDocument();
+	/**
+	 * Blocking.
+	 */
+	public CompletableFuture<File> xmlImport(File document) throws Exception {
+		if (closed) {
+			throw new RuntimeException("Store is closed");
 		}
-		
-		void export(Stream<Item> items) throws SAXException, IOException {
-			/**
-			 * Headers
-			 */
-			AttributesImpl atts = new AttributesImpl();
-			atts.addAttribute("", "", "version", "CDATA", String.valueOf(XML_DOCUMENT_VERSION));
-			atts.addAttribute("", "", "created", "CDATA", String.valueOf(System.currentTimeMillis()));
-			atts.addAttribute("", "", "created_date", "CDATA", Loggers.dateLog(System.currentTimeMillis()));
-			atts.addAttribute("", "", "database", "CDATA", database_name);
-			atts.addAttribute("", "", "classname", "CDATA", generic_class_name);
-			
-			content.startElement("", "", "embddb_store", atts);
-			
-			items.forEach(item -> {
-				item.toXML(content);
-			});
-			
-			content.endElement("", "", "embddb_store");
-		}
-		
-		public void close() throws IOException {
+		return CompletableFuture.supplyAsync(() -> {
 			try {
-				content.endDocument();
-			} catch (SAXException e) {
-				throw new IOException(e);
+				XMLImport xml_import = new XMLImport();
+				
+				SAXParserFactory fabrique = SAXParserFactory.newInstance();
+				SAXParser parser = fabrique.newSAXParser();
+				
+				try {
+					fabrique.setFeature("http://xml.org/sax/features/external-general-entities", false);
+				} catch (ParserConfigurationException pce) {
+				}
+				try {
+					fabrique.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+				} catch (ParserConfigurationException pce) {
+				}
+				parser.getXMLReader().setProperty("http://xml.org/sax/properties/lexical-handler", xml_import);
+				
+				InputStream fis = new BufferedInputStream(new FileInputStream(document), 0xFFFF);
+				InputSource is = new InputSource(fis);
+				is.setEncoding("UTF-8");
+				parser.parse(is, xml_import);
+				fis.close();
+				return document;
+			} catch (Exception e) {
+				throw new RuntimeException(e);
 			}
-			fileoutputstream.close();
+		});
+	}
+	
+	private class XMLImport extends DefaultHandler implements ErrorHandler, LexicalHandler {
+		
+		StringBuilder rawtext = null;
+		
+		public void startDocument() throws SAXException {
+			rawtext = new StringBuilder();
+		}
+		
+		public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+			// XXX
+			// XML_ROOT_ELEMENT
+			// Item.XML_ITEM_ELEMENT;
+			// XML_DOCUMENT_VERSION
+			
+			rawtext = new StringBuilder();
+		}
+		
+		public void endElement(String uri, String localName, String qName) throws SAXException {
+			// XXX
+		}
+		
+		@Override
+		public void startCDATA() throws SAXException {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void endCDATA() throws SAXException {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void comment(char[] ch, int start, int length) throws SAXException {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		public void endDocument() throws SAXException {
+			// TODO Auto-generated method stub
+		}
+		
+		public void error(SAXParseException e) throws SAXException {
+			log.error("XML Parsing error", e);
+		}
+		
+		public void fatalError(SAXParseException e) throws SAXException {
+			log.error("XML Parsing error", e);
+		}
+		
+		public void warning(SAXParseException e) throws SAXException {
+			log.error("XML Parsing warning", e);
+		}
+		
+		public void characters(char[] ch, int start, int length) throws SAXException {
+			rawtext.append(new String(ch, start, length).trim());
+		}
+		
+		public void startDTD(String name, String publicId, String systemId) throws SAXException {
+		}
+		
+		public void endDTD() throws SAXException {
+		}
+		
+		public void startEntity(String name) throws SAXException {
+		}
+		
+		public void endEntity(String name) throws SAXException {
 		}
 		
 	}

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -208,4 +209,41 @@ public class StoreTest extends TestCase {
 		store.close();
 	}
 	
+	private class RandomBinTest {
+		byte[] content;
+		
+		RandomBinTest(byte[] content) {
+			this.content = content;
+		}
+	}
+	
+	public void testXML() throws Exception {
+		Store<RandomBinTest> store = new Store<>("test", new ItemFactory<RandomBinTest>() {
+			
+			public Item toItem(RandomBinTest element) {
+				return new Item(element.content);
+			}
+			
+			public RandomBinTest getFromItem(Item item) {
+				return new RandomBinTest(item.getPayload());
+			}
+			
+			public Class<RandomBinTest> getType() {
+				return RandomBinTest.class;
+			}
+			
+		}, backend, ReadCacheEhcache.getCache(), 1000, 10, 10);
+		
+		store.truncate();
+		store.put("test-xml-text", new RandomBinTest("TËST".getBytes()), 1, TimeUnit.HOURS).get();
+		store.put("test-xml-bin", new RandomBinTest(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04 }), 1, TimeUnit.HOURS).get();
+		
+		byte[] garbadge = new byte[100_000];
+		ThreadLocalRandom.current().nextBytes(garbadge);
+		store.put("test-xml-big", new RandomBinTest(garbadge), 1, TimeUnit.HOURS).get();
+		
+		store.xmlExport().get();
+		store.truncate();
+		store.close();
+	}
 }
