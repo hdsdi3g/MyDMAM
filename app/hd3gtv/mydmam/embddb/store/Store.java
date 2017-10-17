@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
@@ -32,8 +34,18 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.codec.net.QuotedPrintableCodec;
 import org.apache.log4j.Logger;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.DefaultHandler;
 
+import com.sun.org.apache.xml.internal.serialize.OutputFormat;
+import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.embddb.store.FileBackend.StoreBackend;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
@@ -461,6 +473,87 @@ public final class Store<T> implements Closeable {
 				throw new RuntimeException(e);
 			}
 		});
+	}
+	
+	/**
+	 * Blocking.
+	 */
+	public CompletableFuture<File> xmlExport() throws Exception {
+		if (closed) {
+			throw new RuntimeException("Store is closed");
+		}
+		return CompletableFuture.supplyAsync(() -> {
+			try {
+				File destination = new File("out.xml"); // TODO create real file name
+				XMLExport xml_engine = new XMLExport(destination);
+				Stream<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
+				Stream<Item> stored_items_with_comit_log = accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values()));
+				xml_engine.export(stored_items_with_comit_log);
+				xml_engine.close();
+				return destination;
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}, executor);
+	}
+	
+	public static final int XML_DOCUMENT_VERSION = 1;
+	
+	private class XMLExport extends DefaultHandler implements ErrorHandler, Closeable {
+		private QuotedPrintableCodec quotedprintablecodec;
+		private FileOutputStream fileoutputstream;
+		private ContentHandler content;
+		private StringBuffer rawtext;
+		
+		XMLExport(File destination) throws IOException, SAXException {
+			quotedprintablecodec = new QuotedPrintableCodec("UTF-8");
+			
+			/**
+			 * Preparation
+			 */
+			fileoutputstream = new FileOutputStream(destination);
+			
+			OutputFormat of = new OutputFormat();
+			of.setMethod("xml");
+			of.setEncoding("UTF-8");
+			of.setVersion("1.0");
+			of.setIndenting(true);
+			of.setIndent(2);
+			
+			XMLSerializer serializer = new XMLSerializer(fileoutputstream, of);
+			content = serializer.asContentHandler();
+			content.startDocument();
+		}
+		
+		void export(Stream<Item> items) throws SAXException, IOException {
+			/**
+			 * Headers
+			 */
+			AttributesImpl atts = new AttributesImpl();
+			atts.addAttribute("", "", "version", "CDATA", String.valueOf(XML_DOCUMENT_VERSION));
+			atts.addAttribute("", "", "created", "CDATA", String.valueOf(System.currentTimeMillis()));
+			atts.addAttribute("", "", "created_date", "CDATA", Loggers.dateLog(System.currentTimeMillis()));
+			atts.addAttribute("", "", "database", "CDATA", database_name);
+			atts.addAttribute("", "", "classname", "CDATA", generic_class_name);
+			
+			content.startElement("", "", "embddb_store", atts);
+			
+			items.forEach(item -> {
+				item.toXML(content);
+			});
+			
+			content.endElement("", "", "embddb_store");
+		}
+		
+		public void close() throws IOException {
+			try {
+				content.endDocument();
+			} catch (SAXException e) {
+				throw new IOException(e);
+			}
+			fileoutputstream.close();
+		}
+		
 	}
 	
 	// TODO network I/O

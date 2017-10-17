@@ -23,9 +23,13 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import org.apache.log4j.Logger;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
 
 import com.google.common.hash.Hashing;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
@@ -258,4 +262,86 @@ public final class Item implements ByteBufferExporter, Serializable {
 		return (4 + b_id.length) + (4 + b_path.length) + 8 + 8 + 8 + (4 + payload.length) + (4 + b_digest.length);// 48
 	}
 	
+	public void toXML(ContentHandler content) throws SAXException {
+		AttributesImpl atts = new AttributesImpl();
+		atts.addAttribute("", "", "_id", "CDATA", _id);
+		atts.addAttribute("", "", "path", "CDATA", path);
+		atts.addAttribute("", "", "key", "CDATA", MyDMAM.byteToString(getKey().key));
+		atts.addAttribute("", "", "size", "CDATA", String.valueOf(payload.length));
+		
+		atts.addAttribute("", "", "created", "CDATA", String.valueOf(created));
+		atts.addAttribute("", "", "created_date", "CDATA", Loggers.dateLog(created));
+		
+		atts.addAttribute("", "", "updated", "CDATA", String.valueOf(updated));
+		atts.addAttribute("", "", "updated_date", "CDATA", Loggers.dateLog(updated));
+		
+		atts.addAttribute("", "", "deleted", "CDATA", String.valueOf(deleted));
+		atts.addAttribute("", "", "deleted_date", "CDATA", Loggers.dateLog(deleted));
+		atts.addAttribute("", "", "was_deleted", "CDATA", String.valueOf(isDeleted()));
+		
+		boolean is_just_text = validUTF8(payload);
+		boolean is_big_binary = false;
+		if (is_just_text == false) {
+			is_big_binary = payload.length > 256;
+		}
+		
+		if (is_just_text) {
+			atts.addAttribute("", "", "payload_type", "CDATA", "UTF-8");
+		} else if (is_big_binary) {
+			atts.addAttribute("", "", "payload_type", "CDATA", "base64");
+		} else {
+			atts.addAttribute("", "", "payload_type", "CDATA", "hexstring");
+		}
+		
+		/*	
+		private byte[] payload;
+		*/
+		
+		content.startElement("", "", "item", atts);
+		
+		// XXX
+		
+		content.endElement("", "", "item");
+	}
+	
+	/**
+	 * @see https://stackoverflow.com/questions/28890907/implement-a-function-to-check-if-a-string-byte-array-follows-utf-8-format
+	 */
+	public static boolean validUTF8(byte[] input) {
+		int i = 0;
+		// Check for BOM
+		if (input.length >= 3 && (input[0] & 0xFF) == 0xEF && (input[1] & 0xFF) == 0xBB & (input[2] & 0xFF) == 0xBF) {
+			i = 3;
+		}
+		
+		int end;
+		for (int j = input.length; i < j; ++i) {
+			int octet = input[i];
+			if ((octet & 0x80) == 0) {
+				continue; // ASCII
+			}
+			
+			// Check for UTF-8 leading byte
+			if ((octet & 0xE0) == 0xC0) {
+				end = i + 1;
+			} else if ((octet & 0xF0) == 0xE0) {
+				end = i + 2;
+			} else if ((octet & 0xF8) == 0xF0) {
+				end = i + 3;
+			} else {
+				// Java only supports BMP so 3 is max
+				return false;
+			}
+			
+			while (i < end) {
+				i++;
+				octet = input[i];
+				if ((octet & 0xC0) != 0x80) {
+					// Not a valid trailing byte
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 }
