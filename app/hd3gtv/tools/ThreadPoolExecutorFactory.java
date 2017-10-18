@@ -58,7 +58,7 @@ public class ThreadPoolExecutorFactory implements Executor {
 			throw new IndexOutOfBoundsException("thread_priority can be < " + Thread.MIN_PRIORITY);
 		}
 		executor = new PausableThreadPoolExecutor(MyDMAM.CPU_COUNT, MyDMAM.CPU_COUNT, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
-		executor.setRejectedExecutionHandler((r, executor) -> {
+		/*executor.setRejectedExecutionHandler((r, executor) -> {
 			if (executor != null) {
 				if (executor.isShutdown() | executor.isTerminated() | executor.isTerminating()) {
 					log.error("Can't add newer task: executor for \"" + base_thread_name + "\" is closed/pending closing !");
@@ -66,7 +66,7 @@ public class ThreadPoolExecutorFactory implements Executor {
 				}
 			}
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
-		});
+		});*/
 		executor.setThreadFactory(runnable -> {
 			Thread t = new Thread(runnable);
 			t.setDaemon(false);

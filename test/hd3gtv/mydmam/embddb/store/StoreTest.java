@@ -16,16 +16,21 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
+import static org.junit.Assert.assertNotEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
@@ -54,6 +59,7 @@ public class StoreTest extends TestCase {
 	private final FileBackend backend;
 	
 	private static final UUID ZERO_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+	private static final String THOUSAND_PATH = "/thousand";
 	
 	public StoreTest() throws IOException {
 		File backend_basedir = new File(System.getProperty("user.home") + File.separator + "mydmam-debug");
@@ -69,7 +75,7 @@ public class StoreTest extends TestCase {
 		ReadCacheEhcache.getCache().clear();
 		Store<UUID> store1 = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
 		
-		store1.truncate();
+		store1.purgeAll();
 		assertEquals(0, store1.getAllValues().get().size());
 		
 		final String ID = "volatile";
@@ -111,7 +117,6 @@ public class StoreTest extends TestCase {
 		assertEquals(newer, actual);
 		
 		store1.close();
-		// ReadCacheEhcache.getCache().clear(); XXX is ok ?
 		
 		/**
 		 * Re-open
@@ -146,7 +151,8 @@ public class StoreTest extends TestCase {
 	}
 	
 	public void testParallelPushRemove() throws Exception {
-		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
+		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 1_000_000, 10_000, 100_000);
+		store.purgeAll();
 		
 		int size = 100_000;
 		/**
@@ -154,59 +160,175 @@ public class StoreTest extends TestCase {
 		 * Set for each 1000' a special path
 		 * And update for each 100'
 		 */
-		final String HUNDRED_PATH = "/Hundred";
 		IntStream.range(0, size).parallel().mapToObj(i -> {
 			if (i % 1000 == 0) {
-				return store.put(String.valueOf(i), HUNDRED_PATH, UUID.randomUUID(), 1, TimeUnit.HOURS);
+				return store.put(String.valueOf(i), THOUSAND_PATH, UUID.randomUUID(), 1, TimeUnit.HOURS);
 			} else {
 				return store.put(String.valueOf(i), null, UUID.randomUUID(), 1, TimeUnit.HOURS);
 			}
 		}).map(cf -> {
 			try {
-				int pushed_id = Integer.valueOf(cf.get());
-				if (pushed_id % 100 == 0) {
-					if (pushed_id % 1000 == 0) {
-						return store.put(String.valueOf(pushed_id), HUNDRED_PATH, ZERO_UUID, 1, TimeUnit.HOURS);
-					} else {
-						return store.put(String.valueOf(pushed_id), null, ZERO_UUID, 1, TimeUnit.HOURS);
-					}
+				int pushed_id = Integer.valueOf(cf.get(5, TimeUnit.SECONDS));
+				if (pushed_id % 1000 == 0) {
+					return store.put(String.valueOf(pushed_id), THOUSAND_PATH, ZERO_UUID, 1, TimeUnit.HOURS);
+				} else if (pushed_id % 100 == 0) {
+					return store.put(String.valueOf(pushed_id), null, ZERO_UUID, 1, TimeUnit.HOURS);
 				} else {
 					return CompletableFuture.completedFuture(pushed_id);
 				}
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | TimeoutException e) {
 				throw new RuntimeException(e);
 			}
 		}).forEach(cf -> {
 			try {
-				cf.get();
-			} catch (InterruptedException | ExecutionException e) {
+				cf.get(5, TimeUnit.SECONDS);
+			} catch (InterruptedException | ExecutionException | TimeoutException e) {
 				throw new RuntimeException(e);
 			}
 		});
 		
-		assertEquals(size, store.getAllValues().get().size());
-		
 		ReadCacheEhcache.getCache().clear();
-		Map<ItemKey, UUID> all_pushed = store.getAll().get();
+		
+		Map<String, UUID> all_pushed = store.getAllIDs().get(5, TimeUnit.SECONDS);
 		assertEquals(size, all_pushed.size());
 		
+		all_pushed.forEach((k, u) -> {
+			int i = Integer.valueOf(k);
+			assertTrue(i >= 0);
+			assertTrue(i <= size);
+			if (i % 100 == 0) {
+				assertEquals(ZERO_UUID, u);
+			} else {
+				assertNotEquals(ZERO_UUID, u);
+			}
+		});
+		
 		ReadCacheEhcache.getCache().clear();
 		
-		// TODO check all_pushed
+		IntStream.range(0, size).parallel().forEach(i -> {
+			try {
+				UUID u = store.get(String.valueOf(i)).get(5, TimeUnit.SECONDS);
+				assertNotNull(u);
+				Item item = store.getItem(String.valueOf(i)).get(5, TimeUnit.SECONDS);
+				assertNotNull(item);
+				
+				if (i % 1000 == 0) {
+					assertEquals(ZERO_UUID, u);
+					assertEquals(item.getPath(), THOUSAND_PATH);
+				} else if (i % 100 == 0) {
+					assertEquals(ZERO_UUID, u);
+					assertTrue(item.getPath().isEmpty());
+				} else {
+					assertTrue(item.getPath().isEmpty());
+				}
+			} catch (InterruptedException | ExecutionException | TimeoutException e) {
+				throw new RuntimeException(e);
+			}
+		});
 		
 		ReadCacheEhcache.getCache().clear();
-		// TODO check parallel get
-		/*IntStream.range(0, size).parallel().mapToObj(i -> {
-			store.get(_id)
-		});*/
 		
-		// TODO tests:
-		// store.getByPath(path);
-		// test TTL
-		// store.removeAllByPath(path);
+		List<Item> all_thousand_items = store.getItemsByPath(THOUSAND_PATH).get(5, TimeUnit.SECONDS).collect(Collectors.toList());
+		assertEquals(size / 1000, all_thousand_items.size());
+		
+		all_thousand_items.forEach(item -> {
+			int i = Integer.valueOf(item.getId());
+			assertEquals(0, i % 1000);
+			assertEquals(THOUSAND_PATH, item.getPath());
+			assertEquals(ZERO_UUID, factory.getFromItem(item));
+		});
+		
+		ReadCacheEhcache.getCache().clear();
+		
+		int removed_count = store.removeAllByPath(THOUSAND_PATH).get(5, TimeUnit.SECONDS);
+		assertEquals(all_thousand_items.size(), removed_count);
+		all_pushed = store.getAllIDs().get(5, TimeUnit.SECONDS);
+		assertEquals(size - removed_count, all_pushed.size());
+		
+		all_pushed.forEach((id, u) -> {
+			int i = Integer.valueOf(id);
+			assertTrue(i >= 0);
+			assertTrue(i <= size);
+			if (i % 100 == 0) {
+				assertEquals(ZERO_UUID, u);
+			} else {
+				assertNotEquals(ZERO_UUID, u);
+			}
+		});
 		
 		store.truncate();
-		assertEquals(0, store.getAllValues().get().size());
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		store.close();
+	}
+	
+	private static final long TTL_DURATION = 300l;
+	private static final long GRACE_PERIOD_TTL = TTL_DURATION * 3l;
+	
+	public void testTTL() throws Exception {
+		ReadCacheEhcache.getCache().clear();
+		
+		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 100_000, GRACE_PERIOD_TTL, 10_000);
+		store.purgeAll();
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		final String ID = "ttltest";
+		
+		UUID newer = UUID.randomUUID();
+		store.put(ID, newer, TTL_DURATION, TimeUnit.MILLISECONDS).get(5, TimeUnit.SECONDS);
+		long start_time = System.currentTimeMillis();
+		
+		assertTrue(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		UUID actual = store.get(ID).get(5, TimeUnit.SECONDS);
+		assertEquals(newer, actual);
+		
+		Thread.sleep(Math.max(TTL_DURATION - (System.currentTimeMillis() - start_time), 1l));
+		
+		/**
+		 * Check after delete date
+		 */
+		assertTrue(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		assertNull(store.get(ID).get(5, TimeUnit.SECONDS));
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		/**
+		 * Check delete after durable writes
+		 */
+		store.doDurableWrites();
+		assertTrue(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		assertNull(store.get(ID).get(5, TimeUnit.SECONDS));
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		/**
+		 * Check after purge cache
+		 */
+		store.doDurableWritesAndCleanUpFiles();
+		ReadCacheEhcache.getCache().clear();
+		
+		assertTrue(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		assertNull(store.get(ID).get(5, TimeUnit.SECONDS));
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		/**
+		 * Check after grace time
+		 */
+		Thread.sleep(Math.max((2l * GRACE_PERIOD_TTL) - (System.currentTimeMillis() - start_time), 1l));
+		
+		assertTrue(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		assertNull(store.get(ID).get(5, TimeUnit.SECONDS));
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		ReadCacheEhcache.getCache().clear();
+		
+		assertFalse(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		assertNull(store.get(ID).get(5, TimeUnit.SECONDS));
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
+		
+		store.doDurableWritesAndCleanUpFiles();
+		
+		assertFalse(store.hasPresence(ID).get(5, TimeUnit.SECONDS));
+		assertNull(store.get(ID).get(5, TimeUnit.SECONDS));
+		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
 		
 		store.close();
 	}
@@ -236,7 +358,7 @@ public class StoreTest extends TestCase {
 			
 		}, backend, ReadCacheEhcache.getCache(), 1000, 10, 10);
 		
-		store.truncate();
+		store.purgeAll();
 		
 		byte[] garbadge = new byte[100_000];
 		ThreadLocalRandom.current().nextBytes(garbadge);
@@ -256,12 +378,16 @@ public class StoreTest extends TestCase {
 		});
 		
 		File document = store.xmlExport().get();
-		store.truncate();
+		File temp_file = File.createTempFile("mydmam-embddb-store-test", ".xml");
+		FileUtils.forceDelete(temp_file);
+		FileUtils.moveFile(document, temp_file);
+		
+		store.purgeAll();
 		store.doDurableWritesAndCleanUpFiles();
 		ReadCacheEhcache.getCache().clear();
 		assertNull(store.get("test-xml-text").get());
 		
-		store.xmlImport(document).get();
+		store.xmlImport(temp_file).get();
 		
 		data_test.forEach((k, v) -> {
 			try {
@@ -274,5 +400,6 @@ public class StoreTest extends TestCase {
 		});
 		
 		store.close();
+		FileUtils.forceDelete(temp_file);
 	}
 }

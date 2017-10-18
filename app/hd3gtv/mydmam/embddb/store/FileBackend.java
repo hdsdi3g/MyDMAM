@@ -111,6 +111,7 @@ public class FileBackend {
 		private final File expiration_dates_file;
 		private final File index_paths_file;
 		private final File index_paths_llists_file;
+		private final int default_table_size;
 		
 		private StoreBackend(String database_name, String class_name, int default_table_size) throws IOException {
 			this.database_name = database_name;
@@ -121,18 +122,26 @@ public class FileBackend {
 			if (class_name == null) {
 				throw new NullPointerException("\"class_name\" can't to be null");
 			}
+			this.default_table_size = default_table_size;
 			if (default_table_size < 1) {
 				throw new NullPointerException("\"default_table_size\" can't to be < 1 (" + default_table_size + ")");
 			}
-			
-			journal_directory = makeFile("journal");
-			FileUtils.forceMkdir(journal_directory);
 			
 			index_file = makeFile("index.myhshtable");
 			data_file = makeFile("data.mydatalist");
 			expiration_dates_file = makeFile("expiration_dates.myhshtable");
 			index_paths_file = makeFile("index_paths.myhshtable");
 			index_paths_llists_file = makeFile("index_paths_llists.myllist");
+			
+			open();
+		}
+		
+		void open() throws IOException {
+			if (backends.contains(this) == false) {
+				backends.add(this);
+			}
+			journal_directory = makeFile("journal");
+			FileUtils.forceMkdir(journal_directory);
 			
 			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
 			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);
@@ -435,6 +444,7 @@ public class FileBackend {
 			});
 			journal = new TransactionJournal(journal_directory, instance);
 		}
+		
 	}
 	
 	/*void close() {

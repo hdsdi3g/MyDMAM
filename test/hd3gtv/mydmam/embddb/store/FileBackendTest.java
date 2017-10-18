@@ -270,13 +270,12 @@ public class FileBackendTest extends TestCase {
 		});
 		
 		backend.close();
-		
-		StoreBackend backend2 = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000);
+		backend.open();
 		
 		/**
 		 * Now, read the datas
 		 */
-		int all_items = (int) backend2.getAllDatas().parallel().map(entry -> {
+		int all_items = (int) backend.getAllDatas().parallel().map(entry -> {
 			return new Item(entry);
 		}).count();
 		

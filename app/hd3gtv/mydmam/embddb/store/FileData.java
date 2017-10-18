@@ -239,12 +239,12 @@ class FileData {
 		}
 	}
 	
-	public static <T extends Exception> void readAndEquals(ByteBuffer buffer, long expected, Function<Long, T> onDifference) throws T {
+	/*public static <T extends Exception> void readAndEquals(ByteBuffer buffer, long expected, Function<Long, T> onDifference) throws T {
 		long real_value = buffer.getLong();
 		if (expected != real_value) {
 			throw onDifference.apply(real_value);
 		}
-	}
+	}*/
 	
 	public static <T extends Exception> void readByteAndEquals(ByteBuffer buffer, byte expected, Function<Byte, T> onDifference) throws T {
 		byte real_value = buffer.get();

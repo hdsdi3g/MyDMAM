@@ -91,7 +91,7 @@ public class TransactionJournalTest extends TestCase {
 				journal_read.readAll(false).forEach(entry -> {
 					item_count.incrementAndGet();
 					
-					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date + 2l, last_date.get() <= entry.date + 2l);
+					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date/* + 1000l*/, last_date.get() <= entry.date/* + 1000l*/);
 					last_date.set(entry.date);
 					assertTrue("Unknow key in #" + item_count.get() + ": " + entry.key, hash_map.containsKey(entry.key));
 					

@@ -19,8 +19,6 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class FileIndexDates {
 	
@@ -73,21 +71,21 @@ public class FileIndexDates {
 		return result;
 	}
 	
-	public List<ItemKey> getPastKeys(long relative_date) throws IOException {
+	/*public List<ItemKey> getPastKeys(long relative_date) throws IOException {
 		return hash_table.stream().filter(v -> {
 			return v.value < relative_date;
 		}).map(v -> {
 			return v.key;
-		}).collect(Collectors.toList());/** Less risky during a GC session */
-	}
+		}).collect(Collectors.toList());** Less risky during a GC session *
+	}*/
 	
-	public List<ItemKey> getFutureKeys(long relative_date) throws IOException {
+	/*public List<ItemKey> getFutureKeys(long relative_date) throws IOException {
 		return hash_table.stream().filter(v -> {
 			return v.value > relative_date;
 		}).map(v -> {
 			return v.key;
-		}).collect(Collectors.toList());/** Less risky during a GC session */
-	}
+		}).collect(Collectors.toList());** Less risky during a GC session *
+	}*/
 	
 	void purge() throws IOException {
 		hash_table.purge();

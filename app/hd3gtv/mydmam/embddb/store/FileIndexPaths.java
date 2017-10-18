@@ -389,15 +389,7 @@ public class FileIndexPaths {
 	 * Only remove reference, not linked list items
 	 */
 	public void remove(String path) throws IOException {
-		if (path.equals("/") | path.equals("/*")) {
-			return;
-		}
 		hash_table.remove(new ItemKey(path));
-		if (path.endsWith("*")) {
-			hash_table.remove(new ItemKey(path.substring(0, path.length() - 1)));
-		} else {
-			hash_table.remove(new ItemKey(path + "*"));
-		}
 	}
 	
 	/**

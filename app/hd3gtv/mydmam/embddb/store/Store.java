@@ -199,6 +199,21 @@ public final class Store<T> implements Closeable {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
+		return getItem(_id).thenApplyAsync(item -> {
+			if (item == null) {
+				return null;
+			}
+			return item_factory.getFromItem(item);
+		}, executor);
+	}
+	
+	/**
+	 * @return null if not found
+	 */
+	public CompletableFuture<Item> getItem(String _id) {
+		if (closed) {
+			throw new RuntimeException("Store is closed");
+		}
 		return CompletableFuture.supplyAsync(() -> {
 			try {
 				ItemKey key = new ItemKey(_id);
@@ -219,7 +234,7 @@ public final class Store<T> implements Closeable {
 				if (item.isDeleted()) {
 					return null;
 				}
-				return item_factory.getFromItem(item);
+				return item;
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -329,7 +344,7 @@ public final class Store<T> implements Closeable {
 		}, executor);
 	}
 	
-	public CompletableFuture<Map<ItemKey, T>> getAll() {
+	public CompletableFuture<Map<ItemKey, T>> getAllkeys() {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
@@ -337,6 +352,23 @@ public final class Store<T> implements Closeable {
 			try {
 				return getAllNonDeletedItems().collect(Collectors.toMap(item -> {
 					return item.getKey();
+				}, item -> {
+					return item_factory.getFromItem(item);
+				}));
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}, executor);
+	}
+	
+	public CompletableFuture<Map<String, T>> getAllIDs() {
+		if (closed) {
+			throw new RuntimeException("Store is closed");
+		}
+		return CompletableFuture.supplyAsync(() -> {
+			try {
+				return getAllNonDeletedItems().collect(Collectors.toMap(item -> {
+					return item.getId();
 				}, item -> {
 					return item_factory.getFromItem(item);
 				}));
@@ -359,19 +391,31 @@ public final class Store<T> implements Closeable {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
+		return getItemsByPath(path).thenApplyAsync(stream -> {
+			return stream.map(item -> {
+				return item_factory.getFromItem(item);
+			}).collect(Collectors.toList());
+		}, executor);
+	}
+	
+	public CompletableFuture<Stream<Item>> getItemsByPath(String path) {
+		if (closed) {
+			throw new RuntimeException("Store is closed");
+		}
+		
 		return CompletableFuture.supplyAsync(() -> {
 			try {
 				return internalGetByPath(path).map(item -> {
-					return item_factory.getFromItem(item);
-				}).collect(Collectors.toList());
+					return item;
+				});
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 		}, executor);
 	}
 	
-	private void remove(Stream<Item> items) {
-		items.forEach(item -> {
+	private int remove(Stream<Item> items) {
+		return (int) items.peek(item -> {
 			item.setPayload(new byte[0]);
 			item.setTTL(-1);
 			item.setPath(null);
@@ -386,17 +430,16 @@ public final class Store<T> implements Closeable {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-		});
+		}).count();
 	}
 	
-	public CompletableFuture<String> removeAllByPath(String path) {
+	public CompletableFuture<Integer> removeAllByPath(String path) {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
 		return CompletableFuture.supplyAsync(() -> {
 			try {
-				remove(internalGetByPath(path));
-				return path;
+				return remove(internalGetByPath(path));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -416,6 +459,27 @@ public final class Store<T> implements Closeable {
 			read_cache.clear();
 			try {
 				backend.clear();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+	
+	/**
+	 * Blocking.
+	 */
+	void purgeAll() throws Exception {
+		if (closed) {
+			throw new RuntimeException("Store is closed");
+		}
+		executor.insertPauseTask(() -> {
+			journal_write_cache_size.set(0);
+			journal_write_cache.clear();
+			read_cache.clear();
+			try {
+				backend.purge();
+				backend.close();
+				backend.open();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -699,5 +763,5 @@ public final class Store<T> implements Closeable {
 	}
 	
 	// TODO network I/O
-	
+	// TODO need to remove dead code after tests
 }

@@ -128,7 +128,7 @@ class TransactionJournal {
 	 * Thread safe
 	 */
 	void write(ItemKey key, ByteBufferExporter data_source, long expiration_date, String path) throws IOException {
-		new JournalEntry(key, data_source, expiration_date, path).write();
+		new JournalEntry(key, data_source, expiration_date, path);
 	};
 	
 	Stream<JournalEntry> readAll(boolean partial_read) throws IOException {
@@ -176,63 +176,54 @@ class TransactionJournal {
 	}
 	
 	class JournalEntry {
-		final ItemKey key;
-		final long date;
-		final long expiration_date;
-		final String path;
-		final ByteBufferExporter data_export_source;
-		
-		private JournalEntry(ItemKey key, ByteBufferExporter data_source, long expiration_date, String path) {
-			this.key = key;
-			if (key == null) {
-				throw new NullPointerException("\"key\" can't to be null");
-			}
-			this.data_export_source = data_source;
-			if (data_source == null) {
-				throw new NullPointerException("\"data_source\" can't to be null");
-			}
-			this.expiration_date = expiration_date;
-			if (expiration_date == 0) {
-				throw new NullPointerException("\"expiration_date\" can't to be equals to 0");
-			}
-			if (path == null) {
-				this.path = "";
-			} else {
-				this.path = path;
-			}
-			date = System.currentTimeMillis();
-		}
-		
 		/**
+		 * Direct write
 		 * Thread safe
-		 * @throws IOException
 		 */
-		private void write() throws IOException {
-			byte[] b_path = path.getBytes(MyDMAM.UTF8);
-			
-			int block_size = data_export_source.getByteBufferWriteSize();
-			int data_size = ENTRY_HEADER.length + 8 + 8 + (4 + key.key.length) + (4 + block_size) + (4 + b_path.length);
-			int total_size = ENTRY_SEPARATOR.length + 4 + data_size;
-			
-			ByteBuffer write_buffer = ByteBuffer.allocate(total_size);
-			write_buffer.put(ENTRY_SEPARATOR);
-			write_buffer.putInt(data_size);
-			write_buffer.put(ENTRY_HEADER);
-			write_buffer.putLong(date);
-			write_buffer.putLong(expiration_date);
-			writeNextBlock(write_buffer, key.key);
-			write_buffer.putInt(block_size);
-			data_export_source.toByteBuffer(write_buffer);
-			writeNextBlock(write_buffer, b_path);
-			write_buffer.flip();
-			
+		private JournalEntry(ItemKey key, ByteBufferExporter data_source, long expiration_date, String path) throws IOException {
 			synchronized (file_channel) {
+				if (key == null) {
+					throw new NullPointerException("\"key\" can't to be null");
+				}
+				if (data_source == null) {
+					throw new NullPointerException("\"data_source\" can't to be null");
+				}
+				if (expiration_date == 0) {
+					throw new NullPointerException("\"expiration_date\" can't to be equals to 0");
+				}
+				if (path == null) {
+					path = "";
+				}
+				byte[] b_path = path.getBytes(MyDMAM.UTF8);
+				
+				int block_size = data_source.getByteBufferWriteSize();
+				int data_size = ENTRY_HEADER.length + 8 + 8 + (4 + key.key.length) + (4 + block_size) + (4 + b_path.length);
+				int total_size = ENTRY_SEPARATOR.length + 4 + data_size;
+				
+				ByteBuffer write_buffer = ByteBuffer.allocate(total_size);
+				write_buffer.put(ENTRY_SEPARATOR);
+				write_buffer.putInt(data_size);
+				write_buffer.put(ENTRY_HEADER);
+				write_buffer.putLong(System.currentTimeMillis());
+				write_buffer.putLong(expiration_date);
+				writeNextBlock(write_buffer, key.key);
+				write_buffer.putInt(block_size);
+				data_source.toByteBuffer(write_buffer);
+				writeNextBlock(write_buffer, b_path);
+				write_buffer.flip();
+				
 				int writed_size = file_channel.write(write_buffer);
 				if (writed_size != total_size) {
 					throw new IOException("Can't write journal (" + writed_size + "/" + total_size + ")");
 				}
 			}
 		}
+		
+		ItemKey key;
+		long expiration_date;
+		String path;
+		ByteBufferExporter data_export_source;
+		long date;
 		
 		/**
 		 * READ

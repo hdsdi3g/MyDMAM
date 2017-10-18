@@ -1,5 +1,5 @@
 /*
- * https://github.com/fzakaria/ascii85 TODO add to MyDMAM web site
+ * https://github.com/fzakaria/ascii85
  * com.github.fzakaria.ascii85
  * commit a0b8429a32191849f7d360814b6b5d917d63b8e2
  * 
