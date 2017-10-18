@@ -20,11 +20,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Objects;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
-import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -35,6 +34,7 @@ import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.tools.Ascii85;
 import hd3gtv.tools.Hexview;
 
 @GsonIgnore
@@ -266,29 +266,46 @@ public final class Item implements ByteBufferExporter, Serializable {
 	}
 	
 	static final String XML_ITEM_ELEMENT = "item";
+	static final String XML_ITEM_CHUNK = "chunk";
+	private static final int XML_CHUNK_MAX_SIZE = 600;
+	
+	private static final String XML_ATTR_ID = "_id";
+	private static final String XML_ATTR_PATH = "path";
+	private static final String XML_ATTR_SIZE = "size";
+	private static final String XML_ATTR_CREATED = "created";
+	private static final String XML_ATTR_UPDATED = "updated";
+	private static final String XML_ATTR_DELETED = "deleted";
+	private static final String XML_ATTR_PAYLOAD_TYPE = "payload_type";
+	private static final String XML_ATTR_DIGEST = "digest";
+	
+	private enum XMLPayloadType {
+		UTF8, /*BASE64,*/ HEXSTRING, ASCII85;
+	}
 	
 	public void toXML(XMLSerializer serializer) throws SAXException, IOException {
 		AttributesImpl atts = new AttributesImpl();
-		atts.addAttribute("", "", "_id", "CDATA", _id);
-		atts.addAttribute("", "", "path", "CDATA", path);
-		atts.addAttribute("", "", "size", "CDATA", String.valueOf(payload.length));
-		atts.addAttribute("", "", "created", "CDATA", String.valueOf(created));
-		atts.addAttribute("", "", "updated", "CDATA", String.valueOf(updated));
-		atts.addAttribute("", "", "deleted", "CDATA", String.valueOf(deleted));
+		atts.addAttribute("", "", XML_ATTR_ID, "CDATA", _id);
+		atts.addAttribute("", "", XML_ATTR_PATH, "CDATA", path);
+		atts.addAttribute("", "", XML_ATTR_SIZE, "CDATA", String.valueOf(payload.length));
+		atts.addAttribute("", "", XML_ATTR_CREATED, "CDATA", String.valueOf(created));
+		atts.addAttribute("", "", XML_ATTR_UPDATED, "CDATA", String.valueOf(updated));
+		atts.addAttribute("", "", XML_ATTR_DELETED, "CDATA", String.valueOf(deleted));
+		atts.addAttribute("", "", XML_ATTR_DIGEST, "CDATA", MyDMAM.byteToString(getDigest()));
 		
-		boolean is_just_text = validChars(payload);
-		boolean is_big_binary = false;
-		if (is_just_text == false) {
-			is_big_binary = payload.length > 256;
+		XMLPayloadType payload_type = XMLPayloadType.UTF8;
+		if (validChars(payload) == false) {
+			if (payload.length > 256) {
+				// if (payload.length > 10000000) {
+				payload_type = XMLPayloadType.ASCII85;
+				// } else {
+				// payload_type = XMLPayloadType.BASE64;
+				// }
+			} else {
+				payload_type = XMLPayloadType.HEXSTRING;
+			}
 		}
 		
-		if (is_just_text) {
-			atts.addAttribute("", "", "payload_type", "CDATA", "UTF-8");
-		} else if (is_big_binary) {
-			atts.addAttribute("", "", "payload_type", "CDATA", "base64");
-		} else {
-			atts.addAttribute("", "", "payload_type", "CDATA", "hexstring");
-		}
+		atts.addAttribute("", "", XML_ATTR_PAYLOAD_TYPE, "CDATA", payload_type.name());
 		
 		serializer.startElement("", "", XML_ITEM_ELEMENT, atts);
 		serializer.comment("Key: " + MyDMAM.byteToString(getKey().key));
@@ -296,26 +313,69 @@ public final class Item implements ByteBufferExporter, Serializable {
 		serializer.comment("Updated: " + Loggers.dateLog(updated));
 		serializer.comment("Deleted: " + Loggers.dateLog(deleted) + " (was deleted: " + String.valueOf(isDeleted()) + ")");
 		
-		serializer.startCDATA();
 		String value = null;
-		if (is_just_text) {
+		switch (payload_type) {
+		case UTF8:
 			value = new String(payload, MyDMAM.UTF8);
-		} else if (is_big_binary) {
+			break;
+		/*case BASE64:
 			value = new String(new Base64().encode(payload));
-		} else {
+			break;*/
+		case ASCII85:
+			value = Ascii85.encode(payload);
+			break;
+		case HEXSTRING:
 			value = MyDMAM.byteToString(payload);
+			break;
 		}
-		serializer.characters(value.toCharArray(), 0, value.length());
-		serializer.endCDATA();
 		
-		serializer.endElement("", "", "item");
+		for (int pos = 0; pos < value.length(); pos += XML_CHUNK_MAX_SIZE) {
+			serializer.startElement("", "", XML_ITEM_CHUNK, new AttributesImpl());
+			serializer.startCDATA();
+			serializer.characters(value.toCharArray(), pos, Math.min(value.length() - pos, XML_CHUNK_MAX_SIZE));
+			serializer.endCDATA();
+			serializer.endElement("", "", XML_ITEM_CHUNK);
+		}
+		
+		serializer.endElement("", "", XML_ITEM_ELEMENT);
 	}
 	
 	/**
 	 * Import from XML
 	 */
-	Item(Attributes attributes, String coded_payload) {
-		// TODO Auto-generated constructor stub
+	Item(HashMap<String, String> attributes, String coded_payload) {
+		_id = requireNonEmpty(Objects.requireNonNull(attributes.get(XML_ATTR_ID), "\"_id\" can't to be null"), "\"_id\" can't to be empty");
+		path = attributes.get(XML_ATTR_PATH);
+		if (path == null) {
+			this.path = "";
+		}
+		created = Long.valueOf(attributes.get(XML_ATTR_CREATED));
+		updated = Long.valueOf(attributes.get(XML_ATTR_UPDATED));
+		deleted = Long.valueOf(attributes.get(XML_ATTR_DELETED));
+		int size = Integer.valueOf(attributes.get(XML_ATTR_SIZE));
+		byte[] xml_element_digest = MyDMAM.hexStringToByteArray(attributes.get(XML_ATTR_DIGEST));
+		
+		XMLPayloadType payload_type = XMLPayloadType.valueOf(attributes.get(XML_ATTR_PAYLOAD_TYPE));
+		
+		switch (payload_type) {
+		case UTF8:
+			payload = coded_payload.getBytes(MyDMAM.UTF8);
+			break;
+		/*case BASE64:
+			payload = new Base64().decode(coded_payload);
+			break;*/
+		case ASCII85:
+			payload = Ascii85.decode(coded_payload);
+			break;
+		case HEXSTRING:
+			payload = MyDMAM.hexStringToByteArray(coded_payload);
+			break;
+		}
+		
+		if (payload.length != size) {
+			throw new RuntimeException("Invalid payload size ! Declared: " + size + ", real: " + payload.length);
+		}
+		checkDigest(xml_element_digest);
 	}
 	
 	public static boolean validChars(byte[] text) {

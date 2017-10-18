@@ -172,7 +172,7 @@ public class FileBackend {
 			}
 		}
 		
-		private File makeFile(String name) {
+		File makeFile(String name) {
 			return new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + name);
 		}
 		

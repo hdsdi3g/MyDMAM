@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -497,7 +498,8 @@ public final class Store<T> implements Closeable {
 		return CompletableFuture.supplyAsync(() -> {
 			FileOutputStream fileoutputstream = null;
 			try {
-				File destination = new File("out.xml"); // TODO create real file name
+				long now = System.currentTimeMillis();
+				File destination = backend.makeFile(Loggers.dateFilename(now) + ".xml");
 				
 				fileoutputstream = new FileOutputStream(destination);
 				OutputFormat of = new OutputFormat();
@@ -514,12 +516,12 @@ public final class Store<T> implements Closeable {
 				 */
 				AttributesImpl atts = new AttributesImpl();
 				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_VERSION, "CDATA", String.valueOf(XML_DOCUMENT_VERSION));
-				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_CREATED, "CDATA", String.valueOf(System.currentTimeMillis()));
+				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_CREATED, "CDATA", String.valueOf(now));
 				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_DATABASE, "CDATA", database_name);
 				atts.addAttribute("", "", XML_ROOT_ELEMENT_ATTR_CLASSNAME, "CDATA", generic_class_name);
 				
 				serializer.startElement("", "", XML_ROOT_ELEMENT, atts);
-				serializer.comment("created: " + Loggers.dateLog(System.currentTimeMillis()));
+				serializer.comment("created: " + Loggers.dateLog(now));
 				
 				Stream<Item> stored_items = mapToItemAndPushToReadCacheAndIsActuallyNotExistsInCommitLog(backend.getAllDatas());
 				Stream<Item> stored_items_with_comit_log = accumulateWithCommitLog(stored_items, new HashSet<>(journal_write_cache.values()));
@@ -585,7 +587,7 @@ public final class Store<T> implements Closeable {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-		});
+		}, executor);
 	}
 	
 	private class XMLImport extends DefaultHandler implements ErrorHandler, LexicalHandler {
@@ -597,7 +599,7 @@ public final class Store<T> implements Closeable {
 			rawtext = new StringBuilder();
 		}
 		
-		Attributes current_item_attributes;
+		HashMap<String, String> current_item_attributes;
 		
 		public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
 			if (qName.equals(XML_ROOT_ELEMENT)) {
@@ -614,10 +616,19 @@ public final class Store<T> implements Closeable {
 					throw new SAXException("Invalid database name: " + current_generic_class_name + " (this is " + generic_class_name + ")");
 				}
 				
-				log.debug("XML creation date: " + Loggers.dateLog(Long.valueOf(attributes.getIndex(XML_ROOT_ELEMENT_ATTR_CREATED))));
+				log.debug("XML creation date: " + Loggers.dateLog(Long.valueOf(attributes.getValue(XML_ROOT_ELEMENT_ATTR_CREATED))));
 			} else if (qName.equals(Item.XML_ITEM_ELEMENT)) {
-				current_item_attributes = attributes;
+				
+				int attr_size = attributes.getLength();
+				current_item_attributes = new HashMap<>(attr_size);
+				for (int pos = 0; pos < attr_size; pos++) {
+					current_item_attributes.put(attributes.getQName(pos), attributes.getValue(pos));
+				}
 				current_raw_payload = "";
+			} else if (qName.equals(Item.XML_ITEM_CHUNK)) {
+				/**
+				 * Do nothing...
+				 */
 			} else {
 				throw new SAXException("Unknown XML qName: " + qName);
 			}

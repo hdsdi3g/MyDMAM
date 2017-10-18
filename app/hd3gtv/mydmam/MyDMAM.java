@@ -106,6 +106,21 @@ public class MyDMAM {
 		return sb.toString();
 	}
 	
+	/**
+	 * @see https://stackoverflow.com/questions/140131/convert-a-string-representation-of-a-hex-dump-to-a-byte-array-using-java
+	 */
+	public static final byte[] hexStringToByteArray(String s) {
+		if (s == null) {
+			return new byte[0];
+		}
+		int len = s.length();
+		byte[] data = new byte[len / 2];
+		for (int i = 0; i < len; i += 2) {
+			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
+		}
+		return data;
+	}
+	
 	private volatile static Properties configured_messages;
 	
 	/**

@@ -18,6 +18,8 @@ package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -235,15 +237,42 @@ public class StoreTest extends TestCase {
 		}, backend, ReadCacheEhcache.getCache(), 1000, 10, 10);
 		
 		store.truncate();
-		store.put("test-xml-text", new RandomBinTest("TËST".getBytes()), 1, TimeUnit.HOURS).get();
-		store.put("test-xml-bin", new RandomBinTest(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04 }), 1, TimeUnit.HOURS).get();
 		
 		byte[] garbadge = new byte[100_000];
 		ThreadLocalRandom.current().nextBytes(garbadge);
-		store.put("test-xml-big", new RandomBinTest(garbadge), 1, TimeUnit.HOURS).get();
 		
-		store.xmlExport().get();
+		HashMap<String, RandomBinTest> data_test = new HashMap<>(4);
+		data_test.put("test-xml-text", new RandomBinTest("TËST".getBytes()));
+		data_test.put("test-xml-cdata", new RandomBinTest("<![CDATA[CULE]]>".getBytes()));
+		data_test.put("test-xml-bin", new RandomBinTest(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04 }));
+		data_test.put("test-xml-big", new RandomBinTest(garbadge));
+		
+		data_test.forEach((k, v) -> {
+			try {
+				store.put(k, v, 1, TimeUnit.HOURS).get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
+		File document = store.xmlExport().get();
 		store.truncate();
+		store.doDurableWritesAndCleanUpFiles();
+		ReadCacheEhcache.getCache().clear();
+		assertNull(store.get("test-xml-text").get());
+		
+		store.xmlImport(document).get();
+		
+		data_test.forEach((k, v) -> {
+			try {
+				RandomBinTest item = store.get(k).get();
+				assertNotNull(item);
+				assertTrue(Arrays.equals(v.content, item.content));
+			} catch (InterruptedException | ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
 		store.close();
 	}
 }
