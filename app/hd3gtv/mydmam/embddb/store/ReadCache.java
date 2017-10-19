@@ -23,8 +23,6 @@ public interface ReadCache {
 	 */
 	public void put(Item item);
 	
-	// public void putIfExists(Item item);
-	
 	/**
 	 * Check Item real ttl
 	 */

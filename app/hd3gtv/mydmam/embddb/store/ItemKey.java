@@ -26,7 +26,7 @@ import hd3gtv.mydmam.MyDMAM;
 /**
  * A byte[] wrapper
  */
-final class ItemKey implements Serializable {
+public final class ItemKey implements Serializable {
 	
 	final byte[] key;
 	

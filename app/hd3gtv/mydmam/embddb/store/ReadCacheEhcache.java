@@ -45,17 +45,6 @@ public final class ReadCacheEhcache implements ReadCache {
 	
 	private ReadCacheEhcache() {
 		CacheConfiguration conf = new CacheConfiguration(getClass().getSimpleName(), 0);
-		// conf.memoryStoreEvictionPolicy(memoryStoreEvictionPolicy);
-		// conf.eternal(false);
-		// conf.timeToLiveSeconds(timeToLiveSeconds);
-		// conf.timeToIdleSeconds(timeToIdleSeconds);
-		// conf.persistence(persistenceConfiguration)
-		// conf.diskPersistent(diskPersistent);
-		// conf.overflowToDisk(overflowToDisk);
-		// conf.diskExpiryThreadIntervalSeconds(diskExpiryThreadIntervalSeconds);
-		// conf.maxElementsOnDisk(maxElementsOnDisk);
-		// conf.diskSpoolBufferSizeMB(diskSpoolBufferSizeMB);
-		// conf.clearOnFlush(true);
 		
 		MemoryMXBean mmvb = ManagementFactory.getMemoryMXBean();
 		long max_heap_mem = mmvb.getHeapMemoryUsage().getMax();

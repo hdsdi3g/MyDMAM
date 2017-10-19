@@ -447,11 +447,4 @@ public class FileBackend {
 		
 	}
 	
-	/*void close() {
-		backends.parallelStream().forEach(backend -> {
-			backend.close();
-		});
-		backends.clear();
-	}*/
-	
 }

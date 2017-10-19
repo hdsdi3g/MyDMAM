@@ -62,10 +62,10 @@ import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
  * Polyvalent and agnostic object storage
- * Bind Backend and StoreItemFactory
+ * Bind StoreBackend and ItemFactory
  */
 @GsonIgnore
-public final class Store<T> implements Closeable {
+public class Store<T> implements Closeable {
 	private static Logger log = Logger.getLogger(Store.class);
 	
 	protected final String database_name;
@@ -493,7 +493,7 @@ public final class Store<T> implements Closeable {
 	/**
 	 * Blocking.
 	 */
-	public void doDurableWrites() throws Exception {
+	public final void doDurableWrites() throws Exception {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
@@ -762,6 +762,4 @@ public final class Store<T> implements Closeable {
 		
 	}
 	
-	// TODO network I/O
-	// TODO need to remove dead code after tests
 }

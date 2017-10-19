@@ -51,8 +51,6 @@ class FileData {
 	private final FileChannel channel;
 	private final ArrayList<DeletedEntry> deleted_entries;
 	
-	// private final long file_data_start;
-	
 	FileData(File data_file) throws IOException {
 		this.data_file = data_file;
 		if (data_file == null) {
@@ -60,7 +58,6 @@ class FileData {
 		}
 		
 		ByteBuffer bytebuffer_header_data = ByteBuffer.allocate(FILE_DATA_HEADER_LENGTH);
-		// file_data_start = bytebuffer_header_data.capacity();
 		
 		deleted_entries = new ArrayList<>();
 		

@@ -216,12 +216,12 @@ public class FileHashTable<T> {
 			}
 		}
 		
-		public String toString() {
+		/*public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("compressed_hash_key=" + compressed_hash_key + ",");
 			sb.append("linked_list_first_index=" + linked_list_first_index);
 			return sb.toString();
-		}
+		}*/
 	}
 	
 	private class LinkedListEntry {
@@ -288,12 +288,12 @@ public class FileHashTable<T> {
 			}
 		}
 		
-		public String toString() {
+		/*public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("current_key=#" + MyDMAM.byteToString(current_key).substring(0, 8) + ",");
 			sb.append("next_linked_list_pointer=" + next_linked_list_pointer);
 			return sb.toString();
-		}
+		}*/
 		
 		void clear() throws IOException {
 			synchronized (free_linked_list_item_pointers) {

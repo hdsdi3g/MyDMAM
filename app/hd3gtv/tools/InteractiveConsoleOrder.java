@@ -25,6 +25,6 @@ public interface InteractiveConsoleOrder {
 	/**
 	 * @param procedure callbacked param maybe null. Display with the PrintStream
 	 */
-	void addOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure);
+	void addConsoleOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure);
 	
 }

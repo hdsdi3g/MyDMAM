@@ -699,7 +699,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	}
 	
 	public void addConsoleAction(InteractiveConsoleOrder console) {
-		console.addOrder("nl", "Node list", "Display actual connected node", getClass(), (param, out) -> {
+		console.addConsoleOrder("nl", "Node list", "Display actual connected node", getClass(), (param, out) -> {
 			TableList table = new TableList();
 			nodes.stream().forEach(node -> {
 				node.addToActualStatus(table);
@@ -707,7 +707,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			table.print(out);
 		});
 		
-		console.addOrder("node", "Node action", "Do action to a node", getClass(), (param, out) -> {
+		console.addConsoleOrder("node", "Node action", "Do action to a node", getClass(), (param, out) -> {
 			if (param == null) {
 				out.println("Usage:");
 				out.println("node add address [port]");
@@ -777,14 +777,14 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			}
 		});
 		
-		console.addOrder("gcnodes", "Garbage collector node list", "Purge closed nodes", getClass(), (param, out) -> {
+		console.addConsoleOrder("gcnodes", "Garbage collector node list", "Purge closed nodes", getClass(), (param, out) -> {
 			purgeClosedNodes();
 		});
-		console.addOrder("closenodes", "Close all nodes", "Force to disconnect all connected nodes", getClass(), (param, out) -> {
+		console.addConsoleOrder("closenodes", "Close all nodes", "Force to disconnect all connected nodes", getClass(), (param, out) -> {
 			sayToAllNodesToDisconnectMe(false);
 		});
 		
-		console.addOrder("sch", "Activity scheduler", "Display the activated regular task list", getClass(), (param, out) -> {
+		console.addConsoleOrder("sch", "Activity scheduler", "Display the activated regular task list", getClass(), (param, out) -> {
 			TableList table = new TableList();
 			
 			if (node_scheduler.isEmpty()) {
@@ -805,7 +805,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			table.print(out);
 		});
 		
-		console.addOrder("srv", "Servers status", "Display all servers status", getClass(), (param, out) -> {
+		console.addConsoleOrder("srv", "Servers status", "Display all servers status", getClass(), (param, out) -> {
 			TableList table = new TableList();
 			local_servers.forEach(local_server -> {
 				try {
@@ -820,7 +820,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			table.print(out);
 		});
 		
-		console.addOrder("closesrv", "Close servers", "Close all opened servers", getClass(), (param, out) -> {
+		console.addConsoleOrder("closesrv", "Close servers", "Close all opened servers", getClass(), (param, out) -> {
 			local_servers.forEach(local_server -> {
 				if (local_server.isOpen()) {
 					out.println("Close server " + local_server.getListen().getHostString() + "...");
@@ -829,7 +829,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			});
 		});
 		
-		console.addOrder("poke", "Poke servers", "Poke all server, or one if specified", getClass(), (param, out) -> {
+		console.addConsoleOrder("poke", "Poke servers", "Poke all server, or one if specified", getClass(), (param, out) -> {
 			if (param == null) {
 				nodes.stream().forEach(node -> {
 					out.println("Poke " + node);
@@ -852,13 +852,13 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			}
 		});
 		
-		console.addOrder("ip", "IP properties", "Show actual network properties", getClass(), (param, out) -> {
+		console.addConsoleOrder("ip", "IP properties", "Show actual network properties", getClass(), (param, out) -> {
 			TableList table = new TableList();
 			addr_master.dump(table);
 			table.print(out);
 		});
 		
-		console.addOrder("stats", "Get last pressure measurement", "Get nodelist data stats", getClass(), (param, out) -> {
+		console.addConsoleOrder("stats", "Get last pressure measurement", "Get nodelist data stats", getClass(), (param, out) -> {
 			TableList list = new TableList();
 			PressureMeasurement.toTableHeader(list);
 			pressure_measurement_recevied.getActualStats(false).toTable(list, "Recevied");
@@ -867,7 +867,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			list.print(out);
 		});
 		
-		console.addOrder("resetstats", "Reset pressure measurement", "Get nodelist data stats and reset it", getClass(), (param, out) -> {
+		console.addConsoleOrder("resetstats", "Reset pressure measurement", "Get nodelist data stats and reset it", getClass(), (param, out) -> {
 			TableList list = new TableList();
 			PressureMeasurement.toTableHeader(list);
 			pressure_measurement_recevied.getActualStats(true).toTable(list, "Recevied");

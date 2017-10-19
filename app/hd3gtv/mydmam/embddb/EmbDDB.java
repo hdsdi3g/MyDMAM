@@ -107,8 +107,8 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		return telemetry;
 	}
 	
-	public void addOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
-		console.addOrder(order, name, description, creator, procedure);
+	public void addConsoleOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
+		console.addConsoleOrder(order, name, description, creator, procedure);
 	}
 	
 	/**
@@ -181,5 +181,9 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	public LockEngine getLockEngine() {
 		return lock_engine;
 	}
+	
+	// TODO manage DB name, main db dir or temp dir
+	// TODO manage DB subscribing: create DistriStore >> Start sync >> ready to IO
+	// TODO create sync pipeline for all DStores
 	
 }

@@ -178,7 +178,7 @@ public class InteractiveConsole implements InteractiveConsoleOrder {
 		}
 	}
 	
-	public void addOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
+	public void addConsoleOrder(String order, String name, String description, Class<?> creator, BiConsumer<String, PrintStream> procedure) {
 		synchronized (controller) {
 			if (controller.containsKey(order)) {
 				log.warn("Action " + order + " already exists. Added by " + controller.get(order).creator + " and in conflict with " + creator);

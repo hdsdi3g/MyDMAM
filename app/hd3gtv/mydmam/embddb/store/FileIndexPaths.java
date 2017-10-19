@@ -134,12 +134,7 @@ public class FileIndexPaths {
 		[prefix][user data hash key][absolute position for linked list's next index]
 		^ linked_list_pointer
 		*/
-		LinkedListEntry(/*long linked_list_pointer, */ByteBuffer linkedlist_entry_buffer) throws IOException {
-			/*this.linked_list_pointer = linked_list_pointer;
-			if (linked_list_pointer < 1l) {
-				throw new NullPointerException("\"linked_list_pointer\" can't to be < 1 (" + linkedlist_entry_buffer + ")");
-			}*/
-			
+		LinkedListEntry(ByteBuffer linkedlist_entry_buffer) throws IOException {
 			byte[] prefix = new byte[ENTRY_PREFIX.length];
 			linkedlist_entry_buffer.get(prefix);
 			if (Arrays.equals(prefix, ENTRY_PREFIX) == false) {
@@ -156,36 +151,16 @@ public class FileIndexPaths {
 		
 		void toByteBuffer(ByteBuffer write_buffer) {
 			write_buffer.put(ENTRY_PREFIX);
-			/*if (user_data_hash_key == null) {
-				for (int pos = 0; pos < ItemKey.SIZE; pos++) {
-					write_buffer.put((byte) 0);
-				}
-			} else {*/
 			write_buffer.put(user_data_hash_key);
-			// }
 			write_buffer.putLong(next_linked_list_pointer);
 		}
 		
-		/*void writeLinkedlistEntry(long linked_list_pointer) throws IOException {
-			ByteBuffer linkedlist_entry_buffer = ByteBuffer.allocate(LLIST_ENTRY_SIZE);
-			toByteBuffer(linkedlist_entry_buffer);
-			linkedlist_entry_buffer.flip();
-			
-			if (log.isTraceEnabled()) {
-				log.trace("Write linked_list_entry " + this + " in " + linked_list_pointer);
-			}
-			int size = channel.write(linkedlist_entry_buffer, linked_list_pointer);
-			if (size != LLIST_ENTRY_SIZE) {
-				throw new IOException("Can't write " + LLIST_ENTRY_SIZE + " bytes for " + this);
-			}
-		}*/
-		
-		public String toString() {
+		/*public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("user_data_hash_key=#" + MyDMAM.byteToString(user_data_hash_key).substring(0, 8) + ",");
 			sb.append("next_linked_list_pointer=" + next_linked_list_pointer);
 			return sb.toString();
-		}
+		}*/
 		
 	}
 	
@@ -216,8 +191,6 @@ public class FileIndexPaths {
 					throw new IOException("Next pointer is this pointer: " + r + " for start " + linked_list_first_index);
 				}
 				next_pointer.set(r.next_linked_list_pointer);
-				
-				// System.out.println(">>> " + new ItemKey(r.user_data_hash_key) + " >> " + next_pointer.get());
 				return r;
 			} catch (IOException e) {
 				throw new RuntimeException(e);

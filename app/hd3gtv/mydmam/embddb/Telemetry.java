@@ -171,7 +171,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		
 		final String this_uuid = embddb.poolmanager.getUUIDRef().toString();
 		
-		console.addOrder("telemetry", "Cluster telemetry", "Generate and retrieve telemetry reports", Telemetry.class, (param, out) -> {
+		console.addConsoleOrder("telemetry", "Cluster telemetry", "Generate and retrieve telemetry reports", Telemetry.class, (param, out) -> {
 			if (param == null) {
 				help.accept(out);
 				return;
