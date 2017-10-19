@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
@@ -35,14 +36,20 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 public class DistributedStore<T> extends Store<T> {
 	private static Logger log = Logger.getLogger(DistributedStore.class);
 	
-	private Consistency consistency;
+	private final Consistency consistency;
+	private final IOPipeline pipeline; // TODO raw push/pull
 	
-	DistributedStore(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency) throws IOException {
+	DistributedStore(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency, IOPipeline pipeline) throws IOException {
 		super(database_name, item_factory, file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count);
 		this.consistency = consistency;
 		if (consistency == null) {
 			throw new NullPointerException("\"consistency\" can't to be null");
 		}
+		this.pipeline = pipeline;
+		if (pipeline == null) {
+			throw new NullPointerException("\"pipeline\" can't to be null");
+		}
+		pipeline.storeRegister(item_factory.getType(), this);
 	}
 	
 	public CompletableFuture<String> put(String _id, String path, T element, long ttl, TimeUnit unit) {
@@ -55,9 +62,17 @@ public class DistributedStore<T> extends Store<T> {
 		return super.put(_id, element, ttl, unit);
 	}
 	
+	/**
+	 * Blocking
+	 */
 	public void close() {
-		// TODO Auto-generated method stub
+		CompletableFuture<Void> on_close = pipeline.storeUnregister(item_factory.getType());
 		super.close();
+		try {
+			on_close.get();
+		} catch (InterruptedException | ExecutionException e) {
+			log.error("Can't close Store in pipeline", e);
+		}
 	}
 	
 	public CompletableFuture<Integer> removeAllByPath(String path) {
@@ -73,6 +88,10 @@ public class DistributedStore<T> extends Store<T> {
 	public void truncate() throws Exception {
 		// TODO Auto-generated method stub
 		super.truncate();
+	}
+	
+	Consistency getConsistency() {
+		return consistency;
 	}
 	
 	// TODO delta database/publish nodes

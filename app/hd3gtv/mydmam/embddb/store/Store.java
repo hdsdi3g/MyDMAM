@@ -71,7 +71,7 @@ public class Store<T> implements Closeable {
 	protected final String database_name;
 	private final ReadCache read_cache;
 	private final StoreBackend backend;
-	private final ItemFactory<T> item_factory;
+	protected final ItemFactory<T> item_factory;
 	private final ThreadPoolExecutorFactory executor;
 	private final ScheduledExecutorService scheduled_ex_service;
 	
