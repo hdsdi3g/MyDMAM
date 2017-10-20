@@ -21,15 +21,10 @@ import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -68,16 +63,6 @@ public class FileHashTable<T> {
 	private volatile long file_index_write_pointer;
 	private final PriorityQueue<Long> free_linked_list_item_pointers;
 	
-	static final Set<OpenOption> OPEN_OPTIONS_FILE_EXISTS;
-	static final Set<OpenOption> OPEN_OPTIONS_FILE_NOT_EXISTS;
-	
-	static {
-		OPEN_OPTIONS_FILE_EXISTS = new HashSet<OpenOption>(3);
-		Collections.addAll(OPEN_OPTIONS_FILE_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE);
-		OPEN_OPTIONS_FILE_NOT_EXISTS = new HashSet<OpenOption>(5);
-		Collections.addAll(OPEN_OPTIONS_FILE_NOT_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.SPARSE);
-	}
-	
 	public FileHashTable(File index_file, BiConsumer<T, ByteBuffer> factory_to_bytes, Function<ByteBuffer, T> factory_from_bytes, int data_buffer_size, int default_table_size) throws IOException {
 		this.index_file = index_file;
 		if (index_file == null) {
@@ -103,7 +88,7 @@ public class FileHashTable<T> {
 		file_index_start = bytebuffer_header_index.capacity();
 		
 		if (index_file.exists()) {
-			channel = FileChannel.open(index_file.toPath(), OPEN_OPTIONS_FILE_EXISTS);
+			channel = FileChannel.open(index_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
 			int size = channel.read(bytebuffer_header_index, 0);
 			if (size != FILE_INDEX_HEADER_LENGTH) {
 				throw new IOException("Invalid header");
@@ -132,7 +117,7 @@ public class FileHashTable<T> {
 			table_size = default_table_size;
 			start_linked_lists_zone_in_index_file = file_index_start + ((long) default_table_size) * (long) HASH_ENTRY_SIZE;
 			
-			channel = FileChannel.open(index_file.toPath(), OPEN_OPTIONS_FILE_NOT_EXISTS);
+			channel = FileChannel.open(index_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			
 			bytebuffer_header_index.put(FILE_INDEX_HEADER);
 			bytebuffer_header_index.putInt(FILE_INDEX_VERSION);

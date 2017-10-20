@@ -16,22 +16,34 @@
 */
 package hd3gtv.mydmam.embddb;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationClusterItem;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.Protocol;
+import hd3gtv.mydmam.embddb.store.FileBackend;
+import hd3gtv.mydmam.embddb.store.ItemFactory;
+import hd3gtv.mydmam.embddb.store.ReadCache;
+import hd3gtv.mydmam.embddb.store.ReadCacheEhcache;
 import hd3gtv.tools.ApplicationArgs;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.InteractiveConsole;
 import hd3gtv.tools.InteractiveConsoleOrder;
 
@@ -78,6 +90,10 @@ public class EmbDDB implements InteractiveConsoleOrder {
 			result.poolmanager.startNetDiscover(multicast_groups);
 		}
 		
+		if (Configuration.global.isElementKeyExists("embddb", "durable_store_directory")) {
+			result.setDurableStoreDirectory(new File(Configuration.global.getValue("embddb", "durable_store_directory", null)), false);
+		}
+		
 		return result;
 	}
 	
@@ -86,13 +102,85 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	private final LockEngine lock_engine;
 	private final Telemetry telemetry;
 	private final InteractiveConsole console;
+	private File durable_store_directory;
+	private final UUID uuid_ref;
+	private boolean is_functionnal;
 	
 	private EmbDDB(String master_password_key) throws GeneralSecurityException, IOException {
+		uuid_ref = UUID.randomUUID();
 		console = new InteractiveConsole();
 		protocol = new Protocol(master_password_key);
-		poolmanager = new PoolManager(protocol);
+		poolmanager = new PoolManager(protocol, uuid_ref);
 		lock_engine = new LockEngine(poolmanager);
 		telemetry = new Telemetry(this);
+	}
+	
+	private void setDurableStoreDirectory(File durable_store_directory, final boolean volatile_dir) throws IOException {
+		FileUtils.forceMkdir(durable_store_directory);
+		CopyMove.checkExistsCanRead(durable_store_directory);
+		CopyMove.checkIsWritable(durable_store_directory);
+		
+		final File expected_pid_file = new File(durable_store_directory.getPath() + File.separator + "instance.lock");
+		ByteBuffer value_pid = ByteBuffer.allocate(4);
+		
+		FileChannel _channel = null;
+		if (expected_pid_file.exists()) {
+			_channel = FileChannel.open(expected_pid_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
+		} else {
+			_channel = FileChannel.open(expected_pid_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
+		}
+		
+		final FileChannel channel = _channel;
+		final FileLock lock = channel.tryLock();
+		if (lock == null) {
+			channel.read(value_pid);
+			value_pid.flip();
+			log.error("Actually the PID #" + value_pid.getInt() + " as currently locked " + expected_pid_file);
+			throw new IOException("Can't run more than EmbDDB instances on the same store: " + durable_store_directory);
+		}
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			try {
+				lock.release();
+				channel.close();
+			} catch (IOException e) {
+				log.error("Can't release EmbDDB file lock: " + expected_pid_file.getPath(), e);
+			}
+			try {
+				FileUtils.forceDelete(expected_pid_file);
+			} catch (IOException e) {
+				log.error("Can't remove EmbDDB file lock: " + expected_pid_file.getPath(), e);
+			}
+			
+			if (volatile_dir) {
+				try {
+					FileUtils.forceDelete(durable_store_directory);
+				} catch (IOException e) {
+					log.error("Can't remove store directory: " + durable_store_directory.getPath(), e);
+				}
+			}
+		}, "Release EmbDDB lock file"));
+		
+		value_pid.putInt(MyDMAM.getJVMProcessPID());
+		value_pid.flip();
+		channel.write(value_pid);
+		channel.force(true);
+		
+		if (volatile_dir) {
+			log.info("Set base volatile store directory to " + durable_store_directory.getAbsolutePath());
+		} else {
+			log.info("Set base store directory to " + durable_store_directory.getAbsolutePath());
+		}
+		this.durable_store_directory = durable_store_directory;
+	}
+	
+	private void setVolatileStoreDirectory() throws IOException {
+		if (Configuration.global.isElementKeyExists("embddb", "durable_store_directory") == false) {
+			return;
+		}
+		File global_dir = new File(Configuration.global.getValue("embddb", "durable_store_directory", null));
+		File volatile_dir = new File(global_dir.getAbsolutePath() + File.separator + "_volatile_" + uuid_ref);
+		setDurableStoreDirectory(volatile_dir, true);
 	}
 	
 	public void startServers() throws IOException {
@@ -132,6 +220,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		
 		public void execCliModule(ApplicationArgs args) throws Exception {
 			EmbDDB embddb = new EmbDDB(getMasterPasswordKey());
+			embddb.setVolatileStoreDirectory();
 			
 			if (args.getParamExist("-listen")) {
 				String specific_listen = args.getSimpleParamValue("-listen");
@@ -182,8 +271,38 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		return lock_engine;
 	}
 	
-	// TODO manage DB name, main db dir or temp dir
-	// TODO manage DB subscribing: create DistriStore >> Start sync >> ready to IO
-	// TODO create sync pipeline for all DStores
+	private IOPipeline pipeline;
+	private FileBackend store_file_backend;
+	private ReadCache read_cache;
+	
+	/**
+	 * Thread safe, and manage and avoid multiples instances.
+	 */
+	public <T> DistributedStore<T> getDistributedStore(ItemFactory<T> item_factory, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency) throws IOException {
+		if (durable_store_directory == null) {
+			return null;
+		}
+		synchronized (durable_store_directory) {
+			if (pipeline == null) {
+				pipeline = new IOPipeline(poolmanager);
+			}
+			if (read_cache == null) {
+				read_cache = ReadCacheEhcache.getCache();
+			}
+			if (store_file_backend == null) {
+				store_file_backend = new FileBackend(durable_store_directory, uuid_ref, key -> {
+					read_cache.remove(key);
+				});
+			}
+			String database_name = Configuration.global.getValue("embddb", "database_name", "default");
+			
+			DistributedStore<T> previous = pipeline.getStoreByClass(item_factory.getType());
+			if (previous != null) {
+				return previous;
+			}
+			
+			return new DistributedStore<>(database_name, item_factory, store_file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency, pipeline);
+		}
+	}
 	
 }

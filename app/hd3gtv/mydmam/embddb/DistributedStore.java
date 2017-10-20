@@ -95,5 +95,5 @@ public class DistributedStore<T> extends Store<T> {
 	}
 	
 	// TODO delta database/publish nodes
-	// TODO space management
+	// TODO space recycling management
 }

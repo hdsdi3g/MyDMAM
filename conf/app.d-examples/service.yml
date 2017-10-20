@@ -26,6 +26,8 @@ javamail:
 
 # embddb:
 #    master_password_key: SetMePlease
+#    durable_store_directory: /var/lib/mydmam # Only on a local disk storage, no shared, no network mounted. And never share this dir with two mydmam instances (there is a security for that).
+#    # database_name: default
 #    # bootstrap_nodes: 192.168.0.1, 192.168.0.2:35000 # You can add some "permanent" nodes for speedup start and node detection (IPv4 only).
 #    # listen_only_from: 127.0.0.1:35000, 192.168.0.3 # You can choose to listen only from specific addresses (IPv4 only)
 #    # disable_multicast_discover: true

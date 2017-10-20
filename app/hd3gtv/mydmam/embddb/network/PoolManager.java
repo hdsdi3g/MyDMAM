@@ -103,10 +103,14 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	@GsonIgnore
 	private List<Consumer<Node>> onRemoveNodeCallbackList;
 	
-	public PoolManager(Protocol protocol) throws GeneralSecurityException, IOException {
+	public PoolManager(Protocol protocol, UUID uuid_ref) throws GeneralSecurityException, IOException {
 		this.protocol = protocol;
 		if (protocol == null) {
 			throw new NullPointerException("\"protocol\" can't to be null");
+		}
+		this.uuid_ref = uuid_ref;
+		if (uuid_ref == null) {
+			throw new NullPointerException("\"uuid_ref\" can't to be null");
 		}
 		
 		local_servers = new ArrayList<>();
@@ -121,7 +125,6 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		nodes = Collections.synchronizedList(new ArrayList<>());
 		onRemoveNodeCallbackList = Collections.synchronizedList(new ArrayList<>());
 		autodiscover_can_be_remake = new AtomicBoolean(true);
-		uuid_ref = UUID.randomUUID();
 		addr_master = new AddressMaster();
 		shutdown_hook = new ShutdownHook();
 		all_request_handlers = new AllRequestHandlers(this);

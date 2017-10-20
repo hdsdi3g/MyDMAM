@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.embddb.network.PoolManager;
 
 /**
  * Mergue all IOs from Stores and all IOs from Network.
@@ -29,11 +30,17 @@ import hd3gtv.mydmam.MyDMAM;
 class IOPipeline {
 	private static Logger log = Logger.getLogger(IOPipeline.class);
 	
+	private final PoolManager poolmanager;
 	private final ConcurrentHashMap<Class<?>, DistributedStore<?>> all_stores;
 	
 	// TODO RequestHandler
 	
-	public IOPipeline() {
+	IOPipeline(PoolManager poolmanager) {
+		this.poolmanager = poolmanager;
+		if (poolmanager == null) {
+			throw new NullPointerException("\"poolmanager\" can't to be null");
+		}
+		
 		// TODO Auto-generated constructor stub
 		all_stores = new ConcurrentHashMap<>();
 		// TODO use executor ?
@@ -54,18 +61,25 @@ class IOPipeline {
 	 */
 	CompletableFuture<Void> storeUnregister(Class<?> wrapped_class) {
 		all_stores.remove(wrapped_class);
-		return CompletableFuture.completedFuture(null); // TODO unregister for all Nodes instead of nothing
+		return CompletableFuture.completedFuture(null); // TODO unregister for all Nodes
 	}
 	
-	@SuppressWarnings("unchecked")
-	private <T> DistributedStore<T> getStoreByClass(Class<T> wrapped_class) {
+	/**
+	 * Thread safe
+	 */
+	<T> DistributedStore<T> getStoreByClass(Class<T> wrapped_class) {
 		DistributedStore<?> result = all_stores.get(wrapped_class);
 		if (result == null) {
 			return null;
 		}
-		return (DistributedStore<T>) result;
+		@SuppressWarnings("unchecked")
+		DistributedStore<T> r = (DistributedStore<T>) result;
+		return r;
 	}
 	
+	/**
+	 * Thread safe
+	 */
 	private DistributedStore<?> getStoreByClassName(String wrapped_class_name) {
 		Class<?> wrapped_class = MyDMAM.factory.getClassByName(wrapped_class_name);
 		if (wrapped_class == null) {

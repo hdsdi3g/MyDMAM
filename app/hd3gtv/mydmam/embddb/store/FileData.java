@@ -62,7 +62,7 @@ class FileData {
 		deleted_entries = new ArrayList<>();
 		
 		if (data_file.exists()) {
-			channel = FileChannel.open(data_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS);
+			channel = FileChannel.open(data_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
 			int size = channel.read(bytebuffer_header_data, 0);
 			if (size != FILE_DATA_HEADER_LENGTH) {
 				throw new IOException("Invalid header for " + data_file);
@@ -77,7 +77,7 @@ class FileData {
 				throw new IOException("Invalid version: " + version + " instead of " + FILE_DATA_VERSION + " for " + data_file);
 			}
 		} else {
-			channel = FileChannel.open(data_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS);
+			channel = FileChannel.open(data_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			bytebuffer_header_data.put(FILE_DATA_HEADER);
 			bytebuffer_header_data.putInt(FILE_DATA_VERSION);
 			bytebuffer_header_data.flip();

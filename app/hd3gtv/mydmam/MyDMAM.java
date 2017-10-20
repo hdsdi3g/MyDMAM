@@ -19,14 +19,20 @@ package hd3gtv.mydmam;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
 import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import hd3gtv.configuration.Configuration;
@@ -75,9 +81,17 @@ public class MyDMAM {
 	 */
 	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
 	
+	public static final Set<OpenOption> OPEN_OPTIONS_FILE_EXISTS;
+	public static final Set<OpenOption> OPEN_OPTIONS_FILE_NOT_EXISTS;
+	
 	static {
 		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
 		APP_ROOT_PLAY_CONF_DIRECTORY = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf");
+		
+		OPEN_OPTIONS_FILE_EXISTS = new HashSet<OpenOption>(3);
+		Collections.addAll(OPEN_OPTIONS_FILE_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE);
+		OPEN_OPTIONS_FILE_NOT_EXISTS = new HashSet<OpenOption>(5);
+		Collections.addAll(OPEN_OPTIONS_FILE_NOT_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.SPARSE);
 	}
 	
 	public static final GsonKit gson_kit = new GsonKit();
@@ -211,18 +225,26 @@ public class MyDMAM {
 	}
 	
 	private static EmbDDB embddb;
-	private static boolean embddb_loaded = false;
+	private static volatile boolean embddb_loaded = false;
 	
 	public static EmbDDB getEmbDDB() {
+		if (embddb != null) {
+			return embddb;
+		}
 		if (embddb_loaded == false) {
+			embddb_loaded = true;
 			try {
 				embddb = EmbDDB.createFromConfiguration();
 			} catch (GeneralSecurityException | IOException | InterruptedException e) {
-				Loggers.Manager.error("Can't load EmbDDB", e);
+				throw new RuntimeException("Can't load EmbDDB", e);
 			}
-			embddb_loaded = true;
 		}
 		return embddb;
+	}
+	
+	public static int getJVMProcessPID() {
+		String instance_raw = ManagementFactory.getRuntimeMXBean().getName();
+		return Integer.valueOf(instance_raw.substring(0, instance_raw.indexOf("@")));
 	}
 	
 }

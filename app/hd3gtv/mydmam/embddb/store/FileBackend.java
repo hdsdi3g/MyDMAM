@@ -96,6 +96,15 @@ public class FileBackend {
 		}
 	}
 	
+	/**
+	 * Add 1MB to expected_data_size_to_write
+	 */
+	void checkFreeSpace(long expected_data_size_to_write) throws IOException {
+		if (base_directory.getFreeSpace() < expected_data_size_to_write + (1_024l * 1_024l)) {
+			throw new IOException("No free space on " + base_directory);
+		}
+	}
+	
 	class StoreBackend {
 		private String database_name;
 		private String class_name;
@@ -189,6 +198,7 @@ public class FileBackend {
 		 * Thread safe
 		 */
 		void writeInJournal(Item item, long expiration_date) throws IOException {
+			checkFreeSpace(item.getByteBufferWriteSize());
 			journal.write(item.getKey(), item, expiration_date, item.getPath());
 		}
 		
@@ -249,6 +259,8 @@ public class FileBackend {
 							return null;
 						}
 						try {
+							checkFreeSpace(entry.data_export_source.getByteBufferWriteSize());
+							
 							data_hash_table.put(entry.key, entry.data_export_source);
 							expiration_dates.put(entry.key, entry.expiration_date);
 							FileIndexPaths.update(entry.key, entry.path, all_actual_paths_keys);
@@ -327,6 +339,7 @@ public class FileBackend {
 					if (expiration_date < System.currentTimeMillis()) {
 						return;
 					}
+					checkFreeSpace(item.data.remaining());
 					
 					data_hash_table.put(item.key, item.data);
 					expiration_dates.put(item.key, expiration_date);

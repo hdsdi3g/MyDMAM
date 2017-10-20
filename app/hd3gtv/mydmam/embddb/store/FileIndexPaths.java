@@ -66,7 +66,7 @@ public class FileIndexPaths {
 		ByteBuffer bytebuffer_header_index = ByteBuffer.allocate(FILE_LLIST_HEADER_LENGTH);
 		
 		if (llist_file.exists()) {
-			channel = FileChannel.open(llist_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_EXISTS);
+			channel = FileChannel.open(llist_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
 			int size = channel.read(bytebuffer_header_index, 0);
 			if (size != FILE_LLIST_HEADER_LENGTH) {
 				throw new IOException("Invalid header");
@@ -83,7 +83,7 @@ public class FileIndexPaths {
 			
 			file_index_write_pointer = channel.size();
 		} else {
-			channel = FileChannel.open(llist_file.toPath(), FileHashTable.OPEN_OPTIONS_FILE_NOT_EXISTS);
+			channel = FileChannel.open(llist_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			bytebuffer_header_index.put(FILE_LLIST_HEADER);
 			bytebuffer_header_index.putInt(FILE_LLIST_VERSION);
 			bytebuffer_header_index.flip();
