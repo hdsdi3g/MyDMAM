@@ -1,8 +1,11 @@
 === MyDMAM Upgrade document ===
 
-#291 Add embddb option in Service YAML Configuration. This is not mandatory to use. Log this with hd3gtv.mydmam.embddb.*
+No particular points to be check.
 
 === Previous versions ===
+
+v0.25
+#291 Add embddb option in Service YAML Configuration. This is not mandatory to use. Log this with hd3gtv.mydmam.embddb.*
 
 v0.24
 No particular points to be check.
