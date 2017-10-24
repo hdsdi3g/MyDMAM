@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 19 oct. 2017
  * 
 */
-package hd3gtv.mydmam.embddb;
+package hd3gtv.mydmam.embddb.pipeline;
 
 public enum Consistency {
 	

@@ -136,6 +136,9 @@ public class Node {
 		return Math.abs(server_delta_time) > Math.abs(max_delta_time);
 	}
 	
+	/**
+	 * @return can be positive or negative
+	 */
 	public long getLastDeltaTime() {
 		return server_delta_time;
 	}

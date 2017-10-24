@@ -114,6 +114,7 @@ public class FileBackend {
 		private FileHashTableData data_hash_table;
 		private FileIndexDates expiration_dates;
 		private FileIndexPaths index_paths;
+		// TODO create an historylog: update_date,key,data_size,data_digest,delete_date + Stream views
 		
 		private final File index_file;
 		private final File data_file;

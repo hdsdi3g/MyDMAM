@@ -72,7 +72,7 @@ public class Store<T> implements Closeable {
 	private final ReadCache read_cache;
 	private final StoreBackend backend;
 	protected final ItemFactory<T> item_factory;
-	private final ThreadPoolExecutorFactory executor;
+	protected final ThreadPoolExecutorFactory executor;
 	private final ScheduledExecutorService scheduled_ex_service;
 	
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;

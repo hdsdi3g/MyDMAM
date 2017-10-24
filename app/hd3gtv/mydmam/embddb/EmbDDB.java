@@ -38,10 +38,10 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.Protocol;
-import hd3gtv.mydmam.embddb.store.FileBackend;
+import hd3gtv.mydmam.embddb.pipeline.Consistency;
+import hd3gtv.mydmam.embddb.pipeline.DistributedStore;
+import hd3gtv.mydmam.embddb.pipeline.IOPipeline;
 import hd3gtv.mydmam.embddb.store.ItemFactory;
-import hd3gtv.mydmam.embddb.store.ReadCache;
-import hd3gtv.mydmam.embddb.store.ReadCacheEhcache;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.InteractiveConsole;
@@ -272,8 +272,6 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	}
 	
 	private IOPipeline pipeline;
-	private FileBackend store_file_backend;
-	private ReadCache read_cache;
 	
 	/**
 	 * Thread safe, and manage and avoid multiples instances.
@@ -284,24 +282,9 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		}
 		synchronized (durable_store_directory) {
 			if (pipeline == null) {
-				pipeline = new IOPipeline(poolmanager);
+				pipeline = new IOPipeline(poolmanager, Configuration.global.getValue("embddb", "database_name", "default"), durable_store_directory);
 			}
-			if (read_cache == null) {
-				read_cache = ReadCacheEhcache.getCache();
-			}
-			if (store_file_backend == null) {
-				store_file_backend = new FileBackend(durable_store_directory, uuid_ref, key -> {
-					read_cache.remove(key);
-				});
-			}
-			String database_name = Configuration.global.getValue("embddb", "database_name", "default");
-			
-			DistributedStore<T> previous = pipeline.getStoreByClass(item_factory.getType());
-			if (previous != null) {
-				return previous;
-			}
-			
-			return new DistributedStore<>(database_name, item_factory, store_file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency, pipeline);
+			return pipeline.createStore(item_factory, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency);
 		}
 	}
 	
