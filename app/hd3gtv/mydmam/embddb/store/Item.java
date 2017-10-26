@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.sun.org.apache.xerces.internal.util.XMLChar;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
@@ -41,6 +42,9 @@ import hd3gtv.tools.Hexview;
 public final class Item implements ByteBufferExporter, Serializable {
 	
 	private static Logger log = Logger.getLogger(Item.class);
+	
+	public static final HashFunction CRC32 = Hashing.crc32();
+	public static final int CRC32_SIZE = 4;
 	
 	private String path;
 	private String _id;
@@ -65,7 +69,7 @@ public final class Item implements ByteBufferExporter, Serializable {
 	 * crc32 on payload
 	 */
 	byte[] getDigest() {
-		return Hashing.crc32().hashBytes(payload).asBytes();
+		return CRC32.hashBytes(payload).asBytes();
 	}
 	
 	void checkDigest(byte[] data) {

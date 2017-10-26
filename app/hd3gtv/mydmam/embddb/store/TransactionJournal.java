@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,7 +38,7 @@ import hd3gtv.tools.StreamMaker;
 /**
  * Write only if new file, read only if file exists.
  */
-class TransactionJournal {
+class TransactionJournal implements Closeable {
 	
 	// private static Logger log = Logger.getLogger(TransactionJournal.class);
 	private static final byte[] JOURNAL_HEADER = "MYDMAMJOURNAL".getBytes(MyDMAM.UTF8);
@@ -109,7 +110,7 @@ class TransactionJournal {
 		file_channel.force(true);
 	}
 	
-	void close() throws IOException {
+	public void close() throws IOException {
 		if (file_channel.isOpen()) {
 			channelSync();
 			file_channel.close();

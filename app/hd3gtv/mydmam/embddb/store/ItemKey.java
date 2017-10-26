@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import com.google.common.hash.Hashing;
@@ -34,6 +35,11 @@ public final class ItemKey implements Serializable {
 	
 	ItemKey(byte[] key) {
 		this.key = key;
+	}
+	
+	ItemKey(ByteBuffer read_buffer) {
+		this.key = new byte[SIZE];
+		read_buffer.get(key);
 	}
 	
 	/**
