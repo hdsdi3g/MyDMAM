@@ -163,9 +163,10 @@ public class HistoryJournal implements Closeable {
 	}
 	
 	/**
-	 * Thread safe. Filter out expired entries.
+	 * Thread safe. Filter out expired and updated before-delete-grace-period entries.
+	 * Should not be used for a get all entries, only recents entries like max(start_date, now - grace period).
 	 */
-	public Stream<HistoryEntry> readSince(long start_date) throws IOException {
+	public Stream<HistoryEntry> getAllSince(long start_date) throws IOException {
 		long _size = 0;
 		synchronized (file) {
 			file_channel.force(true);
@@ -245,7 +246,7 @@ public class HistoryJournal implements Closeable {
 	 * Search the last expired entry.
 	 * Thread safe
 	 */
-	private void setOldestValidRecordedValuePosition() throws IOException {
+	private void setOldestValidRecordedValuePosition() throws IOException {// TODO mergue with defragment
 		long _size = 0;
 		synchronized (file) {
 			file_channel.force(true);
@@ -262,10 +263,20 @@ public class HistoryJournal implements Closeable {
 		while (map.hasRemaining()) {
 			HistoryEntry h_e = new HistoryEntry(map);
 			if (h_e.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+				/**
+				 * Last expired item
+				 */
 				oldest_valid_recorded_value_position = map.position();
+			} else if (h_e.update_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+				/**
+				 * First too "old" item
+				 */
+				oldest_valid_recorded_value_position = map.position();
+			} else {
 				break;
 			}
 		}
+		
 		map.clear();
 	}
 	
