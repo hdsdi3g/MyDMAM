@@ -73,7 +73,7 @@ public class Store<T> implements Closeable {
 	private final StoreBackend backend;
 	protected final ItemFactory<T> item_factory;
 	protected final ThreadPoolExecutorFactory executor;
-	private final ScheduledExecutorService scheduled_ex_service;
+	private final ScheduledExecutorService scheduled_ex_service;// TODO move outside here
 	
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final AtomicLong journal_write_cache_size;
@@ -84,7 +84,7 @@ public class Store<T> implements Closeable {
 	/**
 	 * @param read_cache dedicated cache for this store
 	 */
-	public Store(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count) throws IOException {
+	public Store(ThreadPoolExecutorFactory executor, String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count) throws IOException {
 		closed = false;
 		this.database_name = database_name;
 		if (database_name == null) {
@@ -114,10 +114,10 @@ public class Store<T> implements Closeable {
 		if (grace_period_for_expired_items < 1l) {
 			throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1");
 		}
-		
-		executor = new ThreadPoolExecutorFactory("EMBDDB-Store-" + database_name + "_" + generic_class_name, Thread.MIN_PRIORITY + 1, e -> {
-			log.error("Genric error for " + database_name + "/" + generic_class_name, e);
-		});
+		this.executor = executor;
+		if (executor == null) {
+			throw new NullPointerException("\"executor\" can't to be null");
+		}
 		
 		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
 			public Thread newThread(Runnable r) {
@@ -156,7 +156,6 @@ public class Store<T> implements Closeable {
 			} catch (InterruptedException e) {
 			}
 		}
-		executor.shutdownAndTerminate();
 		backend.close();
 	}
 	

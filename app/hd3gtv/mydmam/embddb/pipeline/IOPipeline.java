@@ -30,6 +30,7 @@ import hd3gtv.mydmam.embddb.store.ItemFactory;
 import hd3gtv.mydmam.embddb.store.ReadCache;
 import hd3gtv.mydmam.embddb.store.ReadCacheEhcache;
 import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
  * Mergue all IOs from Stores and all IOs from Network.
@@ -43,6 +44,7 @@ public class IOPipeline {
 	private final String database_name;
 	private final FileBackend store_file_backend;
 	private final ReadCache read_cache;
+	private final ThreadPoolExecutorFactory io_executor; // TODO re-do all tests with single Thread executor + can set executor size in configuration
 	
 	public IOPipeline(PoolManager poolmanager, String database_name, File durable_store_directory) throws IOException {
 		this.poolmanager = poolmanager;
@@ -58,6 +60,10 @@ public class IOPipeline {
 		read_cache = ReadCacheEhcache.getCache();
 		store_file_backend = new FileBackend(durable_store_directory, poolmanager.getUUIDRef(), key -> {
 			read_cache.remove(key);
+		});
+		
+		io_executor = new ThreadPoolExecutorFactory("EMBDDB Store", Thread.MIN_PRIORITY + 1, e -> {
+			log.error("Genric error for EMBDDB Store", e);
 		});
 		
 		// TODO use executor ?
@@ -99,7 +105,7 @@ public class IOPipeline {
 		if (previous != null) {
 			return previous;
 		} else {
-			DistributedStore<T> result = new DistributedStore<>(database_name, item_factory, store_file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency, this);
+			DistributedStore<T> result = new DistributedStore<>(io_executor, database_name, item_factory, store_file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency, this);
 			storeRegister(item_factory.getType(), result);
 			return result;
 		}

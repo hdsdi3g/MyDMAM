@@ -47,15 +47,20 @@ public class HistoryJournal implements Closeable {
 	private final File file;
 	private long creation_date;
 	private final long grace_period_for_expired_items;
+	private final long max_losted_data_space_size;
 	private volatile long oldest_valid_recorded_value_position;
 	
-	public HistoryJournal(File base_directory, long grace_period_for_expired_items) throws IOException {
+	public HistoryJournal(File base_directory, long grace_period_for_expired_items, long max_losted_data_space_size) throws IOException {
 		if (base_directory == null) {
 			throw new NullPointerException("\"base_directory\" can't to be null");
 		}
 		this.grace_period_for_expired_items = grace_period_for_expired_items;
 		if (grace_period_for_expired_items <= 0) {
 			throw new NullPointerException("\"grace_period_for_expired_items\" can't to be <= 0");
+		}
+		this.max_losted_data_space_size = max_losted_data_space_size;
+		if (max_losted_data_space_size <= 0) {
+			throw new NullPointerException("\"max_losted_data_space_size\" can't to be <= 0");
 		}
 		
 		this.file = new File(base_directory.getAbsolutePath() + File.separator + FILE_NAME);
@@ -114,24 +119,21 @@ public class HistoryJournal implements Closeable {
 	/**
 	 * Thread safe
 	 */
-	void write(Item item) throws IOException {
-		if (item.getDeleteDate() + grace_period_for_expired_items < System.currentTimeMillis()) {
+	private void write(long update_date, long delete_date, ItemKey key, byte[] payload, byte[] digest) throws IOException {
+		if (delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
 			return;
 		}
 		
 		synchronized (file) {
-			item.getKey();
-			byte[] digest = item.getDigest();
-			
 			/**
 			 * ENTRY_SEPARATOR, update_date, delete_date, key, data_size, data_digest
 			 */
 			ByteBuffer write_buffer = ByteBuffer.allocate(ENTRY_SIZE);
 			write_buffer.put(ENTRY_SEPARATOR);
-			write_buffer.putLong(item.getUpdated());
-			write_buffer.putLong(item.getDeleteDate());
-			write_buffer.put(item.getKey().key);
-			write_buffer.putInt(item.getPayload().length);
+			write_buffer.putLong(update_date);
+			write_buffer.putLong(delete_date);
+			write_buffer.put(key.key);
+			write_buffer.putInt(payload.length);
 			write_buffer.put(digest);
 			write_buffer.flip();
 			
@@ -140,6 +142,13 @@ public class HistoryJournal implements Closeable {
 				throw new IOException("Can't write in history journal (" + writed_size + "/" + ENTRY_SIZE + ")");
 			}
 		}
+	}
+	
+	/**
+	 * Thread safe
+	 */
+	public void write(Item item) throws IOException {
+		write(item.getUpdated(), item.getDeleteDate(), item.getKey(), item.getPayload(), item.getDigest());
 	}
 	
 	public class HistoryEntry {
@@ -224,8 +233,10 @@ public class HistoryJournal implements Closeable {
 	
 	/**
 	 * Thread safe
+	 * Ignore actual deleted and expired values.
+	 * @param include_oldest_entries based on last defragment measure, or just file size.
 	 */
-	public int getActualEntryCount(boolean include_oldest_entries) throws IOException {
+	public int getEntryCount(boolean include_oldest_entries) throws IOException {
 		long pos = HEADER_LENGTH;
 		if (include_oldest_entries == false) {
 			pos = oldest_valid_recorded_value_position;
@@ -243,51 +254,42 @@ public class HistoryJournal implements Closeable {
 	}
 	
 	/**
-	 * Search the last expired entry.
-	 * Thread safe
-	 */
-	private void setOldestValidRecordedValuePosition() throws IOException {// TODO mergue with defragment
-		long _size = 0;
-		synchronized (file) {
-			file_channel.force(true);
-			_size = file_channel.size();
-		}
-		final long pos = oldest_valid_recorded_value_position;
-		final long size = _size - pos;
-		
-		if (size == 0) {
-			return;
-		}
-		final MappedByteBuffer map = file_channel.map(MapMode.READ_ONLY, pos, size);
-		
-		while (map.hasRemaining()) {
-			HistoryEntry h_e = new HistoryEntry(map);
-			if (h_e.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
-				/**
-				 * Last expired item
-				 */
-				oldest_valid_recorded_value_position = map.position();
-			} else if (h_e.update_date + grace_period_for_expired_items < System.currentTimeMillis()) {
-				/**
-				 * First too "old" item
-				 */
-				oldest_valid_recorded_value_position = map.position();
-			} else {
-				break;
-			}
-		}
-		
-		map.clear();
-	}
-	
-	/**
 	 * Can take time...
 	 * Thread safe
 	 */
-	void defragment(long max_losted_data_space_size) throws IOException {// TODO regular call
+	void defragment() throws IOException {// TODO regular call
 		synchronized (file) {
 			if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
-				setOldestValidRecordedValuePosition();
+				/**
+				 * SetOldestValidRecordedValuePosition: search the last expired entry.
+				 */
+				file_channel.force(true);
+				final long pos = oldest_valid_recorded_value_position;
+				final long size = file_channel.size() - pos;
+				
+				if (size == 0) {
+					return;
+				}
+				final MappedByteBuffer map = file_channel.map(MapMode.READ_ONLY, pos, size);
+				
+				while (map.hasRemaining()) {
+					HistoryEntry h_e = new HistoryEntry(map);
+					if (h_e.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+						/**
+						 * Last expired item
+						 */
+						oldest_valid_recorded_value_position = map.position();
+					} else if (h_e.update_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+						/**
+						 * First too "old" item
+						 */
+						oldest_valid_recorded_value_position = map.position();
+					} else {
+						break;
+					}
+				}
+				map.clear();
+				
 				if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
 					return;
 				}
@@ -340,5 +342,4 @@ public class HistoryJournal implements Closeable {
 		}
 	}
 	
-	// TODO create tests
 }

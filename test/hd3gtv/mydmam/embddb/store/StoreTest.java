@@ -36,6 +36,7 @@ import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
 public class StoreTest extends TestCase {
@@ -73,7 +74,8 @@ public class StoreTest extends TestCase {
 	
 	public void testSimplePushRemove() throws Exception {
 		ReadCacheEhcache.getCache().clear();
-		Store<UUID> store1 = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
+		
+		Store<UUID> store1 = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
 		
 		store1.purgeAll();
 		assertEquals(0, store1.getAllValues().get().size());
@@ -121,7 +123,7 @@ public class StoreTest extends TestCase {
 		/**
 		 * Re-open
 		 */
-		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
+		Store<UUID> store = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
 		
 		/**
 		 * Re-read
@@ -151,7 +153,7 @@ public class StoreTest extends TestCase {
 	}
 	
 	public void testParallelPushRemove() throws Exception {
-		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 1_000_000, 10_000, 100_000);
+		Store<UUID> store = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 1_000_000, 10_000, 100_000);
 		store.purgeAll();
 		
 		int size = 100_000;
@@ -268,7 +270,7 @@ public class StoreTest extends TestCase {
 	public void testTTL() throws Exception {
 		ReadCacheEhcache.getCache().clear();
 		
-		Store<UUID> store = new Store<>("test", factory, backend, ReadCacheEhcache.getCache(), 100_000, GRACE_PERIOD_TTL, 10_000);
+		Store<UUID> store = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 100_000, GRACE_PERIOD_TTL, 10_000);
 		store.purgeAll();
 		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
 		
@@ -342,7 +344,7 @@ public class StoreTest extends TestCase {
 	}
 	
 	public void testXML() throws Exception {
-		Store<RandomBinTest> store = new Store<>("test", new ItemFactory<RandomBinTest>() {
+		Store<RandomBinTest> store = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", new ItemFactory<RandomBinTest>() {
 			
 			public Item toItem(RandomBinTest element) {
 				return new Item(element.content);
