@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -73,12 +70,12 @@ public class Store<T> implements Closeable {
 	private final StoreBackend backend;
 	protected final ItemFactory<T> item_factory;
 	protected final ThreadPoolExecutorFactory executor;
-	private final ScheduledExecutorService scheduled_ex_service;// TODO move outside here
 	
 	private final ConcurrentHashMap<ItemKey, Item> journal_write_cache;
 	private final AtomicLong journal_write_cache_size;
 	private final long grace_period_for_expired_items;
 	private final String generic_class_name;
+	private final long max_size_for_cached_commit_log;
 	private volatile boolean closed;
 	
 	/**
@@ -96,6 +93,10 @@ public class Store<T> implements Closeable {
 		}
 		if (file_backend == null) {
 			throw new NullPointerException("\"file_backend\" can't to be null");
+		}
+		this.max_size_for_cached_commit_log = max_size_for_cached_commit_log;
+		if (max_size_for_cached_commit_log < 1) {
+			throw new NullPointerException("\"max_size_for_cached_commit_log\" can't to < 1 (" + max_size_for_cached_commit_log + ")");
 		}
 		
 		generic_class_name = item_factory.getType().getSimpleName();
@@ -118,27 +119,10 @@ public class Store<T> implements Closeable {
 		if (executor == null) {
 			throw new NullPointerException("\"executor\" can't to be null");
 		}
-		
-		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-			public Thread newThread(Runnable r) {
-				Thread t = new Thread(r);
-				t.setDaemon(false);
-				t.setName("Store durable writes for " + database_name + "_" + generic_class_name);
-				t.setPriority(Thread.MIN_PRIORITY + 2);
-				return t;
-			}
-		});
-		
-		scheduled_ex_service.scheduleAtFixedRate(() -> {
-			if (journal_write_cache_size.get() > max_size_for_cached_commit_log) {
-				try {
-					doDurableWrites();
-				} catch (Exception e1) {
-					log.error("Error during durable writes for store " + database_name + "/" + generic_class_name, e1);
-					scheduled_ex_service.shutdown();
-				}
-			}
-		}, 1, 1, TimeUnit.SECONDS);
+	}
+	
+	public boolean isJournalWriteCacheIsTooBig() throws Exception {
+		return journal_write_cache_size.get() > max_size_for_cached_commit_log;
 	}
 	
 	/**
@@ -149,13 +133,6 @@ public class Store<T> implements Closeable {
 			return;
 		}
 		closed = true;
-		scheduled_ex_service.shutdown();
-		while (scheduled_ex_service.isTerminated() == false) {
-			try {
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
-			}
-		}
 		backend.close();
 	}
 	

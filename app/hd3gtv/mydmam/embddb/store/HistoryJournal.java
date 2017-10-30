@@ -24,7 +24,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.stream.Stream;
 
@@ -136,7 +135,8 @@ public class HistoryJournal implements Closeable {
 			file_channel.force(true);
 			file_channel.close();
 		}
-		FileUtils.forceDelete(file);
+		file.delete();
+		file.deleteOnExit();
 	}
 	
 	void channelSync() throws IOException {
@@ -146,10 +146,9 @@ public class HistoryJournal implements Closeable {
 	private static final int ENTRY_SIZE = 1 + 8 + 8 + ItemKey.SIZE + 4 + Item.CRC32_SIZE;
 	
 	/**
-	 * Thread safe
-	 * Async writes can be delayed to 10ms for optimise bluk writing.
+	 * Thread safe and blocking.
 	 */
-	public CompletableFuture<Void> write(Item item) throws IOException {
+	void write(Item item) throws IOException {
 		if (pending_close) {
 			throw new RuntimeException("Current channel is pending close");
 		}
@@ -157,46 +156,46 @@ public class HistoryJournal implements Closeable {
 			throw new RuntimeException("Current channel is closed");
 		}
 		if (item.getDeleteDate() + grace_period_for_expired_items < System.currentTimeMillis()) {
-			return CompletableFuture.completedFuture(null);
+			return;
 		}
-		pending_writes.add(new HistoryEntry(item));
+		HistoryEntry result = new HistoryEntry(item);
+		pending_writes.add(result);
 		
-		return CompletableFuture.runAsync(() -> {
-			try {
-				int size = pending_writes.size();
-				if (size == 0) {
-					return;
-				}
-				
-				ArrayList<HistoryEntry> to_push_list = new ArrayList<>(size);
-				pending_writes.drainTo(to_push_list);
-				
-				int expected_write_size = ENTRY_SIZE * to_push_list.size();
-				ByteBuffer write_buffer = ByteBuffer.allocate(expected_write_size);
-				to_push_list.forEach(h_e -> {
-					h_e.write(write_buffer);
-				});
-				write_buffer.flip();
-				
-				synchronized (file) {
-					int writed_size = file_channel.write(write_buffer);
-					if (writed_size != expected_write_size) {
-						throw new IOException("Can't write in history journal (" + writed_size + "/" + expected_write_size + ")");
-					}
-				}
-			} catch (Exception e) {
-				log.error("Can't write to History journal", e);
-				throw new RuntimeException(e);
+		synchronized (file) {
+			ArrayList<HistoryEntry> to_push_list = new ArrayList<>();
+			to_push_list.ensureCapacity(pending_writes.size());
+			pending_writes.drainTo(to_push_list);
+			
+			if (to_push_list.isEmpty()) {
+				return;
 			}
-		}, write_pool);
+			
+			int expected_write_size = ENTRY_SIZE * to_push_list.size();
+			ByteBuffer write_buffer = ByteBuffer.allocate(expected_write_size);
+			to_push_list.forEach(h_e -> {
+				h_e.write(write_buffer);
+			});
+			write_buffer.flip();
+			
+			int writed_size = file_channel.write(write_buffer);
+			if (writed_size != expected_write_size) {
+				throw new IOException("Can't write in history journal (" + writed_size + "/" + expected_write_size + ")");
+			}
+		}
 	}
 	
+	@GsonIgnore
 	public class HistoryEntry {
 		public final long update_date;
 		public final long delete_date;
 		public final ItemKey key;
 		public final int data_size;
 		public final byte[] data_digest;
+		
+		/**
+		 * Can be null
+		 */
+		final Item source_item;
 		
 		/**
 		 * ENTRY_SEPARATOR, update_date, delete_date, key, data_size, data_digest
@@ -211,9 +210,11 @@ public class HistoryJournal implements Closeable {
 			data_size = read_buffer.getInt();
 			data_digest = new byte[Item.CRC32_SIZE];
 			read_buffer.get(data_digest);
+			source_item = null;
 		}
 		
 		private HistoryEntry(Item item) throws IOException {
+			this.source_item = item;
 			update_date = item.getUpdated();
 			delete_date = item.getDeleteDate();
 			key = item.getKey();
@@ -229,11 +230,13 @@ public class HistoryJournal implements Closeable {
 			write_buffer.putInt(data_size);
 			write_buffer.put(data_digest);
 		}
+		
 	}
 	
 	/**
 	 * Thread safe. Filter out expired and updated before-delete-grace-period entries.
 	 * Should not be used for a get *all* entries, only recents entries like max(start_date, now - grace period).
+	 * Can get multiple versions for same Itemkey, and not necessarily date sorted.
 	 */
 	public Stream<HistoryEntry> getAllSince(long start_date) throws IOException {
 		long _size = 0;
@@ -252,34 +255,8 @@ public class HistoryJournal implements Closeable {
 		StreamMaker<HistoryEntry> s_m = StreamMaker.create(() -> {
 			try {
 				while (map.hasRemaining()) {
-					int before_check = map.position();
-					
-					map.position(before_check + 1);// ENTRY_SEPARATOR size
-					long update_date = map.getLong();
-					
-					if (update_date < start_date) {
-						/**
-						 * Too old entry
-						 */
-						int new_pos = map.position() + (ENTRY_SIZE - (1 + 8));
-						if (map.remaining() - new_pos <= 0) {
-							/**
-							 * Can't to get the next, exit.
-							 */
-							break;
-						}
-						
-						/**
-						 * Go to the next entry.
-						 */
-						map.position(new_pos);
-						continue;
-					}
-					
-					map.position(before_check);
 					return new HistoryEntry(map);
 				}
-				map.clear();
 				return null;
 			} catch (Exception e) {
 				throw new RuntimeException("Can't read " + file, e);
@@ -287,7 +264,7 @@ public class HistoryJournal implements Closeable {
 		});
 		
 		return s_m.stream().filter(h_e -> {
-			return h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
+			return h_e.update_date >= start_date && h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
 		});
 	}
 	

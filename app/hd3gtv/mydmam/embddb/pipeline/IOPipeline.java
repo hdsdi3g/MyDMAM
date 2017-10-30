@@ -47,8 +47,8 @@ public class IOPipeline {
 	private final PoolManager poolmanager;
 	private final ConcurrentHashMap<Class<?>, InternalStore> all_stores;
 	private final String database_name;
-	private final FileBackend store_file_backend;
 	private final ReadCache read_cache;
+	private final FileBackend store_file_backend;
 	private final ThreadPoolExecutorFactory io_executor; // TODO re-do all tests with single Thread executor + can set executor size in configuration
 	private final ThreadPoolExecutorFactory history_journal_write_executor;// TODO stop with IO_executor
 	private final ScheduledExecutorService maintenance_scheduled_ex_service;
@@ -84,8 +84,6 @@ public class IOPipeline {
 				return t;
 			}
 		});
-		
-		// TODO use executor ?
 	}
 	
 	private class InternalStore {
@@ -101,13 +99,15 @@ public class IOPipeline {
 					return;
 				}
 				try {
-					store.doDurableWrites();
-					// TODO do cleanup ?
+					if (store.isJournalWriteCacheIsTooBig()) {
+						store.doDurableWrites(); // <<<< this is global blocking
+					}
+					// TODO do cleanup, when ?
 				} catch (Exception e) {
 					log.error("Can't do maintenance operations for " + store + ". Cancel next operations.", e); // TODO terminate Store ?!
 					cancelTimer();
 				}
-			}, 1, 60, TimeUnit.SECONDS);
+			}, 1, 10, TimeUnit.SECONDS);
 		}
 		
 		private void cancelTimer() {
