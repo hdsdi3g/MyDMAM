@@ -46,7 +46,7 @@ public class FileBackendTest extends TestCase {
 	}
 	
 	public void testAll() throws Exception {
-		StoreBackend backend = all_backends.get(DB_NAME, "testAll", 1000);
+		StoreBackend backend = all_backends.get(DB_NAME, "testAll", 1000, TimeUnit.MINUTES.toMillis(10));
 		
 		int size = 10000;
 		
@@ -250,7 +250,7 @@ public class FileBackendTest extends TestCase {
 	}
 	
 	public void testOpenExistantJournal() throws Exception {
-		StoreBackend backend = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000);
+		StoreBackend backend = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000, TimeUnit.MINUTES.toMillis(10));
 		
 		int size = 10000;
 		

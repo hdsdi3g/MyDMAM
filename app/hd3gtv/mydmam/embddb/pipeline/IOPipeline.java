@@ -20,6 +20,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -40,11 +45,13 @@ public class IOPipeline {
 	private static Logger log = Logger.getLogger(IOPipeline.class);
 	
 	private final PoolManager poolmanager;
-	private final ConcurrentHashMap<Class<?>, DistributedStore<?>> all_stores;
+	private final ConcurrentHashMap<Class<?>, InternalStore> all_stores;
 	private final String database_name;
 	private final FileBackend store_file_backend;
 	private final ReadCache read_cache;
 	private final ThreadPoolExecutorFactory io_executor; // TODO re-do all tests with single Thread executor + can set executor size in configuration
+	private final ThreadPoolExecutorFactory history_journal_write_executor;// TODO stop with IO_executor
+	private final ScheduledExecutorService maintenance_scheduled_ex_service;
 	
 	public IOPipeline(PoolManager poolmanager, String database_name, File durable_store_directory) throws IOException {
 		this.poolmanager = poolmanager;
@@ -58,22 +65,95 @@ public class IOPipeline {
 		all_stores = new ConcurrentHashMap<>();
 		
 		read_cache = ReadCacheEhcache.getCache();
+		
+		history_journal_write_executor = new ThreadPoolExecutorFactory("Write History Journal", Thread.MIN_PRIORITY).setSimplePoolSize();
 		store_file_backend = new FileBackend(durable_store_directory, poolmanager.getUUIDRef(), key -> {
 			read_cache.remove(key);
-		});
+		}, history_journal_write_executor);
 		
 		io_executor = new ThreadPoolExecutorFactory("EMBDDB Store", Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for EMBDDB Store", e);
 		});
 		
+		maintenance_scheduled_ex_service = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setDaemon(false);
+				t.setName("EMBDDB Database Maintenance");
+				t.setPriority(Thread.MIN_PRIORITY);
+				return t;
+			}
+		});
+		
 		// TODO use executor ?
+	}
+	
+	private class InternalStore {
+		
+		final DistributedStore<?> store;
+		ScheduledFuture<?> maintenance_timer;
+		
+		InternalStore(DistributedStore<?> store) {
+			this.store = store;
+			
+			maintenance_timer = maintenance_scheduled_ex_service.scheduleAtFixedRate(() -> {
+				if (store.getRunningState() != RunningState.ON_THE_FLY) {
+					return;
+				}
+				try {
+					store.doDurableWrites();
+					// TODO do cleanup ?
+				} catch (Exception e) {
+					log.error("Can't do maintenance operations for " + store + ". Cancel next operations.", e); // TODO terminate Store ?!
+					cancelTimer();
+				}
+			}, 1, 60, TimeUnit.SECONDS);
+		}
+		
+		private void cancelTimer() {
+			if (maintenance_timer != null) {
+				maintenance_timer.cancel(false);
+			}
+		}
+		
+		public int hashCode() {
+			return store.hashCode();
+		}
+		
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			InternalStore other = (InternalStore) obj;
+			if (!getOuterType().equals(other.getOuterType())) {
+				return false;
+			}
+			if (store == null) {
+				if (other.store != null) {
+					return false;
+				}
+			} else if (!store.equals(other.store)) {
+				return false;
+			}
+			return true;
+		}
+		
+		private IOPipeline getOuterType() {
+			return IOPipeline.this;
+		}
 	}
 	
 	/**
 	 * Thread safe
 	 */
 	private <T> void storeRegister(Class<T> wrapped_class, DistributedStore<T> store) {
-		DistributedStore<?> current_store = all_stores.putIfAbsent(wrapped_class, store); // TODO register for all Nodes
+		InternalStore current_store = all_stores.putIfAbsent(wrapped_class, new InternalStore(store)); // TODO register for all Nodes
 		if (current_store != null) {
 			throw new RuntimeException("A store was previousely added for class " + wrapped_class);
 		}
@@ -91,12 +171,12 @@ public class IOPipeline {
 	 * Thread safe
 	 */
 	private <T> DistributedStore<T> getStoreByClass(Class<T> wrapped_class) {
-		DistributedStore<?> result = all_stores.get(wrapped_class);
+		InternalStore result = all_stores.get(wrapped_class);
 		if (result == null) {
 			return null;
 		}
 		@SuppressWarnings("unchecked")
-		DistributedStore<T> r = (DistributedStore<T>) result;
+		DistributedStore<T> r = (DistributedStore<T>) result.store;
 		return r;
 	}
 	
@@ -105,10 +185,14 @@ public class IOPipeline {
 		if (previous != null) {
 			return previous;
 		} else {
-			DistributedStore<T> result = new DistributedStore<>(io_executor, database_name, item_factory, store_file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency, this);
+			DistributedStore<T> result = new DistributedStore<>(database_name, item_factory, store_file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency, this);
 			storeRegister(item_factory.getType(), result);
 			return result;
 		}
+	}
+	
+	ThreadPoolExecutorFactory getIOExecutor() {
+		return io_executor;
 	}
 	
 	/**
@@ -119,7 +203,7 @@ public class IOPipeline {
 		if (wrapped_class == null) {
 			return null;
 		}
-		return all_stores.get(wrapped_class);
+		return all_stores.get(wrapped_class).store;
 	}
 	
 	// TODO RequestHandler: register Store<T> & Node

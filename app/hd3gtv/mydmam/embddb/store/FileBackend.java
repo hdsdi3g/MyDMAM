@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,6 +36,7 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 public class FileBackend {
 	
@@ -43,8 +46,9 @@ public class FileBackend {
 	private final ArrayList<StoreBackend> backends;
 	private final UUID instance;
 	private final Consumer<ItemKey> previous_pushed_items_in_journals;
+	private final ThreadPoolExecutorFactory history_journal_write_pool;
 	
-	public FileBackend(File base_directory, UUID instance, Consumer<ItemKey> previous_pushed_items_in_journals) throws IOException {
+	public FileBackend(File base_directory, UUID instance, Consumer<ItemKey> previous_pushed_items_in_journals, ThreadPoolExecutorFactory history_journal_write_pool) throws IOException {
 		this.base_directory = base_directory;
 		if (base_directory == null) {
 			throw new NullPointerException("\"base_directory\" can't to be null");
@@ -57,6 +61,10 @@ public class FileBackend {
 		if (previous_pushed_items_in_journals == null) {
 			throw new NullPointerException("\"previous_pushed_items_in_journals\" can't to be null");
 		}
+		this.history_journal_write_pool = history_journal_write_pool;
+		if (history_journal_write_pool == null) {
+			throw new NullPointerException("\"history_journal_write_pool\" can't to be null");
+		}
 		
 		if (base_directory.exists()) {
 			CopyMove.checkIsDirectory(base_directory);
@@ -68,9 +76,16 @@ public class FileBackend {
 		backends = new ArrayList<>();
 	}
 	
-	public FileBackend(File base_directory, UUID instance) throws IOException {
+	public File getBaseDirectory() {
+		return base_directory;
+	}
+	
+	/**
+	 * Usable for tests
+	 */
+	FileBackend(File base_directory, UUID instance) throws IOException {
 		this(base_directory, instance, key -> {
-		});
+		}, new ThreadPoolExecutorFactory("History journal", Thread.NORM_PRIORITY).setSimplePoolSize());
 	}
 	
 	/**
@@ -78,7 +93,7 @@ public class FileBackend {
 	 * @param table_size an estimation, will be corrected to 1+2^n
 	 * @return a new backend, or the same as previousely created
 	 */
-	StoreBackend get(String database_name, String class_name, int table_size) throws IOException {
+	StoreBackend get(String database_name, String class_name, int table_size, long grace_period_for_expired_items) throws IOException {
 		synchronized (backends) {
 			return backends.stream().filter(b -> {
 				return b.database_name.equals(database_name);
@@ -86,7 +101,7 @@ public class FileBackend {
 				return b.class_name.equals(class_name);
 			}).findFirst().orElseGet(() -> {
 				try {
-					StoreBackend result = new StoreBackend(database_name, class_name, FileHashTable.computeHashTableBestSize(table_size));
+					StoreBackend result = new StoreBackend(database_name, class_name, FileHashTable.computeHashTableBestSize(table_size), grace_period_for_expired_items);
 					backends.add(result);
 					return result;
 				} catch (IOException e) {
@@ -114,7 +129,7 @@ public class FileBackend {
 		private FileHashTableData data_hash_table;
 		private FileIndexDates expiration_dates;
 		private FileIndexPaths index_paths;
-		private HistoryJournal history_journal;// XXX use it !
+		private HistoryJournal history_journal; // TODO read + update in history_journal
 		
 		private final File index_file;
 		private final File data_file;
@@ -122,8 +137,9 @@ public class FileBackend {
 		private final File index_paths_file;
 		private final File index_paths_llists_file;
 		private final int default_table_size;
+		private final long grace_period_for_expired_items;
 		
-		private StoreBackend(String database_name, String class_name, int default_table_size) throws IOException {
+		private StoreBackend(String database_name, String class_name, int default_table_size, long grace_period_for_expired_items) throws IOException {
 			this.database_name = database_name;
 			if (database_name == null) {
 				throw new NullPointerException("\"database_name\" can't to be null");
@@ -136,13 +152,16 @@ public class FileBackend {
 			if (default_table_size < 1) {
 				throw new NullPointerException("\"default_table_size\" can't to be < 1 (" + default_table_size + ")");
 			}
+			this.grace_period_for_expired_items = grace_period_for_expired_items;
+			if (grace_period_for_expired_items < 1) {
+				throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1 (" + grace_period_for_expired_items + ")");
+			}
 			
 			index_file = makeFile("index.myhshtable");
 			data_file = makeFile("data.mydatalist");
 			expiration_dates_file = makeFile("expiration_dates.myhshtable");
 			index_paths_file = makeFile("index_paths.myhshtable");
 			index_paths_llists_file = makeFile("index_paths_llists.myllist");
-			
 			open();
 		}
 		
@@ -150,6 +169,8 @@ public class FileBackend {
 			if (backends.contains(this) == false) {
 				backends.add(this);
 			}
+			history_journal = new HistoryJournal(history_journal_write_pool, makeDir(), grace_period_for_expired_items, default_table_size);
+			
 			journal_directory = makeFile("journal");
 			FileUtils.forceMkdir(journal_directory);
 			
@@ -165,6 +186,11 @@ public class FileBackend {
 		
 		void close() {
 			backends.remove(this);
+			try {
+				history_journal.close();
+			} catch (IOException e) {
+				log.error("Can't close history_journal for " + toString());
+			}
 			try {
 				journal.close();
 				journal = null;
@@ -195,6 +221,12 @@ public class FileBackend {
 			return new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name + File.separator + name);
 		}
 		
+		File makeDir() throws IOException {
+			File new_dir = new File(base_directory.getPath() + File.separator + database_name + File.separator + class_name);
+			FileUtils.forceMkdir(new_dir);
+			return new_dir;
+		}
+		
 		/**
 		 * Thread safe
 		 */
@@ -208,6 +240,15 @@ public class FileBackend {
 		 * @return updated keys
 		 */
 		List<ItemKey> doDurableWritesAndRotateJournal() throws IOException {
+			
+			CompletableFuture<Void> cf_history_journal_defragment = CompletableFuture.runAsync(() -> {
+				try {
+					history_journal.defragment();
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}, history_journal_write_pool);
+			
 			if (journal != null) {
 				journal.close();
 			}
@@ -282,6 +323,12 @@ public class FileBackend {
 			
 			index_paths.setAll(all_actual_paths_keys);
 			journal = new TransactionJournal(journal_directory, instance);
+			
+			try {
+				cf_history_journal_defragment.get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new IOException("Can't defragment history journal", e);
+			}
 			
 			return all_updated_keys;
 		}

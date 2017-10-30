@@ -99,7 +99,7 @@ public class Store<T> implements Closeable {
 		}
 		
 		generic_class_name = item_factory.getType().getSimpleName();
-		backend = file_backend.get(database_name, generic_class_name, expected_item_count);
+		backend = file_backend.get(database_name, generic_class_name, expected_item_count, grace_period_for_expired_items);
 		
 		this.read_cache = read_cache;
 		if (read_cache == null) {

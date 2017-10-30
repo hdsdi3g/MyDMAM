@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
 public class HistoryJournalTest extends TestCase {
@@ -43,7 +44,9 @@ public class HistoryJournalTest extends TestCase {
 		}
 		FileUtils.forceMkdir(file);
 		
-		final HistoryJournal journal = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 100_000_000l);
+		ThreadPoolExecutorFactory write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
+		
+		final HistoryJournal journal = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 1_000_000);
 		
 		log.info("Start parallel write");
 		/**
@@ -51,7 +54,7 @@ public class HistoryJournalTest extends TestCase {
 		 */
 		long start_time = System.currentTimeMillis();
 		int size = 1_000_000;
-		long add_journal_nano_time = IntStream.range(0, size)/*.parallel()*/.mapToLong(i -> {
+		long add_journal_nano_time = IntStream.range(0, size).parallel().mapToLong(i -> {
 			try {
 				Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
 				item.setTTL(TimeUnit.MINUTES.toMillis(10));
@@ -63,6 +66,8 @@ public class HistoryJournalTest extends TestCase {
 				throw new RuntimeException(e);
 			}
 		}).sum();
+		write_pool.awaitTerminationAndShutdown(1, TimeUnit.MINUTES);
+		
 		long end_time = System.currentTimeMillis();
 		
 		log.info("End parallel write (" + (double) (end_time - start_time) / 1000d + " sec), add journal time: " + ((double) add_journal_nano_time / 1_000_000_000d) + " sec");
@@ -95,7 +100,7 @@ public class HistoryJournalTest extends TestCase {
 		/**
 		 * Re-open
 		 */
-		HistoryJournal journal2 = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 100_000_000l);
+		HistoryJournal journal2 = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 1_000_000);
 		entry_count = journal2.getEntryCount(true);
 		assertEquals(size, entry_count);
 		
@@ -107,7 +112,7 @@ public class HistoryJournalTest extends TestCase {
 		assertEquals(0, all_from_now);
 		
 		log.info("End read (2)");
-		// journal2.purge(); TODO remetre
+		journal2.purge();
 		journal2.close();
 	}
 	

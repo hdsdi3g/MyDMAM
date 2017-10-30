@@ -36,7 +36,6 @@ import hd3gtv.mydmam.embddb.store.ItemKey;
 import hd3gtv.mydmam.embddb.store.ReadCache;
 import hd3gtv.mydmam.embddb.store.Store;
 import hd3gtv.mydmam.gson.GsonIgnore;
-import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 /**
  * Durable storage of T for this node and all connected nodes
@@ -50,20 +49,17 @@ public class DistributedStore<T> extends Store<T> {
 	private final IOPipeline pipeline;
 	private final ArrayList<Node> external_dependant_nodes;
 	private final ConcurrentHashMap<ItemKey, UpdateItem> update_list;
-	// TODO store to an extenal file last sync date + read + update
 	
 	// TODO block items size > max block size > create a special exception for that
 	
-	DistributedStore(ThreadPoolExecutorFactory executor, String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency, IOPipeline pipeline) throws IOException {
-		super(executor, database_name, item_factory, file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count);
+	DistributedStore(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency, IOPipeline pipeline) throws IOException {
+		super(pipeline.getIOExecutor(), database_name, item_factory, file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count);
 		this.consistency = consistency;
 		if (consistency == null) {
 			throw new NullPointerException("\"consistency\" can't to be null");
 		}
+		
 		this.pipeline = pipeline;
-		if (pipeline == null) {
-			throw new NullPointerException("\"pipeline\" can't to be null");
-		}
 		external_dependant_nodes = new ArrayList<>();// TODO update registed nodes
 		running_state = RunningState.WAKE_UP;// TODO update RunningState
 		update_list = new ConcurrentHashMap<ItemKey, UpdateItem>();
@@ -180,5 +176,4 @@ public class DistributedStore<T> extends Store<T> {
 		}, executor);
 	}
 	
-	// TODO space recycling management
 }
