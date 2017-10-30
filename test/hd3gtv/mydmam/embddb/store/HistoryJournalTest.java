@@ -21,8 +21,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -37,7 +38,7 @@ public class HistoryJournalTest extends TestCase {
 	
 	private static Logger log = Logger.getLogger(HistoryJournalTest.class);
 	
-	public void testAll() throws IOException {
+	public void testAll() throws IOException, InterruptedException, ExecutionException {
 		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history1");
 		try {
 			FileUtils.forceDelete(file);
@@ -55,23 +56,24 @@ public class HistoryJournalTest extends TestCase {
 		 */
 		long start_time = System.currentTimeMillis();
 		int size = 1_000_000;
-		long add_journal_nano_time = IntStream.range(0, size).parallel().mapToLong(i -> {
+		
+		List<Item> all_pushed_items = IntStream.range(0, 10).parallel().mapToObj(chunk_factor -> {
 			try {
-				Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
-				item.setTTL(TimeUnit.MINUTES.toMillis(10));
-				
-				long start_sub = System.nanoTime();
-				journal.write(item);
-				return System.nanoTime() - start_sub;
-			} catch (IOException e) {
+				return journal.write(IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
+					return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
+				})).get();
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-		}).sum();
-		write_pool.awaitTerminationAndShutdown(1, TimeUnit.MINUTES);
+		}).flatMap(list -> {
+			return list.stream();
+		}).collect(Collectors.toList());
+		
+		assertEquals(size, all_pushed_items.size());
 		
 		long end_time = System.currentTimeMillis();
 		
-		log.info("End parallel write (" + (double) (end_time - start_time) / 1000d + " sec), add journal time: " + ((double) add_journal_nano_time / 1_000_000_000d) + " sec");
+		log.info("End parallel write (" + (double) (end_time - start_time) / 1000d + " sec)");
 		
 		int entry_count = journal.getEntryCount(true);
 		assertEquals(size, entry_count);
@@ -118,7 +120,7 @@ public class HistoryJournalTest extends TestCase {
 		}
 	}
 	
-	public void testParallelIO() throws IOException, InterruptedException {
+	public void testParallelIO() throws IOException, InterruptedException, ExecutionException {
 		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history2");
 		try {
 			FileUtils.forceDelete(file);
@@ -128,37 +130,37 @@ public class HistoryJournalTest extends TestCase {
 		
 		ThreadPoolExecutorFactory write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
 		
-		final HistoryJournal journal = new HistoryJournal(write_pool, file, TimeUnit.SECONDS.toMillis(10), 100_000);
+		/**
+		 * This values are tricky.
+		 * Tested with *simple* SSD (300 MB/sec).
+		 */
+		int size = 100_000;
+		long estimated_process_time = 2_000;
 		
-		long estimated_process_time = 3000000;
-		int size = 100; // 100_000 XXX
-		
-		IntConsumer saveIntToObj = i -> {
-			try {
-				journal.write(new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		};
+		final HistoryJournal journal = new HistoryJournal(write_pool, file, 900, size / 2);
+		int total_pushed = 0;
 		
 		/**
 		 * 1st writes
 		 */
 		long start_push_time = System.currentTimeMillis();
-		IntStream.range(0, size).parallel().forEach(saveIntToObj);
+		journal.write(IntStream.range(0, size).mapToObj(i -> {
+			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
+		})).get();
 		long end_push_time = System.currentTimeMillis();
 		
 		int entry_count = journal.getEntryCount(true);
 		assertTrue(entry_count >= size);
+		total_pushed += size;
 		
 		/**
 		 * 2nd writes in background
 		 */
-		write_pool.submit(() -> {
-			IntStream.range(size, size * 10).parallel().forEach(saveIntToObj);
-		});
+		CompletableFuture<List<Item>> bgk_writes = journal.write(IntStream.range(size, size * 10).mapToObj(i -> {
+			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
+		}));
+		total_pushed += size * 10;
 		
-		Thread.sleep(1);
 		/**
 		 * Reads during new writes
 		 */
@@ -190,31 +192,35 @@ public class HistoryJournalTest extends TestCase {
 		 * Check since date for reading
 		 */
 		journal.getAllSince(end_push_time).forEach(h_e -> {
-			assertFalse("Item: " + h_e.source_item.getId(), map_entries.containsKey(h_e.key));
+			assertFalse("Item: " + h_e.key, map_entries.containsKey(h_e.key));
 		});
+		
+		bgk_writes.get();
 		
 		/**
 		 * Test TTL
 		 */
-		long wait_time = System.currentTimeMillis() - (end_push_time + estimated_process_time);
-		assertTrue("Too long processing...", wait_time < 0);
+		long wait_time = (end_push_time + 2 * estimated_process_time) - System.currentTimeMillis();
+		assertTrue("Too long processing...", wait_time > 0);
 		
 		log.info("Wait " + wait_time + " ms...");
 		Thread.sleep(wait_time);
 		
-		log.info("Old entry count: " + journal.getEntryCount(false)); // TODO test
-		
+		assertEquals(total_pushed - size, journal.getEntryCount(false));
 		assertEquals(0, journal.getAllSince(start_push_time).count());
 		
-		IntStream.range(0, 10).parallel().forEach(saveIntToObj);
-		assertEquals(10, journal.getAllSince(start_push_time).count());
+		int size_2nd_push = 10;
+		journal.write(IntStream.range(0, size_2nd_push).mapToObj(i -> {
+			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
+		})).get();
 		
-		log.info("Old entry count: " + journal.getEntryCount(true)); // TODO test
+		assertEquals(total_pushed - size + size_2nd_push, journal.getEntryCount(true));
+		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
 		journal.defragment();
 		
-		log.info("Old entry count: " + journal.getEntryCount(true)); // TODO test
-		assertEquals(10, journal.getAllSince(start_push_time).count());
+		assertEquals(size_2nd_push, journal.getEntryCount(true));
+		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
 		journal.close();
 		journal.purge();

@@ -24,11 +24,12 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
-import java.util.concurrent.LinkedTransferQueue;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -38,7 +39,7 @@ import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 @GsonIgnore
 public class HistoryJournal implements Closeable {
-	private static Logger log = Logger.getLogger(HistoryJournal.class);
+	// private static Logger log = Logger.getLogger(HistoryJournal.class);
 	
 	private static final byte[] JOURNAL_HEADER = "MYDMAMHISTORYJOURNAL".getBytes(MyDMAM.UTF8);
 	private static final int JOURNAL_VERSION = 1;
@@ -56,7 +57,6 @@ public class HistoryJournal implements Closeable {
 	private volatile long oldest_valid_recorded_value_position;
 	private volatile boolean pending_close;
 	
-	private final LinkedTransferQueue<HistoryEntry> pending_writes;
 	private final ThreadPoolExecutorFactory write_pool;
 	
 	/**
@@ -78,7 +78,6 @@ public class HistoryJournal implements Closeable {
 			throw new NullPointerException("\"max_losted_item_count\" can't to be <= 0");
 		}
 		this.max_losted_data_space_size = (long) max_losted_item_count * (long) ENTRY_SIZE;
-		pending_writes = new LinkedTransferQueue<>();
 		
 		this.file = new File(base_directory.getAbsolutePath() + File.separator + FILE_NAME);
 		open();
@@ -116,13 +115,13 @@ public class HistoryJournal implements Closeable {
 	public void close() throws IOException {
 		if (file_channel.isOpen()) {
 			pending_close = true;
-			while (pending_writes.isEmpty() == false) {
+			/*while (pending_writes.isEmpty() == false) {
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
 					log.error("Can't sleep", e);
 				}
-			}
+			}*/
 			channelSync();
 			file_channel.close();
 		}
@@ -131,7 +130,7 @@ public class HistoryJournal implements Closeable {
 	void purge() throws IOException {
 		if (file_channel.isOpen()) {
 			pending_close = true;
-			pending_writes.clear();
+			// write_queue.pending_writes.clear();
 			file_channel.force(true);
 			file_channel.close();
 		}
@@ -146,40 +145,74 @@ public class HistoryJournal implements Closeable {
 	private static final int ENTRY_SIZE = 1 + 8 + 8 + ItemKey.SIZE + 4 + Item.CRC32_SIZE;
 	
 	/**
-	 * Thread safe and blocking.
+	 * Thread safe and non blocking.
+	 * Waits the ends of stream for start write.
 	 */
-	void write(Item item) throws IOException {
-		if (pending_close) {
-			throw new RuntimeException("Current channel is pending close");
+	public CompletableFuture<List<Item>> write(Stream<Item> items) {
+		if (pending_close | file_channel.isOpen() == false) {
+			throw new RuntimeException("Current channel is pending close or closed");
 		}
-		if (file_channel.isOpen() == false) {
-			throw new RuntimeException("Current channel is closed");
+		final Iterator<Item> i_item = items.filter(item -> {
+			return item.getDeleteDate() + grace_period_for_expired_items >= System.currentTimeMillis();
+		}).iterator();
+		
+		return CompletableFuture.supplyAsync(() -> {
+			ArrayList<Item> result = new ArrayList<>();
+			ArrayList<HistoryEntry> to_push_list = new ArrayList<>();
+			
+			while (true) {
+				to_push_list.clear();
+				while (i_item.hasNext() && to_push_list.size() <= 10_000) {
+					to_push_list.add(new HistoryEntry(i_item.next()));
+				}
+				if (to_push_list.isEmpty()) {
+					break;
+				}
+				
+				try {
+					if (pending_close | file_channel.isOpen() == false) {
+						throw new RuntimeException("Current channel is pending close or closed");
+					}
+					
+					long expected_write_size = (long) ENTRY_SIZE * to_push_list.size();
+					MappedByteBuffer write_buffer;
+					synchronized (file) {
+						long channel_pos = file_channel.position();
+						write_buffer = file_channel.map(MapMode.READ_WRITE, channel_pos, expected_write_size);
+						file_channel.position(file_channel.position() + expected_write_size);
+					}
+					
+					to_push_list.forEach(h_e -> {
+						h_e.write(write_buffer);
+						result.add(h_e.item);
+					});
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			return result;
+		}, write_pool);
+	}
+	
+	/**
+	 * Thread safe and BLOCKING.
+	 */
+	public void writeSync(Item item) throws IOException {
+		if (pending_close | file_channel.isOpen() == false) {
+			throw new RuntimeException("Current channel is pending close or closed");
 		}
-		if (item.getDeleteDate() + grace_period_for_expired_items < System.currentTimeMillis()) {
-			return;
-		}
-		HistoryEntry result = new HistoryEntry(item);
-		pending_writes.add(result);
+		
+		ByteBuffer write_buffer = ByteBuffer.allocate(ENTRY_SIZE);
+		new HistoryEntry(item).write(write_buffer);
+		write_buffer.flip();
 		
 		synchronized (file) {
-			ArrayList<HistoryEntry> to_push_list = new ArrayList<>();
-			to_push_list.ensureCapacity(pending_writes.size());
-			pending_writes.drainTo(to_push_list);
-			
-			if (to_push_list.isEmpty()) {
-				return;
+			if (pending_close | file_channel.isOpen() == false) {
+				throw new RuntimeException("Current channel is pending close or closed");
 			}
-			
-			int expected_write_size = ENTRY_SIZE * to_push_list.size();
-			ByteBuffer write_buffer = ByteBuffer.allocate(expected_write_size);
-			to_push_list.forEach(h_e -> {
-				h_e.write(write_buffer);
-			});
-			write_buffer.flip();
-			
 			int writed_size = file_channel.write(write_buffer);
-			if (writed_size != expected_write_size) {
-				throw new IOException("Can't write in history journal (" + writed_size + "/" + expected_write_size + ")");
+			if (writed_size != ENTRY_SIZE) {
+				throw new IOException("Can't write in history journal (" + writed_size + "/" + ENTRY_SIZE + ")");
 			}
 		}
 	}
@@ -193,9 +226,9 @@ public class HistoryJournal implements Closeable {
 		public final byte[] data_digest;
 		
 		/**
-		 * Can be null
+		 * Null if read operation.
 		 */
-		final Item source_item;
+		private final Item item;
 		
 		/**
 		 * ENTRY_SEPARATOR, update_date, delete_date, key, data_size, data_digest
@@ -210,16 +243,16 @@ public class HistoryJournal implements Closeable {
 			data_size = read_buffer.getInt();
 			data_digest = new byte[Item.CRC32_SIZE];
 			read_buffer.get(data_digest);
-			source_item = null;
+			item = null;
 		}
 		
-		private HistoryEntry(Item item) throws IOException {
-			this.source_item = item;
+		private HistoryEntry(Item item) {
 			update_date = item.getUpdated();
 			delete_date = item.getDeleteDate();
 			key = item.getKey();
 			data_size = item.getPayload().length;
 			data_digest = item.getDigest();
+			this.item = item;
 		}
 		
 		private void write(ByteBuffer write_buffer) {
@@ -264,7 +297,9 @@ public class HistoryJournal implements Closeable {
 		});
 		
 		return s_m.stream().filter(h_e -> {
-			return h_e.update_date >= start_date && h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
+			return h_e.update_date >= start_date;
+		}).filter(h_e -> {
+			return h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
 		});
 	}
 	
@@ -325,7 +360,6 @@ public class HistoryJournal implements Closeable {
 						break;
 					}
 				}
-				map.clear();
 				
 				if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
 					return;
@@ -343,37 +377,35 @@ public class HistoryJournal implements Closeable {
 			FileUtils.moveFile(file, new_old);
 			open();
 			FileChannel older_file_channel = FileChannel.open(new_old.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
-			MappedByteBuffer map = older_file_channel.map(MapMode.READ_ONLY, HEADER_LENGTH, older_file_channel.size());
+			MappedByteBuffer read_map_buffer = older_file_channel.map(MapMode.READ_ONLY, HEADER_LENGTH, older_file_channel.size());
 			
-			int actual_position;
-			long delete_date;
-			ByteBuffer transfert_buffer = map.asReadOnlyBuffer();
-			int size;
-			while (map.remaining() >= ENTRY_SIZE) {
-				actual_position = map.position();
-				map.position(actual_position + 1 + 8);// ENTRY_HEADER + update_date
-				delete_date = map.getLong();
+			// int size;
+			ArrayList<Integer> read_positions = new ArrayList<>();
+			while (read_map_buffer.remaining() >= ENTRY_SIZE) {
+				int pos = read_map_buffer.position();
 				
-				if (delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+				HistoryEntry journal = new HistoryEntry(read_map_buffer);
+				if (journal.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
 					/**
 					 * Has expired
 					 */
 					continue;
 				}
-				transfert_buffer.limit(actual_position + ENTRY_SIZE);
-				transfert_buffer.position(actual_position);
-				size = file_channel.write(transfert_buffer);
-				if (size != ENTRY_SIZE) {
-					throw new IOException("Invalid writing: " + size + "/" + ENTRY_SIZE);
-				}
-				if (map.remaining() - ENTRY_SIZE >= 0) {
-					map.position(actual_position + ENTRY_SIZE);
-					continue;
-				}
+				read_positions.add(pos);
 			}
-			map.clear();
+			
+			if (read_positions.isEmpty() == false) {
+				MappedByteBuffer write_map_buffer = file_channel.map(MapMode.READ_WRITE, HEADER_LENGTH, read_positions.size() * ENTRY_SIZE);
+				
+				read_positions.forEach(pos -> {
+					read_map_buffer.position(pos);
+					read_map_buffer.limit(pos + ENTRY_SIZE);
+					write_map_buffer.put(read_map_buffer);
+				});
+				write_map_buffer.force();
+			}
+			
 			older_file_channel.close();
-			file_channel.force(true);
 			FileUtils.forceDelete(new_old);
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
 		}
