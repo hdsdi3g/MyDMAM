@@ -66,21 +66,32 @@ public class FileIndexPaths {
 		
 		if (llist_file.exists()) {
 			channel = FileChannel.open(llist_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
-			int size = channel.read(bytebuffer_header_index, 0);
-			if (size != FILE_LLIST_HEADER_LENGTH) {
-				throw new IOException("Invalid header");
+			if (llist_file.length() == 0) {
+				bytebuffer_header_index.put(FILE_LLIST_HEADER);
+				bytebuffer_header_index.putInt(FILE_LLIST_VERSION);
+				bytebuffer_header_index.flip();
+				int size = channel.write(bytebuffer_header_index, 0);
+				if (size != FILE_LLIST_HEADER_LENGTH) {
+					throw new IOException("Can't write the header");
+				}
+				file_index_write_pointer = FILE_LLIST_HEADER_LENGTH;
+			} else {
+				int size = channel.read(bytebuffer_header_index, 0);
+				if (size != FILE_LLIST_HEADER_LENGTH) {
+					throw new IOException("Invalid header");
+				}
+				bytebuffer_header_index.flip();
+				
+				TransactionJournal.readAndEquals(bytebuffer_header_index, FILE_LLIST_HEADER, bad_datas -> {
+					return new IOException("Invalid file header: " + new String(bad_datas));
+				});
+				int version = bytebuffer_header_index.getInt();
+				if (version != FILE_LLIST_VERSION) {
+					throw new IOException("Invalid version: " + version + " instead of " + FILE_LLIST_VERSION);
+				}
+				
+				file_index_write_pointer = channel.size();
 			}
-			bytebuffer_header_index.flip();
-			
-			TransactionJournal.readAndEquals(bytebuffer_header_index, FILE_LLIST_HEADER, bad_datas -> {
-				return new IOException("Invalid file header: " + new String(bad_datas));
-			});
-			int version = bytebuffer_header_index.getInt();
-			if (version != FILE_LLIST_VERSION) {
-				throw new IOException("Invalid version: " + version + " instead of " + FILE_LLIST_VERSION);
-			}
-			
-			file_index_write_pointer = channel.size();
 		} else {
 			channel = FileChannel.open(llist_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			bytebuffer_header_index.put(FILE_LLIST_HEADER);

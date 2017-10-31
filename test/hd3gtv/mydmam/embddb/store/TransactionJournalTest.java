@@ -20,9 +20,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,29 +32,13 @@ import junit.framework.TestCase;
 
 public class TransactionJournalTest extends TestCase {
 	
-	private final UUID uuid;
-	private final File file;
-	
-	public TransactionJournalTest() {
-		uuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
-		file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-transactionjournal-" + uuid);
-	}
-	
-	protected void tearDown() throws IOException {
-		try {
-			FileUtils.forceDelete(file);
-		} catch (FileNotFoundException e) {
-		}
-	}
-	
 	public void testCreateJournal() throws IOException {
+		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-transaction.myjournal");
 		try {
 			FileUtils.forceDelete(file);
 		} catch (FileNotFoundException e) {
 		}
-		
-		FileUtils.forceMkdir(file);
-		TransactionJournal journal_write = new TransactionJournal(file, uuid);
+		TransactionJournal journal_write = new TransactionJournal(file);
 		
 		long before_size = journal_write.getFileSize();
 		
@@ -81,40 +62,39 @@ public class TransactionJournalTest extends TestCase {
 		assertTrue("Empty journal", journal_write.getFileSize() > before_size);
 		journal_write.close();
 		
-		TransactionJournal.allJournalsByDate(file).forEach(journal_read -> {
+		TransactionJournal journal_read = new TransactionJournal(file);
+		
+		assertTrue("Empty journal: " + journal_read.getFileSize(), journal_read.getFileSize() > before_size);
+		
+		AtomicLong last_date = new AtomicLong(0);
+		AtomicInteger item_count = new AtomicInteger(0);
+		
+		journal_read.readAll(false).forEach(entry -> {
+			item_count.incrementAndGet();
+			
+			assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date/* + 1000l*/, last_date.get() <= entry.date/* + 1000l*/);
+			last_date.set(entry.date);
+			assertTrue("Unknow key in #" + item_count.get() + ": " + entry.key, hash_map.containsKey(entry.key));
+			
 			try {
-				assertTrue("Empty journal: " + journal_read.getFileSize(), journal_read.getFileSize() > before_size);
-				
-				AtomicLong last_date = new AtomicLong(0);
-				AtomicInteger item_count = new AtomicInteger(0);
-				
-				journal_read.readAll(false).forEach(entry -> {
-					item_count.incrementAndGet();
-					
-					assertTrue("Invalid date: in #" + item_count.get() + " " + last_date.get() + "<<<" + entry.date/* + 1000l*/, last_date.get() <= entry.date/* + 1000l*/);
-					last_date.set(entry.date);
-					assertTrue("Unknow key in #" + item_count.get() + ": " + entry.key, hash_map.containsKey(entry.key));
-					
-					try {
-						ByteBuffer read_buffer = ByteBuffer.allocate(entry.data_export_source.getByteBufferWriteSize());
-						entry.data_export_source.toByteBuffer(read_buffer);
-						read_buffer.flip();
-						Item read_item = new Item(read_buffer);
-						assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), read_item.getPayload().length);
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-				});
-				
-				assertEquals("Invalid item count", hash_map.size(), item_count.get());
-				journal_read.purge();
+				ByteBuffer read_buffer = ByteBuffer.allocate(entry.data_export_source.getByteBufferWriteSize());
+				entry.data_export_source.toByteBuffer(read_buffer);
+				read_buffer.flip();
+				Item read_item = new Item(read_buffer);
+				assertEquals("Invalid size in #" + item_count.get(), (int) hash_map.get(entry.key), read_item.getPayload().length);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
 		
-		List<File> actual_dir_content = Arrays.asList(file.listFiles());
-		assertEquals("Invalid delete journal", 0, actual_dir_content.size());
+		assertEquals("Invalid item count", hash_map.size(), item_count.get());
+		journal_read.clear();
+		journal_read.close();
+		
+		try {
+			FileUtils.forceDelete(file);
+		} catch (FileNotFoundException e) {
+		}
 	}
 	
 }

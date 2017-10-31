@@ -28,23 +28,8 @@ import java.util.stream.Stream;
  */
 public class FileHashTableLong extends FileHashTable<Long> {
 	
-	final static BiConsumer<Long, ByteBuffer> factory_to_bytes = (pointer, buffer) -> {
-		buffer.putLong(pointer);
-	};
-	
-	final static Function<ByteBuffer, Long> factory_from_bytes = buffer -> {
-		return buffer.getLong();
-	};
-	
 	public FileHashTableLong(File index_file, int default_table_size) throws IOException {
 		super(index_file, factory_to_bytes, factory_from_bytes, 8, default_table_size);
-	}
-	
-	private static final long checkLong(Long v) {
-		if (v == null) {
-			return 0l;
-		}
-		return v.longValue();
 	}
 	
 	/**
@@ -70,5 +55,20 @@ public class FileHashTableLong extends FileHashTable<Long> {
 			return checkLong(entry.value) > 0;
 		});
 	}
+	
+	private static final long checkLong(Long v) {
+		if (v == null) {
+			return 0l;
+		}
+		return v.longValue();
+	}
+	
+	final static BiConsumer<Long, ByteBuffer> factory_to_bytes = (pointer, buffer) -> {
+		buffer.putLong(pointer);
+	};
+	
+	final static Function<ByteBuffer, Long> factory_from_bytes = buffer -> {
+		return buffer.getLong();
+	};
 	
 }

@@ -67,7 +67,7 @@ public class StoreTest extends TestCase {
 		if (backend_basedir.exists()) {
 			FileUtils.forceDelete(backend_basedir);
 		}
-		backend = new FileBackend(backend_basedir, ZERO_UUID, key -> {
+		backend = new FileBackend(backend_basedir, key -> {
 			ReadCacheEhcache.getCache().remove(key);
 		}, new ThreadPoolExecutorFactory("Write History Journal", Thread.MIN_PRIORITY).setSimplePoolSize());
 	}
@@ -77,7 +77,7 @@ public class StoreTest extends TestCase {
 		
 		Store<UUID> store1 = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 100_000, 10_000, 10_000);
 		
-		store1.purgeAll();
+		store1.clear();
 		assertEquals(0, store1.getAllValues().get().size());
 		
 		final String ID = "volatile";
@@ -154,7 +154,7 @@ public class StoreTest extends TestCase {
 	
 	public void testParallelPushRemove() throws Exception {
 		Store<UUID> store = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 1_000_000, 10_000, 100_000);
-		store.purgeAll();
+		store.clear();
 		
 		int size = 100_000;
 		/**
@@ -258,7 +258,7 @@ public class StoreTest extends TestCase {
 			}
 		});
 		
-		store.truncate();
+		store.clear();
 		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
 		
 		store.close();
@@ -271,7 +271,7 @@ public class StoreTest extends TestCase {
 		ReadCacheEhcache.getCache().clear();
 		
 		Store<UUID> store = new Store<>(new ThreadPoolExecutorFactory("EMBDDBTest", Thread.MIN_PRIORITY), "test", factory, backend, ReadCacheEhcache.getCache(), 100_000, GRACE_PERIOD_TTL, 10_000);
-		store.purgeAll();
+		store.clear();
 		assertEquals(0, store.getAllValues().get(5, TimeUnit.SECONDS).size());
 		
 		final String ID = "ttltest";
@@ -360,7 +360,7 @@ public class StoreTest extends TestCase {
 			
 		}, backend, ReadCacheEhcache.getCache(), 1000, 10, 10);
 		
-		store.purgeAll();
+		store.clear();
 		
 		byte[] garbadge = new byte[100_000];
 		ThreadLocalRandom.current().nextBytes(garbadge);
@@ -384,7 +384,7 @@ public class StoreTest extends TestCase {
 		FileUtils.forceDelete(temp_file);
 		FileUtils.moveFile(document, temp_file);
 		
-		store.purgeAll();
+		store.clear();
 		store.doDurableWritesAndCleanUpFiles();
 		ReadCacheEhcache.getCache().clear();
 		assertNull(store.get("test-xml-text").get());

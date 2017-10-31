@@ -62,18 +62,25 @@ class FileData {
 		
 		if (data_file.exists()) {
 			channel = FileChannel.open(data_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
-			int size = channel.read(bytebuffer_header_data, 0);
-			if (size != FILE_DATA_HEADER_LENGTH) {
-				throw new IOException("Invalid header for " + data_file);
-			}
-			bytebuffer_header_data.flip();
-			
-			TransactionJournal.readAndEquals(bytebuffer_header_data, FILE_DATA_HEADER, bad_datas -> {
-				return new IOException("Invalid file header: " + new String(bad_datas) + " for " + data_file);
-			});
-			int version = bytebuffer_header_data.getInt();
-			if (version != FILE_DATA_VERSION) {
-				throw new IOException("Invalid version: " + version + " instead of " + FILE_DATA_VERSION + " for " + data_file);
+			if (data_file.length() == 0) {
+				bytebuffer_header_data.put(FILE_DATA_HEADER);
+				bytebuffer_header_data.putInt(FILE_DATA_VERSION);
+				bytebuffer_header_data.flip();
+				channel.write(bytebuffer_header_data, 0);
+			} else {
+				int size = channel.read(bytebuffer_header_data, 0);
+				if (size != FILE_DATA_HEADER_LENGTH) {
+					throw new IOException("Invalid header for " + data_file);
+				}
+				bytebuffer_header_data.flip();
+				
+				TransactionJournal.readAndEquals(bytebuffer_header_data, FILE_DATA_HEADER, bad_datas -> {
+					return new IOException("Invalid file header: " + new String(bad_datas) + " for " + data_file);
+				});
+				int version = bytebuffer_header_data.getInt();
+				if (version != FILE_DATA_VERSION) {
+					throw new IOException("Invalid version: " + version + " instead of " + FILE_DATA_VERSION + " for " + data_file);
+				}
 			}
 		} else {
 			channel = FileChannel.open(data_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);

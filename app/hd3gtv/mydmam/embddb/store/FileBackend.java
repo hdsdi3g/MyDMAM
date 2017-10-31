@@ -19,11 +19,11 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.FreeDiskSpaceWarningException;
@@ -44,18 +45,13 @@ public class FileBackend {
 	
 	private final File base_directory;
 	private final ArrayList<StoreBackend> backends;
-	private final UUID instance;
 	private final Consumer<ItemKey> previous_pushed_items_in_journals;
 	private final ThreadPoolExecutorFactory history_journal_write_pool;
 	
-	public FileBackend(File base_directory, UUID instance, Consumer<ItemKey> previous_pushed_items_in_journals, ThreadPoolExecutorFactory history_journal_write_pool) throws IOException {
+	public FileBackend(File base_directory, Consumer<ItemKey> previous_pushed_items_in_journals, ThreadPoolExecutorFactory history_journal_write_pool) throws IOException {
 		this.base_directory = base_directory;
 		if (base_directory == null) {
 			throw new NullPointerException("\"base_directory\" can't to be null");
-		}
-		this.instance = instance;
-		if (instance == null) {
-			throw new NullPointerException("\"instance\" can't to be null");
 		}
 		this.previous_pushed_items_in_journals = previous_pushed_items_in_journals;
 		if (previous_pushed_items_in_journals == null) {
@@ -83,8 +79,8 @@ public class FileBackend {
 	/**
 	 * Usable for tests
 	 */
-	FileBackend(File base_directory, UUID instance) throws IOException {
-		this(base_directory, instance, key -> {
+	FileBackend(File base_directory) throws IOException {
+		this(base_directory, key -> {
 		}, new ThreadPoolExecutorFactory("History journal", Thread.NORM_PRIORITY).setSimplePoolSize());
 	}
 	
@@ -122,11 +118,12 @@ public class FileBackend {
 		private String database_name;
 		private String class_name;
 		
-		private TransactionJournal transaction_journal;
+		private final TransactionJournal transaction_journal;
+		private final HistoryJournal history_journal;
+		
 		private FileHashTableData data_hash_table;
 		private FileIndexDates expiration_dates;
 		private FileIndexPaths index_paths;
-		private HistoryJournal history_journal; // TODO read
 		
 		private final File index_file;
 		private final File data_file;
@@ -134,8 +131,12 @@ public class FileBackend {
 		private final File index_paths_file;
 		private final File index_paths_llists_file;
 		private final File transaction_journal_file;
-		private final int default_table_size;
-		private final long grace_period_for_expired_items;
+		
+		private final File old_index_file;
+		private final File old_data_file;
+		private final File old_expiration_dates_file;
+		private final File old_index_paths_file;
+		private final File old_index_paths_llists_file;
 		
 		private StoreBackend(String database_name, String class_name, int default_table_size, long grace_period_for_expired_items) throws IOException {
 			this.database_name = database_name;
@@ -146,11 +147,9 @@ public class FileBackend {
 			if (class_name == null) {
 				throw new NullPointerException("\"class_name\" can't to be null");
 			}
-			this.default_table_size = default_table_size;
 			if (default_table_size < 1) {
 				throw new NullPointerException("\"default_table_size\" can't to be < 1 (" + default_table_size + ")");
 			}
-			this.grace_period_for_expired_items = grace_period_for_expired_items;
 			if (grace_period_for_expired_items < 1) {
 				throw new NullPointerException("\"grace_period_for_expired_items\" can't to be < 1 (" + grace_period_for_expired_items + ")");
 			}
@@ -161,19 +160,19 @@ public class FileBackend {
 			index_paths_file = makeFile("index_paths.myhshtable");
 			index_paths_llists_file = makeFile("index_paths_llists.myllist");
 			transaction_journal_file = makeFile("transaction_journal.myjournal");
-			open();
-		}
-		
-		void open() throws IOException {
-			if (backends.contains(this) == false) {
-				backends.add(this);
-			}
+			
 			history_journal = new HistoryJournal(history_journal_write_pool, makeDir(), grace_period_for_expired_items, default_table_size);
 			transaction_journal = new TransactionJournal(transaction_journal_file);
 			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
 			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, default_table_size);
 			doDurableWritesAndRotateJournal().forEach(previous_pushed_items_in_journals);
+			
+			old_index_file = new File(index_file.getPath() + ".cleanup");
+			old_data_file = new File(data_file.getPath() + ".cleanup");
+			old_expiration_dates_file = new File(expiration_dates_file.getPath() + ".cleanup");
+			old_index_paths_file = new File(index_paths_file.getPath() + ".cleanup");
+			old_index_paths_llists_file = new File(index_paths_llists_file.getPath() + ".cleanup");
 		}
 		
 		public String toString() {
@@ -189,25 +188,21 @@ public class FileBackend {
 			}
 			try {
 				transaction_journal.close();
-				transaction_journal = null;
 			} catch (IOException e) {
 				log.error("Can't close journal for " + toString());
 			}
 			try {
 				data_hash_table.close();
-				data_hash_table = null;
 			} catch (IOException e) {
 				log.error("Can't close data_hash_table for " + toString());
 			}
 			try {
 				expiration_dates.close();
-				expiration_dates = null;
 			} catch (IOException e) {
 				log.error("Can't close expiration_dates for " + toString());
 			}
 			try {
 				index_paths.close();
-				index_paths = null;
 			} catch (IOException e) {
 				log.error("Can't close index_paths for " + toString());
 			}
@@ -317,28 +312,18 @@ public class FileBackend {
 		
 		/**
 		 * NOT Thread safe
-		 * Don't touch to actual journal. Also remove outdated records.
+		 * Don't touch to actual journals (transaction and history). Also remove outdated records.
 		 */
 		void cleanUpFiles() throws IOException {
 			data_hash_table.close();
 			expiration_dates.close();
 			index_paths.close();
 			
-			data_hash_table = null;
-			expiration_dates = null;
-			index_paths = null;
-			
-			File old_index_file = new File(index_file.getPath() + ".cleanup");
-			File old_data_file = new File(data_file.getPath() + ".cleanup");
-			File old_expiration_dates_file = new File(expiration_dates_file.getPath() + ".cleanup");
-			File old_index_paths_file = new File(index_paths_file.getPath() + ".cleanup");
-			File old_index_paths_llists_file = new File(index_paths_llists_file.getPath() + ".cleanup");
-			
-			FileUtils.moveFile(index_file, old_index_file);
-			FileUtils.moveFile(data_file, old_data_file);
-			FileUtils.moveFile(expiration_dates_file, old_expiration_dates_file);
-			FileUtils.moveFile(index_paths_file, old_index_paths_file);
-			FileUtils.moveFile(index_paths_llists_file, old_index_paths_llists_file);
+			rotateFiles(index_file, old_index_file);
+			rotateFiles(data_file, old_data_file);
+			rotateFiles(expiration_dates_file, old_expiration_dates_file);
+			rotateFiles(index_paths_file, old_index_paths_file);
+			rotateFiles(index_paths_llists_file, old_index_paths_llists_file);
 			
 			FileHashTableData old_data_hash_table = new FileHashTableData(old_index_file, old_data_file, 0);
 			FileIndexDates old_expiration_dates = new FileIndexDates(old_expiration_dates_file, 0);
@@ -384,11 +369,11 @@ public class FileBackend {
 			old_expiration_dates.close();
 			old_index_paths.close();
 			
-			FileUtils.forceDelete(old_index_file);// XXX not for windows
-			FileUtils.forceDelete(old_data_file);// XXX not for windows
-			FileUtils.forceDelete(old_expiration_dates_file);// XXX not for windows
-			FileUtils.forceDelete(old_index_paths_file);// XXX not for windows
-			FileUtils.forceDelete(old_index_paths_llists_file);// XXX not for windows
+			truncateFile(old_index_file);
+			truncateFile(old_data_file);
+			truncateFile(old_expiration_dates_file);
+			truncateFile(old_index_paths_file);
+			truncateFile(old_index_paths_llists_file);
 		}
 		
 		/**
@@ -459,6 +444,34 @@ public class FileBackend {
 			history_journal.clear();
 		}
 		
+		public HistoryJournal getHistoryJournal() {
+			return history_journal;
+		}
+	}
+	
+	/**
+	 * Exchange actual and new_old content (triple rename), and truncate *actual* (old new).
+	 */
+	static void rotateFiles(File actual, File new_old) throws IOException {
+		if (new_old.exists() == false) {
+			FileUtils.moveFile(actual, new_old);
+			return;
+		}
+		
+		truncateFile(new_old);
+		File rotate = new File(actual.getParent() + File.separator + "rotate");
+		if (rotate.exists()) {
+			throw new IOException("Rotate file can't exists !");
+		}
+		FileUtils.moveFile(actual, rotate);
+		FileUtils.moveFile(new_old, actual);
+		FileUtils.moveFile(rotate, new_old);
+	}
+	
+	static void truncateFile(File file) throws IOException {
+		FileChannel channel = FileChannel.open(file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
+		channel.truncate(0);
+		channel.close();
 	}
 	
 }

@@ -67,7 +67,8 @@ public class IOPipeline {
 		read_cache = ReadCacheEhcache.getCache();
 		
 		history_journal_write_executor = new ThreadPoolExecutorFactory("Write History Journal", Thread.MIN_PRIORITY).setSimplePoolSize();
-		store_file_backend = new FileBackend(durable_store_directory, poolmanager.getUUIDRef(), key -> {
+		
+		store_file_backend = new FileBackend(durable_store_directory, key -> {
 			read_cache.remove(key);
 		}, history_journal_write_executor);
 		

@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -42,7 +41,7 @@ public class FileBackendTest extends TestCase {
 		if (backend_basedir.exists()) {
 			FileUtils.forceDelete(backend_basedir);
 		}
-		all_backends = new FileBackend(backend_basedir, UUID.fromString("00000000-0000-0000-0000-000000000000"));
+		all_backends = new FileBackend(backend_basedir);
 	}
 	
 	public void testAll() throws Exception {
@@ -239,8 +238,8 @@ public class FileBackendTest extends TestCase {
 			assertEquals("Can't found some objects", UPDATE_PATH, new Item(value).getPath());
 		});
 		
+		backend.close();
 		try {
-			backend.purge();
 			FileUtils.forceDelete(backend_basedir);
 		} catch (IOException e) {
 			if (SystemUtils.IS_OS_WINDOWS == false) {
@@ -270,15 +269,28 @@ public class FileBackendTest extends TestCase {
 		});
 		
 		backend.close();
-		backend.open();
+		
+		/**
+		 * Close + reopen
+		 */
+		StoreBackend backend2 = all_backends.get(DB_NAME, "testOpenExistantJournal", 1000, TimeUnit.MINUTES.toMillis(10));
 		
 		/**
 		 * Now, read the datas
 		 */
-		int all_items = (int) backend.getAllDatas().parallel().map(entry -> {
+		int all_items = (int) backend2.getAllDatas().parallel().map(entry -> {
 			return new Item(entry);
 		}).count();
 		
 		assertEquals("Invalid items retrived count", size, all_items);
+		backend2.close();
+		
+		try {
+			FileUtils.forceDelete(backend_basedir);
+		} catch (IOException e) {
+			if (SystemUtils.IS_OS_WINDOWS == false) {
+				throw e;
+			}
+		}
 	}
 }

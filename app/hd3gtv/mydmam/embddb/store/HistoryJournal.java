@@ -23,14 +23,11 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
-
-import org.apache.commons.io.FileUtils;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -138,7 +135,7 @@ public class HistoryJournal implements Closeable {
 	 * Thread safe and non blocking.
 	 * Waits the ends of stream for start write.
 	 */
-	public CompletableFuture<List<Item>> write(Stream<Item> items) {
+	CompletableFuture<List<Item>> write(Stream<Item> items) {
 		if (pending_close | file_channel.isOpen() == false) {
 			throw new RuntimeException("Current channel is pending close or closed");
 		}
@@ -187,7 +184,7 @@ public class HistoryJournal implements Closeable {
 	/**
 	 * Thread safe and BLOCKING.
 	 */
-	public void writeSync(Item item) throws IOException {
+	void writeSync(Item item) throws IOException {
 		if (pending_close | file_channel.isOpen() == false) {
 			throw new RuntimeException("Current channel is pending close or closed");
 		}
@@ -323,7 +320,7 @@ public class HistoryJournal implements Closeable {
 	 * Can take time...
 	 * Thread safe
 	 */
-	public void defragment() throws IOException {
+	void defragment() throws IOException {
 		synchronized (file) {
 			if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
 				/**
@@ -364,11 +361,9 @@ public class HistoryJournal implements Closeable {
 			
 			file_channel.force(true);
 			file_channel.close();
-			File new_old = new File(file.getAbsolutePath() + ".old");
-			if (new_old.exists()) {
-				FileUtils.forceDelete(new_old);// XXX not for windows
-			}
-			FileUtils.moveFile(file, new_old);
+			
+			File new_old = new File(file.getAbsolutePath() + ".cleanup");
+			FileBackend.rotateFiles(file, new_old);
 			open();
 			FileChannel older_file_channel = FileChannel.open(new_old.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
 			MappedByteBuffer read_map_buffer = older_file_channel.map(MapMode.READ_ONLY, HEADER_LENGTH, older_file_channel.size());
@@ -401,12 +396,12 @@ public class HistoryJournal implements Closeable {
 			
 			read_map_buffer.clear();
 			older_file_channel.close();
-			Files.delete(new_old.toPath()); // TODO windows will refuse file delete...
+			FileBackend.truncateFile(new_old);
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
 		}
 	}
 	
-	public void clear() throws IOException {
+	void clear() throws IOException {
 		synchronized (file) {
 			file_channel.truncate(HEADER_LENGTH);
 			file_channel.force(true);

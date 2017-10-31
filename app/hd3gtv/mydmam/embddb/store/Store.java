@@ -121,6 +121,10 @@ public class Store<T> implements Closeable {
 		}
 	}
 	
+	protected HistoryJournal getHistoryJournal() {
+		return backend.getHistoryJournal();
+	}
+	
 	public boolean isJournalWriteCacheIsTooBig() throws Exception {
 		return journal_write_cache_size.get() > max_size_for_cached_commit_log;
 	}
@@ -425,7 +429,7 @@ public class Store<T> implements Closeable {
 	/**
 	 * Blocking.
 	 */
-	public void truncate() throws Exception {
+	public void clear() throws Exception {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}

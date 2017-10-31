@@ -122,7 +122,6 @@ public class HistoryJournalTest extends TestCase {
 		assertEquals(0, all_from_now);
 		
 		log.info("End read (2)");
-		journal2.purge();
 		journal2.close();
 		
 		try {
@@ -226,7 +225,7 @@ public class HistoryJournalTest extends TestCase {
 		/**
 		 * Test TTL
 		 */
-		long wait_time = (end_push_time + 2 * estimated_process_time) - System.currentTimeMillis();
+		long wait_time = (end_push_time + 3 * estimated_process_time) - System.currentTimeMillis();
 		assertTrue("Too long processing...", wait_time > 0);
 		
 		log.info("Wait " + wait_time + " ms...");
@@ -249,7 +248,6 @@ public class HistoryJournalTest extends TestCase {
 		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
 		journal.close();
-		journal.purge();
 		try {
 			FileUtils.forceDelete(file);
 		} catch (IOException e) {

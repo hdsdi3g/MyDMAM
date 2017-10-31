@@ -63,6 +63,10 @@ public class DistributedStore<T> extends Store<T> {
 		external_dependant_nodes = new ArrayList<>();// TODO update registed nodes
 		running_state = RunningState.WAKE_UP;// TODO update RunningState
 		update_list = new ConcurrentHashMap<ItemKey, UpdateItem>();
+		
+		// TODO use HistoryJournal
+		// getHistoryJournal().getAllSince(start_date)
+		// getHistoryJournal().getEntryCount(include_oldest_entries)
 	}
 	
 	public RunningState getRunningState() {
@@ -120,7 +124,7 @@ public class DistributedStore<T> extends Store<T> {
 	
 	public void truncate() throws Exception {
 		waitToCanAccessToDatas().get();
-		super.truncate(); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
+		super.clear(); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
 	}
 	
 	private class UpdateItem {

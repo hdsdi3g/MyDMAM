@@ -32,7 +32,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.math.IntMath;
@@ -89,30 +88,43 @@ public class FileHashTable<T> {
 		
 		if (index_file.exists()) {
 			channel = FileChannel.open(index_file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
-			int size = channel.read(bytebuffer_header_index, 0);
-			if (size != FILE_INDEX_HEADER_LENGTH) {
-				throw new IOException("Invalid header");
+			if (index_file.length() == 0) {
+				table_size = default_table_size;
+				start_linked_lists_zone_in_index_file = file_index_start + ((long) default_table_size) * (long) HASH_ENTRY_SIZE;
+				
+				bytebuffer_header_index.put(FILE_INDEX_HEADER);
+				bytebuffer_header_index.putInt(FILE_INDEX_VERSION);
+				bytebuffer_header_index.putInt(default_table_size);
+				bytebuffer_header_index.putInt(ItemKey.SIZE);
+				bytebuffer_header_index.flip();
+				channel.write(bytebuffer_header_index, 0);
+				file_index_write_pointer = start_linked_lists_zone_in_index_file;
+			} else {
+				int size = channel.read(bytebuffer_header_index, 0);
+				if (size != FILE_INDEX_HEADER_LENGTH) {
+					throw new IOException("Invalid header");
+				}
+				bytebuffer_header_index.flip();
+				
+				TransactionJournal.readAndEquals(bytebuffer_header_index, FILE_INDEX_HEADER, bad_datas -> {
+					return new IOException("Invalid file header: " + new String(bad_datas));
+				});
+				int version = bytebuffer_header_index.getInt();
+				if (version != FILE_INDEX_VERSION) {
+					throw new IOException("Invalid version: " + version + " instead of " + FILE_INDEX_VERSION);
+				}
+				
+				int actual_table_size = bytebuffer_header_index.getInt();
+				int actual_key_size = bytebuffer_header_index.getInt();
+				if (actual_key_size != ItemKey.SIZE) {
+					throw new IOException("Invalid key_size: file is " + actual_key_size + " instead of " + ItemKey.SIZE);
+				}
+				
+				table_size = actual_table_size;
+				start_linked_lists_zone_in_index_file = file_index_start + ((long) actual_table_size) * (long) HASH_ENTRY_SIZE;
+				
+				file_index_write_pointer = Long.max(channel.size(), start_linked_lists_zone_in_index_file);
 			}
-			bytebuffer_header_index.flip();
-			
-			TransactionJournal.readAndEquals(bytebuffer_header_index, FILE_INDEX_HEADER, bad_datas -> {
-				return new IOException("Invalid file header: " + new String(bad_datas));
-			});
-			int version = bytebuffer_header_index.getInt();
-			if (version != FILE_INDEX_VERSION) {
-				throw new IOException("Invalid version: " + version + " instead of " + FILE_INDEX_VERSION);
-			}
-			
-			int actual_table_size = bytebuffer_header_index.getInt();
-			int actual_key_size = bytebuffer_header_index.getInt();
-			if (actual_key_size != ItemKey.SIZE) {
-				throw new IOException("Invalid key_size: file is " + actual_key_size + " instead of " + ItemKey.SIZE);
-			}
-			
-			table_size = actual_table_size;
-			start_linked_lists_zone_in_index_file = file_index_start + ((long) actual_table_size) * (long) HASH_ENTRY_SIZE;
-			
-			file_index_write_pointer = Long.max(channel.size(), start_linked_lists_zone_in_index_file);
 		} else {
 			table_size = default_table_size;
 			start_linked_lists_zone_in_index_file = file_index_start + ((long) default_table_size) * (long) HASH_ENTRY_SIZE;
