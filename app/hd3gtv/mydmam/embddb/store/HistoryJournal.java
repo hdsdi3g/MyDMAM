@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +46,7 @@ public class HistoryJournal implements Closeable {
 	private static final int JOURNAL_VERSION = 1;
 	private static final int HEADER_LENGTH = JOURNAL_HEADER.length + 4 + 8;
 	
-	private static final byte ENTRY_SEPARATOR = 0x0;
+	private static final byte ENTRY_SEPARATOR = (byte) 0xFF;
 	private static final String FILE_NAME = "store.myhistory";
 	
 	private FileChannel file_channel;
@@ -162,7 +163,7 @@ public class HistoryJournal implements Closeable {
 			
 			while (true) {
 				to_push_list.clear();
-				while (i_item.hasNext() && to_push_list.size() <= 10_000) {
+				while (i_item.hasNext() && to_push_list.size() < 10_000) {
 					to_push_list.add(new HistoryEntry(i_item.next()));
 				}
 				if (to_push_list.isEmpty()) {
@@ -174,18 +175,18 @@ public class HistoryJournal implements Closeable {
 						throw new RuntimeException("Current channel is pending close or closed");
 					}
 					
-					long expected_write_size = (long) ENTRY_SIZE * to_push_list.size();
+					long expected_write_size = (long) ENTRY_SIZE * (long) to_push_list.size();
 					MappedByteBuffer write_buffer;
 					synchronized (file) {
 						long channel_pos = file_channel.position();
 						write_buffer = file_channel.map(MapMode.READ_WRITE, channel_pos, expected_write_size);
-						file_channel.position(file_channel.position() + expected_write_size);
+						
+						to_push_list.forEach(h_e -> {
+							h_e.write(write_buffer);
+							result.add(h_e.item);
+						});
+						file_channel.position(channel_pos + expected_write_size);
 					}
-					
-					to_push_list.forEach(h_e -> {
-						h_e.write(write_buffer);
-						result.add(h_e.item);
-					});
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -322,6 +323,10 @@ public class HistoryJournal implements Closeable {
 		
 		long width = size - pos;
 		
+		if (width % (long) ENTRY_SIZE != 0) {
+			throw new IOException("Invalid file size (file is currently writed ?)");
+		}
+		
 		return (int) (width / (long) ENTRY_SIZE);
 	}
 	
@@ -405,8 +410,9 @@ public class HistoryJournal implements Closeable {
 				write_map_buffer.force();
 			}
 			
+			read_map_buffer.clear();
 			older_file_channel.close();
-			FileUtils.forceDelete(new_old);
+			Files.delete(new_old.toPath()); // TODO windows will refuse file delete...
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
 		}
 	}

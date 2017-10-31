@@ -62,6 +62,17 @@ public class HistoryJournalTest extends TestCase {
 				return journal.write(IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
 					return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
 				})).get();
+				
+				/*return IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
+					Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
+					try {
+						journal.writeSync(item);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+					return item;
+				}).collect(Collectors.toList());*/
+				
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -144,9 +155,13 @@ public class HistoryJournalTest extends TestCase {
 		 * 1st writes
 		 */
 		long start_push_time = System.currentTimeMillis();
-		journal.write(IntStream.range(0, size).mapToObj(i -> {
+		Map<ItemKey, String> rainbow_key = journal.write(IntStream.range(0, size).mapToObj(i -> {
 			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
-		})).get();
+		})).get().stream().collect(Collectors.toMap(item -> {
+			return item.getKey();
+		}, item -> {
+			return item.getId();
+		}));
 		long end_push_time = System.currentTimeMillis();
 		
 		int entry_count = journal.getEntryCount(true);
@@ -158,6 +173,8 @@ public class HistoryJournalTest extends TestCase {
 		 */
 		CompletableFuture<List<Item>> bgk_writes = journal.write(IntStream.range(size, size * 10).mapToObj(i -> {
 			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
+		}).peek(item -> {
+			rainbow_key.put(item.getKey(), item.getId());
 		}));
 		total_pushed += size * 10;
 		
@@ -188,10 +205,19 @@ public class HistoryJournalTest extends TestCase {
 			item_ref.checkDigest(h_entry.data_digest);
 		});
 		
+		assertFalse(bgk_writes.isDone());
+		
 		/**
 		 * Check since date for reading
 		 */
 		journal.getAllSince(end_push_time).forEach(h_e -> {
+			if (map_entries.containsKey(h_e.key)) {
+				if (rainbow_key.containsKey(h_e.key)) {
+					System.out.println(rainbow_key.get(h_e.key) + " " + (System.currentTimeMillis() - h_e.update_date) + " " + (System.currentTimeMillis() - h_e.delete_date));
+				} else {
+					System.out.println((System.currentTimeMillis() - h_e.update_date) + " " + (System.currentTimeMillis() - h_e.delete_date));
+				}
+			}
 			assertFalse("Item: " + h_e.key, map_entries.containsKey(h_e.key));
 		});
 		
