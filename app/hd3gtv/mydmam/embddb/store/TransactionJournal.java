@@ -21,23 +21,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
-
-import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.StreamMaker;
 
-/**
- * Write only if new file, read only if file exists.
- */
 class TransactionJournal implements Closeable {
 	
 	// private static Logger log = Logger.getLogger(TransactionJournal.class);
@@ -47,13 +37,12 @@ class TransactionJournal implements Closeable {
 	
 	private static final byte[] ENTRY_HEADER = "HEAD".getBytes(MyDMAM.UTF8);
 	private static final byte[] ENTRY_SEPARATOR = "NEXT".getBytes(MyDMAM.UTF8);
-	private static final String EXTENSION = ".myjournal";
 	
 	private final FileChannel file_channel;
 	private final File file;
 	private final long creation_date;
 	
-	private TransactionJournal(File file) throws IOException {
+	TransactionJournal(File file) throws IOException {
 		this.file = file;
 		if (file == null) {
 			throw new NullPointerException("\"file\" can't to be null");
@@ -62,7 +51,7 @@ class TransactionJournal implements Closeable {
 		ByteBuffer bytebuffer_header = ByteBuffer.allocate(HEADER_LENGTH);
 		
 		if (file.exists()) {
-			file_channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+			file_channel = FileChannel.open(file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
 			file_channel.read(bytebuffer_header);
 			bytebuffer_header.flip();
 			
@@ -75,7 +64,7 @@ class TransactionJournal implements Closeable {
 			}
 			creation_date = bytebuffer_header.getLong();
 		} else {
-			file_channel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
+			file_channel = FileChannel.open(file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			creation_date = System.currentTimeMillis();
 			bytebuffer_header.put(JOURNAL_HEADER);
 			bytebuffer_header.putInt(JOURNAL_VERSION);
@@ -83,27 +72,6 @@ class TransactionJournal implements Closeable {
 			bytebuffer_header.flip();
 			file_channel.write(bytebuffer_header);
 		}
-		
-	}
-	
-	TransactionJournal(File base_directory, UUID instance) throws IOException {
-		this(new File(base_directory.getPath() + File.separator + instance.toString().toUpperCase() + "_" + Loggers.dateFilename(System.currentTimeMillis()) + EXTENSION));
-	}
-	
-	static List<TransactionJournal> allJournalsByDate(File base_directory) {
-		return Arrays.asList(base_directory.listFiles((dire, name) -> {
-			return name.endsWith(EXTENSION);
-		})).stream().filter(f -> {
-			return f.canRead();
-		}).map(f -> {
-			try {
-				return new TransactionJournal(f);
-			} catch (IOException e) {
-				throw new RuntimeException("Can't open file " + f.getAbsolutePath(), e);
-			}
-		}).sorted((l, r) -> {
-			return (int) Math.signum(l.creation_date - r.creation_date);
-		}).collect(Collectors.toList());
 	}
 	
 	void channelSync() throws IOException {
@@ -115,14 +83,6 @@ class TransactionJournal implements Closeable {
 			channelSync();
 			file_channel.close();
 		}
-	}
-	
-	void purge() throws IOException {
-		if (file_channel.isOpen()) {
-			file_channel.force(true);
-			file_channel.close();
-		}
-		FileUtils.forceDelete(file);
 	}
 	
 	/**
@@ -297,6 +257,13 @@ class TransactionJournal implements Closeable {
 	
 	long getFileSize() {
 		return file.length();
+	}
+	
+	public void clear() throws IOException {
+		synchronized (file_channel) {
+			file_channel.truncate(HEADER_LENGTH);
+			file_channel.force(true);
+		}
 	}
 	
 }

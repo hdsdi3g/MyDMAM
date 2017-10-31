@@ -441,27 +441,6 @@ public class Store<T> implements Closeable {
 		});
 	}
 	
-	/**
-	 * Blocking.
-	 */
-	void purgeAll() throws Exception {
-		if (closed) {
-			throw new RuntimeException("Store is closed");
-		}
-		executor.insertPauseTask(() -> {
-			journal_write_cache_size.set(0);
-			journal_write_cache.clear();
-			read_cache.clear();
-			try {
-				backend.purge();
-				backend.close();
-				backend.open();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		});
-	}
-	
 	public String getDatabaseName() {
 		return database_name;
 	}

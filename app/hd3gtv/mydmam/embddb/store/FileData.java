@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.function.Function;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
@@ -356,13 +355,6 @@ class FileData {
 				throw new RuntimeException(e);
 			}
 		}
-	}
-	
-	void purge() throws IOException {
-		if (channel.isOpen()) {
-			channel.close();
-		}
-		FileUtils.forceDelete(data_file);
 	}
 	
 }

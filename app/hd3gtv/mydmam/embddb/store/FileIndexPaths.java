@@ -31,7 +31,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
@@ -389,14 +388,6 @@ public class FileIndexPaths {
 		file_index_write_pointer = FILE_LLIST_HEADER_LENGTH;
 		channel.truncate(FILE_LLIST_HEADER_LENGTH);
 		channel.force(true);
-	}
-	
-	void purge() throws IOException {
-		if (channel.isOpen()) {
-			channel.close();
-		}
-		FileUtils.forceDelete(llist_file);
-		hash_table.purge();
 	}
 	
 }

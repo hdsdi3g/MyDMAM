@@ -628,13 +628,6 @@ public class FileHashTable<T> {
 		}
 	}
 	
-	void purge() throws IOException {
-		if (channel.isOpen()) {
-			channel.close();
-		}
-		FileUtils.forceDelete(index_file);
-	}
-	
 	public static final int computeHashTableBestSize(int estimate_number_of_elements) {
 		if (estimate_number_of_elements == 0) {
 			return computeHashTableBestSize(1000);

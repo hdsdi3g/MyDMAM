@@ -128,17 +128,6 @@ public class HistoryJournal implements Closeable {
 		}
 	}
 	
-	void purge() throws IOException {
-		if (file_channel.isOpen()) {
-			pending_close = true;
-			// write_queue.pending_writes.clear();
-			file_channel.force(true);
-			file_channel.close();
-		}
-		file.delete();
-		file.deleteOnExit();
-	}
-	
 	void channelSync() throws IOException {
 		file_channel.force(true);
 	}
@@ -377,7 +366,7 @@ public class HistoryJournal implements Closeable {
 			file_channel.close();
 			File new_old = new File(file.getAbsolutePath() + ".old");
 			if (new_old.exists()) {
-				FileUtils.forceDelete(new_old);
+				FileUtils.forceDelete(new_old);// XXX not for windows
 			}
 			FileUtils.moveFile(file, new_old);
 			open();
@@ -414,6 +403,13 @@ public class HistoryJournal implements Closeable {
 			older_file_channel.close();
 			Files.delete(new_old.toPath()); // TODO windows will refuse file delete...
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
+		}
+	}
+	
+	public void clear() throws IOException {
+		synchronized (file) {
+			file_channel.truncate(HEADER_LENGTH);
+			file_channel.force(true);
 		}
 	}
 	

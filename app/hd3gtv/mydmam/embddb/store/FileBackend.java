@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +35,7 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.store.FileData.Entry;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.FreeDiskSpaceWarningException;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 public class FileBackend {
@@ -115,27 +115,25 @@ public class FileBackend {
 	 * Add 1MB to expected_data_size_to_write
 	 */
 	void checkFreeSpace(long expected_data_size_to_write) throws IOException {
-		if (base_directory.getFreeSpace() < expected_data_size_to_write + (1_024l * 1_024l)) {
-			throw new IOException("No free space on " + base_directory);
-		}
+		FreeDiskSpaceWarningException.check(base_directory, expected_data_size_to_write + (1_024l * 1_024l));
 	}
 	
 	class StoreBackend {
 		private String database_name;
 		private String class_name;
 		
-		private File journal_directory;
-		private TransactionJournal journal;
+		private TransactionJournal transaction_journal;
 		private FileHashTableData data_hash_table;
 		private FileIndexDates expiration_dates;
 		private FileIndexPaths index_paths;
-		private HistoryJournal history_journal; // TODO read + update in history_journal
+		private HistoryJournal history_journal; // TODO read
 		
 		private final File index_file;
 		private final File data_file;
 		private final File expiration_dates_file;
 		private final File index_paths_file;
 		private final File index_paths_llists_file;
+		private final File transaction_journal_file;
 		private final int default_table_size;
 		private final long grace_period_for_expired_items;
 		
@@ -162,6 +160,7 @@ public class FileBackend {
 			expiration_dates_file = makeFile("expiration_dates.myhshtable");
 			index_paths_file = makeFile("index_paths.myhshtable");
 			index_paths_llists_file = makeFile("index_paths_llists.myllist");
+			transaction_journal_file = makeFile("transaction_journal.myjournal");
 			open();
 		}
 		
@@ -170,10 +169,7 @@ public class FileBackend {
 				backends.add(this);
 			}
 			history_journal = new HistoryJournal(history_journal_write_pool, makeDir(), grace_period_for_expired_items, default_table_size);
-			
-			journal_directory = makeFile("journal");
-			FileUtils.forceMkdir(journal_directory);
-			
+			transaction_journal = new TransactionJournal(transaction_journal_file);
 			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
 			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);
 			index_paths = new FileIndexPaths(index_paths_file, index_paths_llists_file, default_table_size);
@@ -192,8 +188,8 @@ public class FileBackend {
 				log.error("Can't close history_journal for " + toString());
 			}
 			try {
-				journal.close();
-				journal = null;
+				transaction_journal.close();
+				transaction_journal = null;
 			} catch (IOException e) {
 				log.error("Can't close journal for " + toString());
 			}
@@ -232,7 +228,8 @@ public class FileBackend {
 		 */
 		void writeInJournal(Item item, long expiration_date) throws IOException {
 			checkFreeSpace(item.getByteBufferWriteSize());
-			journal.write(item.getKey(), item, expiration_date, item.getPath());
+			transaction_journal.write(item.getKey(), item, expiration_date, item.getPath());
+			history_journal.writeSync(item);
 		}
 		
 		/**
@@ -249,34 +246,22 @@ public class FileBackend {
 				}
 			}, history_journal_write_pool);
 			
-			if (journal != null) {
-				journal.close();
-			}
-			
 			/**
 			 * To protect future writes... it will throw a NPE
 			 */
-			journal = null;
-			
 			HashMap<ItemKey, Long> all_last_record_dates = new HashMap<>();
 			
 			/**
 			 * 1st pass: get and compare dates
 			 */
-			TransactionJournal.allJournalsByDate(journal_directory).forEach(current_journal -> {
-				try {
-					current_journal.readAll(true).forEach(entry -> {
-						if (all_last_record_dates.containsKey(entry.key)) {
-							long actual_date = all_last_record_dates.get(entry.key);
-							if (entry.expiration_date > actual_date) {
-								all_last_record_dates.put(entry.key, entry.expiration_date);
-							}
-						} else {
-							all_last_record_dates.put(entry.key, entry.expiration_date);
-						}
-					});
-				} catch (IOException e) {
-					throw new RuntimeException(e);
+			transaction_journal.readAll(true).forEach(entry -> {
+				if (all_last_record_dates.containsKey(entry.key)) {
+					long actual_date = all_last_record_dates.get(entry.key);
+					if (entry.expiration_date > actual_date) {
+						all_last_record_dates.put(entry.key, entry.expiration_date);
+					}
+				} else {
+					all_last_record_dates.put(entry.key, entry.expiration_date);
 				}
 			});
 			
@@ -287,42 +272,31 @@ public class FileBackend {
 			/**
 			 * 2nd pass: do writes
 			 */
-			List<ItemKey> all_updated_keys = TransactionJournal.allJournalsByDate(journal_directory).stream().map(current_journal -> {
+			List<ItemKey> all_updated_keys = transaction_journal.readAll(false).map(entry -> {
+				if (all_last_record_dates.containsKey(entry.key) == false) {
+					throw new NullPointerException("Can't found key " + entry.key + ", invalid journal read/update during reading");
+				}
+				
+				if (entry.expiration_date != all_last_record_dates.get(entry.key)) {
+					/**
+					 * Get only the last record, and write only this last.
+					 */
+					return null;
+				}
 				try {
-					List<ItemKey> updated_keys = current_journal.readAll(false).map(entry -> {
-						if (all_last_record_dates.containsKey(entry.key) == false) {
-							throw new NullPointerException("Can't found key " + entry.key + ", invalid journal read/update during reading");
-						}
-						
-						if (entry.expiration_date != all_last_record_dates.get(entry.key)) {
-							/**
-							 * Get only the last record, and write only this last.
-							 */
-							return null;
-						}
-						try {
-							checkFreeSpace(entry.data_export_source.getByteBufferWriteSize());
-							
-							data_hash_table.put(entry.key, entry.data_export_source);
-							expiration_dates.put(entry.key, entry.expiration_date);
-							FileIndexPaths.update(entry.key, entry.path, all_actual_paths_keys);
-							return entry.key;
-						} catch (IOException e) {
-							throw new RuntimeException(e);
-						}
-					}).collect(Collectors.toList());
+					checkFreeSpace(entry.data_export_source.getByteBufferWriteSize());
 					
-					current_journal.purge();
-					return updated_keys;
+					data_hash_table.put(entry.key, entry.data_export_source);
+					expiration_dates.put(entry.key, entry.expiration_date);
+					FileIndexPaths.update(entry.key, entry.path, all_actual_paths_keys);
+					return entry.key;
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
-			}).flatMap(k_l -> {
-				return k_l.stream();
 			}).distinct().collect(Collectors.toList());
 			
 			index_paths.setAll(all_actual_paths_keys);
-			journal = new TransactionJournal(journal_directory, instance);
+			transaction_journal.clear();
 			
 			try {
 				cf_history_journal_defragment.get();
@@ -410,11 +384,11 @@ public class FileBackend {
 			old_expiration_dates.close();
 			old_index_paths.close();
 			
-			FileUtils.forceDelete(old_index_file);
-			FileUtils.forceDelete(old_data_file);
-			FileUtils.forceDelete(old_expiration_dates_file);
-			FileUtils.forceDelete(old_index_paths_file);
-			FileUtils.forceDelete(old_index_paths_llists_file);
+			FileUtils.forceDelete(old_index_file);// XXX not for windows
+			FileUtils.forceDelete(old_data_file);// XXX not for windows
+			FileUtils.forceDelete(old_expiration_dates_file);// XXX not for windows
+			FileUtils.forceDelete(old_index_paths_file);// XXX not for windows
+			FileUtils.forceDelete(old_index_paths_llists_file);// XXX not for windows
 		}
 		
 		/**
@@ -474,20 +448,6 @@ public class FileBackend {
 			});
 		}
 		
-		void purge() throws IOException {
-			data_hash_table.purge();
-			expiration_dates.purge();
-			index_paths.purge();
-			journal.purge();
-			
-			Arrays.asList(journal_directory.listFiles()).forEach(f -> {
-				f.delete();
-			});
-			
-			FileUtils.forceDelete(journal_directory);
-			FileUtils.forceDelete(makeFile("").getAbsoluteFile());
-		}
-		
 		/**
 		 * NOT Thread safe
 		 */
@@ -495,15 +455,8 @@ public class FileBackend {
 			data_hash_table.clear();
 			expiration_dates.clear();
 			index_paths.clear();
-			
-			if (journal != null) {
-				journal.purge();
-				journal = null;
-			}
-			Arrays.asList(journal_directory.listFiles()).forEach(f -> {
-				f.delete();
-			});
-			journal = new TransactionJournal(journal_directory, instance);
+			transaction_journal.clear();
+			history_journal.clear();
 		}
 		
 	}
