@@ -247,6 +247,11 @@ public class HistoryJournalTest extends TestCase {
 		assertEquals(size_2nd_push, journal.getEntryCount(true));
 		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
+		journal.write(IntStream.range(0, size_2nd_push).mapToObj(i -> {
+			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
+		})).get();
+		journal.defragment();
+		
 		journal.close();
 		try {
 			FileUtils.forceDelete(file);

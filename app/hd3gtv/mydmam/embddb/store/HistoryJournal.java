@@ -24,16 +24,22 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang.SystemUtils;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.FreeDiskSpaceWarningException;
 import hd3gtv.tools.StreamMaker;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
+import sun.nio.ch.DirectBuffer;
 
 @GsonIgnore
 public class HistoryJournal implements Closeable {
@@ -87,17 +93,26 @@ public class HistoryJournal implements Closeable {
 		
 		if (file.exists()) {
 			file_channel = FileChannel.open(file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
-			file_channel.read(bytebuffer_header);
-			bytebuffer_header.flip();
-			
-			TransactionJournal.readAndEquals(bytebuffer_header, JOURNAL_HEADER, bad_datas -> {
-				return new IOException("Invalid file header: " + new String(bad_datas));
-			});
-			int journal_version = bytebuffer_header.getInt();
-			if (journal_version != JOURNAL_VERSION) {
-				throw new IOException("Invalid history journal version: " + journal_version + " instead of " + JOURNAL_VERSION);
+			if (file.length() == 0) {
+				creation_date = System.currentTimeMillis();
+				bytebuffer_header.put(JOURNAL_HEADER);
+				bytebuffer_header.putInt(JOURNAL_VERSION);
+				bytebuffer_header.putLong(creation_date);
+				bytebuffer_header.flip();
+				file_channel.write(bytebuffer_header);
+			} else {
+				file_channel.read(bytebuffer_header);
+				bytebuffer_header.flip();
+				
+				TransactionJournal.readAndEquals(bytebuffer_header, JOURNAL_HEADER, bad_datas -> {
+					return new IOException("Invalid file header: " + new String(bad_datas));
+				});
+				int journal_version = bytebuffer_header.getInt();
+				if (journal_version != JOURNAL_VERSION) {
+					throw new IOException("Invalid history journal version: " + journal_version + " instead of " + JOURNAL_VERSION);
+				}
+				creation_date = bytebuffer_header.getLong();
 			}
-			creation_date = bytebuffer_header.getLong();
 		} else {
 			file_channel = FileChannel.open(file.toPath(), MyDMAM.OPEN_OPTIONS_FILE_NOT_EXISTS);
 			creation_date = System.currentTimeMillis();
@@ -171,7 +186,11 @@ public class HistoryJournal implements Closeable {
 							h_e.write(write_buffer);
 							result.add(h_e.item);
 						});
+						write_buffer.force();
 						file_channel.position(channel_pos + expected_write_size);
+					}
+					if (SystemUtils.IS_OS_WINDOWS) {
+						all_MBB.add(write_buffer);
 					}
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -253,6 +272,8 @@ public class HistoryJournal implements Closeable {
 		
 	}
 	
+	private Set<MappedByteBuffer> all_MBB = Collections.synchronizedSet(new HashSet<>());
+	
 	/**
 	 * Thread safe. Filter out expired and updated before-delete-grace-period entries.
 	 * Should not be used for a get *all* entries, only recents entries like max(start_date, now - grace period).
@@ -282,6 +303,10 @@ public class HistoryJournal implements Closeable {
 				throw new RuntimeException("Can't read " + file, e);
 			}
 		});
+		
+		if (SystemUtils.IS_OS_WINDOWS) {
+			all_MBB.add(map);
+		}
 		
 		return s_m.stream().filter(h_e -> {
 			return h_e.update_date >= start_date;
@@ -352,8 +377,12 @@ public class HistoryJournal implements Closeable {
 					}
 				}
 				
+				if (SystemUtils.IS_OS_WINDOWS) {
+					all_MBB.add(map);
+				}
+				
 				if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
-					return;
+					// XXX return;
 				}
 			}
 			
@@ -392,13 +421,25 @@ public class HistoryJournal implements Closeable {
 					write_map_buffer.put(read_map_buffer);
 				});
 				write_map_buffer.force();
+				all_MBB.add(write_map_buffer);
 			}
+			all_MBB.add(read_map_buffer);
 			
-			read_map_buffer.clear();
 			older_file_channel.close();
+			if (SystemUtils.IS_OS_WINDOWS) {
+				all_MBB.forEach(m -> unmapMappedByteBuffer(m));
+				System.out.println(all_MBB.size());// XXX
+				all_MBB.clear();
+			}
 			FileBackend.truncateFile(new_old);
+			
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
 		}
+	}
+	
+	public static void unmapMappedByteBuffer(MappedByteBuffer buffer) {
+		sun.misc.Cleaner cleaner = ((DirectBuffer) buffer).cleaner();
+		cleaner.clean();
 	}
 	
 	void clear() throws IOException {
