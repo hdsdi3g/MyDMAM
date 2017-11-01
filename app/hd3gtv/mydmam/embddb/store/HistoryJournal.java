@@ -191,7 +191,7 @@ public class HistoryJournal implements Closeable {
 	/**
 	 * Thread safe and BLOCKING.
 	 */
-	void writeSync(Item item) throws IOException {
+	Item writeSync(Item item) throws IOException {
 		if (pending_close | file_channel.isOpen() == false) {
 			throw new RuntimeException("Current channel is pending close or closed");
 		}
@@ -212,6 +212,7 @@ public class HistoryJournal implements Closeable {
 				throw new IOException("Can't write in history journal (" + writed_size + "/" + ENTRY_SIZE + ")");
 			}
 		}
+		return item;
 	}
 	
 	@GsonIgnore
@@ -300,12 +301,12 @@ public class HistoryJournal implements Closeable {
 		}
 	}
 	
-	/**
+	/*
 	 * Thread safe
 	 * Ignore actual deleted and expired values.
 	 * @param include_oldest_entries based on last defragment measure, or just file size.
 	 */
-	public int getEntryCount(boolean include_oldest_entries) throws IOException {
+	/*public int getEntryCount(boolean include_oldest_entries) throws IOException {
 		long pos = HEADER_LENGTH;
 		if (include_oldest_entries == false) {
 			pos = oldest_valid_recorded_value_position;
@@ -324,7 +325,7 @@ public class HistoryJournal implements Closeable {
 		}
 		
 		return (int) (width / (long) ENTRY_SIZE);
-	}
+	}*/
 	
 	/**
 	 * Can take time...

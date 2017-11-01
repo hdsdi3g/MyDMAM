@@ -19,6 +19,7 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -37,7 +38,30 @@ public class HistoryJournalTest extends TestCase {
 	
 	private static Logger log = Logger.getLogger(HistoryJournalTest.class);
 	
-	public void testAll() throws IOException, InterruptedException, ExecutionException {
+	static ThreadPoolExecutorFactory write_pool;
+	static {
+		write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
+	}
+	
+	static List<Item> write(HistoryJournal journal, int from, int to, long ttl, long force_sleep) {
+		return IntStream.range(from, to).mapToObj(i -> {
+			try {
+				return journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes())).setTTL(ttl);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}).peek(item -> {
+			if (force_sleep > 0) {
+				try {
+					Thread.sleep(force_sleep);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}).collect(Collectors.toList());
+	}
+	
+	public void pushPull() throws IOException, InterruptedException, ExecutionException {
 		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history1");
 		try {
 			FileUtils.forceDelete(file);
@@ -45,59 +69,47 @@ public class HistoryJournalTest extends TestCase {
 		}
 		FileUtils.forceMkdir(file);
 		
-		ThreadPoolExecutorFactory write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
+		final HistoryJournal journal = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 200);
 		
-		final HistoryJournal journal = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 1_000_000);
+		int size = 100;
 		
-		log.info("Start parallel write");
 		/**
-		 * Parallel write
+		 * Write bulk
 		 */
 		long start_time = System.currentTimeMillis();
-		int size = 1_000_000;
-		
-		List<Item> all_pushed_items = IntStream.range(0, 10).parallel().mapToObj(chunk_factor -> {
-			try {
-				/*return journal.write(IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
-					return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
-				})).get();*/
-				
-				return IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
-					Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
-					try {
-						journal.writeSync(item);
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-					return item;
-				}).collect(Collectors.toList());
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}).flatMap(list -> {
-			return list.stream();
-		}).collect(Collectors.toList());
-		
-		assertEquals(size, all_pushed_items.size());
-		
+		List<Item> all_pushed_items = write(journal, 0, size, TimeUnit.SECONDS.toMillis(10), 1);// TODO return Map
 		long end_time = System.currentTimeMillis();
 		
-		log.info("End parallel write (" + (double) (end_time - start_time) / 1000d + " sec)");
+		assertEquals(size, all_pushed_items.size());
+		assertTrue(end_time - start_time >= (long) size);
 		
-		int entry_count = journal.getEntryCount(true);
-		assertEquals(size, entry_count);
-		
-		log.info("Start read");
+		/**
+		 * Read bulk
+		 */
 		int all_count = (int) journal.getAllSince(start_time - 1).peek(entry -> {
 			assertTrue(entry.delete_date > start_time);
 			assertTrue(entry.delete_date > end_time);
 			assertTrue(entry.delete_date < end_time + TimeUnit.MINUTES.toMillis(11));
 			assertTrue(entry.update_date >= start_time);
 			assertTrue(entry.update_date <= end_time);
+		}).peek(entry -> {
+			assertEquals(all_pushed_items.stream().filter(item -> {
+				if (entry.key.equals(item.getKey())) {
+					assertTrue(Arrays.equals(item.getDigest(), entry.data_digest));
+					assertEquals(item.getPayload().length, entry.data_size);
+					assertEquals(item.getDeleteDate(), entry.delete_date);
+					assertEquals(item.getUpdated(), entry.update_date);
+					return true;
+				}
+				return false;
+			}).count(), 1l);
 		}).count();
 		assertEquals(size, all_count);
 		
-		log.info("End read");
+		// TODO test limit date
+		// TODO test ttl
+		// TODO test defrag 2x
+		// TODO test create + push + close + open + read
 		
 		long all_from_now = journal.getAllSince(System.currentTimeMillis()).count();
 		assertEquals(0, all_from_now);
@@ -109,8 +121,6 @@ public class HistoryJournalTest extends TestCase {
 		 * Re-open
 		 */
 		HistoryJournal journal2 = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 1_000_000);
-		entry_count = journal2.getEntryCount(true);
-		assertEquals(size, entry_count);
 		
 		log.info("Start read (2)");
 		all_count = (int) journal2.getAllSince(0).count();
@@ -128,7 +138,7 @@ public class HistoryJournalTest extends TestCase {
 		}
 	}
 	
-	public void testParallelIO() throws IOException, InterruptedException, ExecutionException {
+	public void AtestParallelIO() throws IOException, InterruptedException, ExecutionException {
 		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history2");
 		try {
 			FileUtils.forceDelete(file);
@@ -138,14 +148,10 @@ public class HistoryJournalTest extends TestCase {
 		
 		ThreadPoolExecutorFactory write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
 		
-		/**
-		 * This values are tricky.
-		 * Tested with *simple* SSD (300 MB/sec).
-		 */
 		int size = 10_000;
 		long estimated_process_time = 1_000;
 		
-		final HistoryJournal journal = new HistoryJournal(write_pool, file, 900, size / 2);
+		final HistoryJournal journal = new HistoryJournal(write_pool, file, estimated_process_time, size / 2);
 		int total_pushed = 0;
 		
 		/**
@@ -153,7 +159,7 @@ public class HistoryJournalTest extends TestCase {
 		 */
 		long start_push_time = System.currentTimeMillis();
 		
-		Map<ItemKey, String> rainbow_key = IntStream.range(0, size).mapToObj(i -> {
+		Map<ItemKey, String> rainbow_key = IntStream.range(0, 100).mapToObj(i -> {
 			Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
 			try {
 				journal.writeSync(item);
@@ -168,8 +174,6 @@ public class HistoryJournalTest extends TestCase {
 		}));
 		long end_push_time = System.currentTimeMillis();
 		
-		int entry_count = journal.getEntryCount(true);
-		assertTrue(entry_count >= size);
 		total_pushed += size;
 		
 		/*
@@ -234,7 +238,6 @@ public class HistoryJournalTest extends TestCase {
 		log.info("Wait " + wait_time + " ms...");
 		Thread.sleep(wait_time);
 		
-		assertEquals(total_pushed - size, journal.getEntryCount(false));
 		assertEquals(0, journal.getAllSince(start_push_time).count());
 		
 		int size_2nd_push = 10;
@@ -246,12 +249,10 @@ public class HistoryJournalTest extends TestCase {
 			}
 		});
 		
-		assertEquals(total_pushed - size + size_2nd_push, journal.getEntryCount(true));
 		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
 		journal.defragment();
 		
-		assertEquals(size_2nd_push, journal.getEntryCount(true));
 		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
 		IntStream.range(0, size_2nd_push).forEach(i -> {
