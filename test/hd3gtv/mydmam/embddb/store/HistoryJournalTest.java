@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -59,11 +58,11 @@ public class HistoryJournalTest extends TestCase {
 		
 		List<Item> all_pushed_items = IntStream.range(0, 10).parallel().mapToObj(chunk_factor -> {
 			try {
-				return journal.write(IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
+				/*return journal.write(IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
 					return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
-				})).get();
+				})).get();*/
 				
-				/*return IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
+				return IntStream.range(chunk_factor * size / 10, (chunk_factor + 1) * size / 10).mapToObj(i -> {
 					Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(TimeUnit.MINUTES.toMillis(10));
 					try {
 						journal.writeSync(item);
@@ -71,8 +70,7 @@ public class HistoryJournalTest extends TestCase {
 						throw new RuntimeException(e);
 					}
 					return item;
-				}).collect(Collectors.toList());*/
-				
+				}).collect(Collectors.toList());
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -144,8 +142,8 @@ public class HistoryJournalTest extends TestCase {
 		 * This values are tricky.
 		 * Tested with *simple* SSD (300 MB/sec).
 		 */
-		int size = 100_000;
-		long estimated_process_time = 2_000;
+		int size = 10_000;
+		long estimated_process_time = 1_000;
 		
 		final HistoryJournal journal = new HistoryJournal(write_pool, file, 900, size / 2);
 		int total_pushed = 0;
@@ -154,9 +152,16 @@ public class HistoryJournalTest extends TestCase {
 		 * 1st writes
 		 */
 		long start_push_time = System.currentTimeMillis();
-		Map<ItemKey, String> rainbow_key = journal.write(IntStream.range(0, size).mapToObj(i -> {
-			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
-		})).get().stream().collect(Collectors.toMap(item -> {
+		
+		Map<ItemKey, String> rainbow_key = IntStream.range(0, size).mapToObj(i -> {
+			Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
+			try {
+				journal.writeSync(item);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+			return item;
+		}).collect(Collectors.toMap(item -> {
 			return item.getKey();
 		}, item -> {
 			return item.getId();
@@ -167,15 +172,15 @@ public class HistoryJournalTest extends TestCase {
 		assertTrue(entry_count >= size);
 		total_pushed += size;
 		
-		/**
+		/*
 		 * 2nd writes in background
 		 */
-		CompletableFuture<List<Item>> bgk_writes = journal.write(IntStream.range(size, size * 10).mapToObj(i -> {
+		/*List<Item>> bgk_writes = journal.write(IntStream.range(size, size * 10).mapToObj(i -> {
 			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
 		}).peek(item -> {
 			rainbow_key.put(item.getKey(), item.getId());
 		}));
-		total_pushed += size * 10;
+		total_pushed += size * 10;*/
 		
 		/**
 		 * Reads during new writes
@@ -204,7 +209,7 @@ public class HistoryJournalTest extends TestCase {
 			item_ref.checkDigest(h_entry.data_digest);
 		});
 		
-		assertFalse(bgk_writes.isDone());
+		Thread.sleep(1000);
 		
 		/**
 		 * Check since date for reading
@@ -220,8 +225,6 @@ public class HistoryJournalTest extends TestCase {
 			assertFalse("Item: " + h_e.key, map_entries.containsKey(h_e.key));
 		});
 		
-		bgk_writes.get();
-		
 		/**
 		 * Test TTL
 		 */
@@ -235,9 +238,13 @@ public class HistoryJournalTest extends TestCase {
 		assertEquals(0, journal.getAllSince(start_push_time).count());
 		
 		int size_2nd_push = 10;
-		journal.write(IntStream.range(0, size_2nd_push).mapToObj(i -> {
-			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
-		})).get();
+		IntStream.range(0, size_2nd_push).forEach(i -> {
+			try {
+				journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes()));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 		
 		assertEquals(total_pushed - size + size_2nd_push, journal.getEntryCount(true));
 		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
@@ -247,9 +254,13 @@ public class HistoryJournalTest extends TestCase {
 		assertEquals(size_2nd_push, journal.getEntryCount(true));
 		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
 		
-		journal.write(IntStream.range(0, size_2nd_push).mapToObj(i -> {
-			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
-		})).get();
+		IntStream.range(0, size_2nd_push).forEach(i -> {
+			try {
+				journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes()));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 		journal.defragment();
 		
 		journal.close();

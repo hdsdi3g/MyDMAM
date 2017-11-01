@@ -24,22 +24,13 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
-
-import org.apache.commons.lang.SystemUtils;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.FreeDiskSpaceWarningException;
 import hd3gtv.tools.StreamMaker;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
-import sun.nio.ch.DirectBuffer;
 
 @GsonIgnore
 public class HistoryJournal implements Closeable {
@@ -146,11 +137,11 @@ public class HistoryJournal implements Closeable {
 	
 	private static final int ENTRY_SIZE = 1 + 8 + 8 + ItemKey.SIZE + 4 + Item.CRC32_SIZE;
 	
-	/**
+	/*
 	 * Thread safe and non blocking.
 	 * Waits the ends of stream for start write.
 	 */
-	CompletableFuture<List<Item>> write(Stream<Item> items) {
+	/*CompletableFuture<List<Item>> write(Stream<Item> items) {
 		if (pending_close | file_channel.isOpen() == false) {
 			throw new RuntimeException("Current channel is pending close or closed");
 		}
@@ -189,16 +180,13 @@ public class HistoryJournal implements Closeable {
 						write_buffer.force();
 						file_channel.position(channel_pos + expected_write_size);
 					}
-					if (SystemUtils.IS_OS_WINDOWS) {
-						all_MBB.add(write_buffer);
-					}
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			}
 			return result;
 		}, write_pool);
-	}
+	}*/
 	
 	/**
 	 * Thread safe and BLOCKING.
@@ -216,7 +204,10 @@ public class HistoryJournal implements Closeable {
 			if (pending_close | file_channel.isOpen() == false) {
 				throw new RuntimeException("Current channel is pending close or closed");
 			}
-			int writed_size = file_channel.write(write_buffer);
+			/**
+			 * Always appends
+			 */
+			int writed_size = file_channel.write(write_buffer, file_channel.size());
 			if (writed_size != ENTRY_SIZE) {
 				throw new IOException("Can't write in history journal (" + writed_size + "/" + ENTRY_SIZE + ")");
 			}
@@ -272,47 +263,41 @@ public class HistoryJournal implements Closeable {
 		
 	}
 	
-	private Set<MappedByteBuffer> all_MBB = Collections.synchronizedSet(new HashSet<>());
-	
 	/**
 	 * Thread safe. Filter out expired and updated before-delete-grace-period entries.
 	 * Should not be used for a get *all* entries, only recents entries like max(start_date, now - grace period).
 	 * Can get multiple versions for same Itemkey, and not necessarily date sorted.
+	 * BLOCKING
 	 */
 	public Stream<HistoryEntry> getAllSince(long start_date) throws IOException {
-		long _size = 0;
 		synchronized (file) {
-			file_channel.force(true);
-			_size = file_channel.size();
-		}
-		final long pos = oldest_valid_recorded_value_position;
-		final long size = _size - pos;
-		
-		if (size == 0) {
-			return Stream.empty();
-		}
-		final MappedByteBuffer map = file_channel.map(MapMode.READ_ONLY, pos, size);
-		
-		StreamMaker<HistoryEntry> s_m = StreamMaker.create(() -> {
-			try {
-				while (map.hasRemaining()) {
-					return new HistoryEntry(map);
-				}
-				return null;
-			} catch (Exception e) {
-				throw new RuntimeException("Can't read " + file, e);
+			if (file_channel.size() - oldest_valid_recorded_value_position == 0) {
+				return Stream.empty();
 			}
-		});
-		
-		if (SystemUtils.IS_OS_WINDOWS) {
-			all_MBB.add(map);
+			
+			file_channel.position(oldest_valid_recorded_value_position);
+			
+			ByteBuffer read_buffer = ByteBuffer.allocate(ENTRY_SIZE);
+			StreamMaker<HistoryEntry> s_m = StreamMaker.create(() -> {
+				try {
+					while (file_channel.read(read_buffer) == ENTRY_SIZE) {
+						read_buffer.flip();
+						HistoryEntry h_e = new HistoryEntry(read_buffer);
+						read_buffer.clear();
+						return h_e;
+					}
+					return null;
+				} catch (Exception e) {
+					throw new RuntimeException("Can't read " + file, e);
+				}
+			});
+			
+			return s_m.stream().filter(h_e -> {
+				return h_e.update_date >= start_date;
+			}).filter(h_e -> {
+				return h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
+			});
 		}
-		
-		return s_m.stream().filter(h_e -> {
-			return h_e.update_date >= start_date;
-		}).filter(h_e -> {
-			return h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
-		});
 	}
 	
 	/**
@@ -351,38 +336,32 @@ public class HistoryJournal implements Closeable {
 				/**
 				 * SetOldestValidRecordedValuePosition: search the last expired entry.
 				 */
-				file_channel.force(true);
-				final long pos = oldest_valid_recorded_value_position;
-				final long size = file_channel.size() - pos;
 				
-				if (size == 0) {
-					return;
-				}
-				final MappedByteBuffer map = file_channel.map(MapMode.READ_ONLY, pos, size);
-				
-				while (map.hasRemaining()) {
-					HistoryEntry h_e = new HistoryEntry(map);
+				boolean change_actual_marker = getAllSince(0).allMatch(h_e -> {
 					if (h_e.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
 						/**
 						 * Last expired item
 						 */
-						oldest_valid_recorded_value_position = map.position();
+						return true;
 					} else if (h_e.update_date + grace_period_for_expired_items < System.currentTimeMillis()) {
 						/**
 						 * First too "old" item
 						 */
-						oldest_valid_recorded_value_position = map.position();
+						return true;
 					} else {
-						break;
+						return false;
 					}
-				}
+				});
 				
-				if (SystemUtils.IS_OS_WINDOWS) {
-					all_MBB.add(map);
+				if (change_actual_marker) {
+					/**
+					 * Get the last non-valid pos
+					 */
+					oldest_valid_recorded_value_position = file_channel.position() - (long) ENTRY_SIZE;
 				}
 				
 				if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
-					// XXX return;
+					return;
 				}
 			}
 			
@@ -421,25 +400,13 @@ public class HistoryJournal implements Closeable {
 					write_map_buffer.put(read_map_buffer);
 				});
 				write_map_buffer.force();
-				all_MBB.add(write_map_buffer);
 			}
-			all_MBB.add(read_map_buffer);
 			
 			older_file_channel.close();
-			if (SystemUtils.IS_OS_WINDOWS) {
-				all_MBB.forEach(m -> unmapMappedByteBuffer(m));
-				System.out.println(all_MBB.size());// XXX
-				all_MBB.clear();
-			}
 			FileBackend.truncateFile(new_old);
 			
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
 		}
-	}
-	
-	public static void unmapMappedByteBuffer(MappedByteBuffer buffer) {
-		sun.misc.Cleaner cleaner = ((DirectBuffer) buffer).cleaner();
-		cleaner.clean();
 	}
 	
 	void clear() throws IOException {
