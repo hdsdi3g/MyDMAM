@@ -159,9 +159,9 @@ public class FileBackend {
 			expiration_dates_file = makeFile("expiration_dates.myhshtable");
 			index_paths_file = makeFile("index_paths.myhshtable");
 			index_paths_llists_file = makeFile("index_paths_llists.myllist");
-			transaction_journal_file = makeFile("transaction_journal.myjournal");
+			transaction_journal_file = makeFile("transaction.myjournal");
 			
-			history_journal = new HistoryJournal(history_journal_write_pool, makeDir(), grace_period_for_expired_items, default_table_size);
+			history_journal = new HistoryJournal(makeFile("history.myjournal"), grace_period_for_expired_items, default_table_size);
 			transaction_journal = new TransactionJournal(transaction_journal_file);
 			data_hash_table = new FileHashTableData(index_file, data_file, default_table_size);
 			expiration_dates = new FileIndexDates(expiration_dates_file, default_table_size);

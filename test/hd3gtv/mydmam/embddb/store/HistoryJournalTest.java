@@ -43,10 +43,10 @@ public class HistoryJournalTest extends TestCase {
 		write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
 	}
 	
-	static List<Item> write(HistoryJournal journal, int from, int to, long ttl, long force_sleep) {
+	static Map<ItemKey, Item> write(HistoryJournal journal, int from, int to, long ttl, long force_sleep) {
 		return IntStream.range(from, to).mapToObj(i -> {
 			try {
-				return journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes())).setTTL(ttl);
+				return journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(ttl));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -58,18 +58,33 @@ public class HistoryJournalTest extends TestCase {
 					throw new RuntimeException(e);
 				}
 			}
-		}).collect(Collectors.toList());
+		}).collect(Collectors.toMap(item -> {
+			return item.getKey();
+		}, item -> {
+			return item;
+		}));
 	}
 	
-	public void pushPull() throws IOException, InterruptedException, ExecutionException {
-		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history1");
+	private static File makeCleanFile(String fname) throws IOException {
+		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test");
 		try {
 			FileUtils.forceDelete(file);
 		} catch (FileNotFoundException e) {
 		}
 		FileUtils.forceMkdir(file);
+		return new File(file.getAbsolutePath() + File.separator + fname + ".journal");
+	}
+	
+	/*
+	 * ======================================================================================
+	 * TESTS ZONE
+	 * ======================================================================================
+	 * */
+	
+	public void testPushPull() throws IOException, InterruptedException, ExecutionException {
+		File file = makeCleanFile("mydmam-test-history-pushpull");
 		
-		final HistoryJournal journal = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 200);
+		final HistoryJournal journal = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 200);
 		
 		int size = 100;
 		
@@ -77,7 +92,7 @@ public class HistoryJournalTest extends TestCase {
 		 * Write bulk
 		 */
 		long start_time = System.currentTimeMillis();
-		List<Item> all_pushed_items = write(journal, 0, size, TimeUnit.SECONDS.toMillis(10), 1);// TODO return Map
+		Map<ItemKey, Item> all_pushed_items = write(journal, 0, size, TimeUnit.SECONDS.toMillis(10), 1);
 		long end_time = System.currentTimeMillis();
 		
 		assertEquals(size, all_pushed_items.size());
@@ -89,37 +104,153 @@ public class HistoryJournalTest extends TestCase {
 		int all_count = (int) journal.getAllSince(start_time - 1).peek(entry -> {
 			assertTrue(entry.delete_date > start_time);
 			assertTrue(entry.delete_date > end_time);
-			assertTrue(entry.delete_date < end_time + TimeUnit.MINUTES.toMillis(11));
+			assertTrue(entry.delete_date < end_time + TimeUnit.SECONDS.toMillis(10));
 			assertTrue(entry.update_date >= start_time);
 			assertTrue(entry.update_date <= end_time);
 		}).peek(entry -> {
-			assertEquals(all_pushed_items.stream().filter(item -> {
-				if (entry.key.equals(item.getKey())) {
-					assertTrue(Arrays.equals(item.getDigest(), entry.data_digest));
-					assertEquals(item.getPayload().length, entry.data_size);
-					assertEquals(item.getDeleteDate(), entry.delete_date);
-					assertEquals(item.getUpdated(), entry.update_date);
-					return true;
-				}
-				return false;
-			}).count(), 1l);
+			assertTrue(all_pushed_items.containsKey(entry.key));
+			Item item = all_pushed_items.get(entry.key);
+			assertTrue(Arrays.equals(item.getDigest(), entry.data_digest));
+			assertEquals(item.getPayload().length, entry.data_size);
+			assertEquals(item.getDeleteDate(), entry.delete_date);
+			assertEquals(item.getUpdated(), entry.update_date);
 		}).count();
+		
 		assertEquals(size, all_count);
+		journal.close();
+	}
+	
+	public void testLimitDate() throws IOException, InterruptedException, ExecutionException {
+		File file = makeCleanFile("mydmam-test-history-limitdate");
 		
-		// TODO test limit date
-		// TODO test ttl
-		// TODO test defrag 2x
-		// TODO test create + push + close + open + read
+		final HistoryJournal journal = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 200);
 		
-		long all_from_now = journal.getAllSince(System.currentTimeMillis()).count();
+		int size = 10;
+		/**
+		 * Write "old" datas
+		 */
+		Map<ItemKey, Item> all_old_pushed_items = write(journal, size - 20, size - 1, TimeUnit.SECONDS.toMillis(10), 10);
+		Thread.sleep(1);
+		
+		/**
+		 * Write "new" datas
+		 */
+		long start_valid_time = System.currentTimeMillis();
+		Map<ItemKey, Item> all_new_pushed_items = write(journal, size + 1, size + 10, TimeUnit.SECONDS.toMillis(10), 0);
+		
+		/**
+		 * Read bulk
+		 */
+		int all_count = (int) journal.getAllSince(start_valid_time).peek(entry -> {
+			assertFalse(all_old_pushed_items.containsKey(entry.key));
+			assertTrue(all_new_pushed_items.containsKey(entry.key));
+		}).count();
+		
+		assertEquals(all_new_pushed_items.size(), all_count);
+		journal.close();
+	}
+	
+	public void testTTL() throws IOException, InterruptedException, ExecutionException {
+		File file = makeCleanFile("mydmam-test-history-ttl");
+		
+		long bulk_ttl = 100l;
+		final HistoryJournal journal = new HistoryJournal(file, bulk_ttl * 2, 200);
+		
+		int size = 10;
+		/**
+		 * Write bulk
+		 */
+		write(journal, 0, size, bulk_ttl, 0);
+		
+		/**
+		 * Make ttl bulk set to delete
+		 */
+		Thread.sleep(bulk_ttl);
+		
+		/**
+		 * Datas must be still here
+		 */
+		assertEquals(size, journal.getAllSince(0).count());
+		
+		/**
+		 * Write new bulk
+		 */
+		write(journal, 0, size, bulk_ttl, 0);
+		
+		/**
+		 * Make fisrt bulk set to expire
+		 */
+		Thread.sleep(100);
+		
+		/**
+		 * Only second bulk must be here
+		 */
+		assertEquals(size, journal.getAllSince(0).collect(Collectors.toList()).stream().distinct().count());
+		
+		journal.close();
+	}
+	
+	public void testDefrag() throws IOException, InterruptedException, ExecutionException {
+		File file = makeCleanFile("mydmam-test-history-defrag");
+		
+		long bulk_ttl = 100l;
+		int size = 10;
+		
+		final HistoryJournal journal = new HistoryJournal(file, bulk_ttl * 2, 5);
+		
+		/**
+		 * Write bulk, wait to expire, check if really empty.
+		 */
+		write(journal, 0, size, bulk_ttl, 0);
+		
+		assertEquals(size, journal.getAllSince(0).count());
+		
+		long previous_size = journal.getFileSize();
+		
+		/**
+		 * Nothing should change
+		 */
+		journal.defragment();
+		assertEquals(size, journal.getAllSince(0).count());
+		assertEquals(previous_size, journal.getFileSize());
+		
+		/**
+		 * Wait to expire
+		 */
+		Thread.sleep(10 + bulk_ttl * 2);
+		
+		journal.defragment();
+		assertEquals(0, journal.getAllSince(0).count());// XXX error
+		long shrinked_size = journal.getFileSize();
+		assertTrue(shrinked_size < previous_size);
+		
+		/**
+		 * 2nd test
+		 * - should expire
+		 * - should not expire (long ttl)
+		 */
+		write(journal, 0, size, bulk_ttl, 0);
+		write(journal, 0, size, TimeUnit.HOURS.toMillis(1), 0);
+		
+		Thread.sleep(1 + bulk_ttl * 2);
+		journal.defragment();
+		
+		assertTrue(shrinked_size > journal.getFileSize());
+		assertEquals(previous_size, journal.getFileSize());
+		
+		journal.close();
+	}
+	
+	// TODO test create + push + close + open + read
+	// TODO test concurent push/pull
+	
+	/*	long all_from_now = journal.getAllSince(System.currentTimeMillis()).count();
 		assertEquals(0, all_from_now);
 		
 		log.info("Close 1");
 		journal.close();
 		
-		/**
 		 * Re-open
-		 */
 		HistoryJournal journal2 = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 1_000_000);
 		
 		log.info("Start read (2)");
@@ -136,8 +267,9 @@ public class HistoryJournalTest extends TestCase {
 			FileUtils.forceDelete(file);
 		} catch (IOException e) {
 		}
-	}
+	}*/
 	
+	@Deprecated
 	public void AtestParallelIO() throws IOException, InterruptedException, ExecutionException {
 		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history2");
 		try {
@@ -151,7 +283,7 @@ public class HistoryJournalTest extends TestCase {
 		int size = 10_000;
 		long estimated_process_time = 1_000;
 		
-		final HistoryJournal journal = new HistoryJournal(write_pool, file, estimated_process_time, size / 2);
+		final HistoryJournal journal = new HistoryJournal(file, estimated_process_time, size / 2);
 		int total_pushed = 0;
 		
 		/**

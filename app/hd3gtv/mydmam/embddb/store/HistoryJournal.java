@@ -20,17 +20,15 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileChannel.MapMode;
-import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.FreeDiskSpaceWarningException;
 import hd3gtv.tools.StreamMaker;
-import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 @GsonIgnore
 public class HistoryJournal implements Closeable {
@@ -39,9 +37,7 @@ public class HistoryJournal implements Closeable {
 	private static final byte[] JOURNAL_HEADER = "MYDMAMHISTORYJOURNAL".getBytes(MyDMAM.UTF8);
 	private static final int JOURNAL_VERSION = 1;
 	private static final int HEADER_LENGTH = JOURNAL_HEADER.length + 4 + 8;
-	
 	private static final byte ENTRY_SEPARATOR = (byte) 0xFF;
-	private static final String FILE_NAME = "store.myhistory";
 	
 	private FileChannel file_channel;
 	private final File file;
@@ -52,18 +48,13 @@ public class HistoryJournal implements Closeable {
 	private volatile long oldest_valid_recorded_value_position;
 	private volatile boolean pending_close;
 	
-	private final ThreadPoolExecutorFactory write_pool;
-	
 	/**
 	 * @param write_pool should set to setSimplePoolSize
 	 */
-	public HistoryJournal(ThreadPoolExecutorFactory write_pool, File base_directory, long grace_period_for_expired_items, int max_losted_item_count) throws IOException {
-		this.write_pool = write_pool;
-		if (write_pool == null) {
-			throw new NullPointerException("\"write_pool\" can't to be null");
-		}
-		if (base_directory == null) {
-			throw new NullPointerException("\"base_directory\" can't to be null");
+	public HistoryJournal(File file, long grace_period_for_expired_items, int max_losted_item_count) throws IOException {
+		this.file = file;
+		if (file == null) {
+			throw new NullPointerException("\"file\" can't to be null");
 		}
 		this.grace_period_for_expired_items = grace_period_for_expired_items;
 		if (grace_period_for_expired_items <= 0) {
@@ -73,8 +64,6 @@ public class HistoryJournal implements Closeable {
 			throw new NullPointerException("\"max_losted_item_count\" can't to be <= 0");
 		}
 		this.max_losted_data_space_size = (long) max_losted_item_count * (long) ENTRY_SIZE;
-		
-		this.file = new File(base_directory.getAbsolutePath() + File.separator + FILE_NAME);
 		open();
 		oldest_valid_recorded_value_position = HEADER_LENGTH;
 	}
@@ -114,6 +103,17 @@ public class HistoryJournal implements Closeable {
 			file_channel.write(bytebuffer_header);
 		}
 		pending_close = false;
+	}
+	
+	/**
+	 * Thread safe
+	 * @return
+	 * @throws IOException
+	 */
+	public long getFileSize() throws IOException {
+		synchronized (file) {
+			return file_channel.size();
+		}
 	}
 	
 	public void close() throws IOException {
@@ -226,7 +226,7 @@ public class HistoryJournal implements Closeable {
 		/**
 		 * Null if read operation.
 		 */
-		private final Item item;
+		private final transient Item item;
 		
 		/**
 		 * ENTRY_SEPARATOR, update_date, delete_date, key, data_size, data_digest
@@ -260,6 +260,44 @@ public class HistoryJournal implements Closeable {
 			write_buffer.put(key.key);
 			write_buffer.putInt(data_size);
 			write_buffer.put(data_digest);
+		}
+		
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((key == null) ? 0 : key.hashCode());
+			return result;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof HistoryEntry)) {
+				return false;
+			}
+			HistoryEntry other = (HistoryEntry) obj;
+			if (!getOuterType().equals(other.getOuterType())) {
+				return false;
+			}
+			if (key == null) {
+				if (other.key != null) {
+					return false;
+				}
+			} else if (!key.equals(other.key)) {
+				return false;
+			}
+			return true;
+		}
+		
+		private HistoryJournal getOuterType() {
+			return HistoryJournal.this;
 		}
 		
 	}
@@ -374,38 +412,22 @@ public class HistoryJournal implements Closeable {
 			File new_old = new File(file.getAbsolutePath() + ".cleanup");
 			FileBackend.rotateFiles(file, new_old);
 			open();
-			FileChannel older_file_channel = FileChannel.open(new_old.toPath(), MyDMAM.OPEN_OPTIONS_FILE_EXISTS);
-			MappedByteBuffer read_map_buffer = older_file_channel.map(MapMode.READ_ONLY, HEADER_LENGTH, older_file_channel.size());
+			HistoryJournal old_history = new HistoryJournal(new_old, grace_period_for_expired_items, 1);
 			
-			// int size;
-			ArrayList<Integer> read_positions = new ArrayList<>();
-			while (read_map_buffer.remaining() >= ENTRY_SIZE) {
-				int pos = read_map_buffer.position();
-				
-				HistoryEntry journal = new HistoryEntry(read_map_buffer);
-				if (journal.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
-					/**
-					 * Has expired
-					 */
-					continue;
-				}
-				read_positions.add(pos);
-			}
+			List<HistoryEntry> to_push = old_history.getAllSince(0).filter(entry -> {
+				return entry.delete_date + grace_period_for_expired_items >= System.currentTimeMillis();
+			}).collect(Collectors.toList());
 			
-			if (read_positions.isEmpty() == false) {
-				MappedByteBuffer write_map_buffer = file_channel.map(MapMode.READ_WRITE, HEADER_LENGTH, read_positions.size() * ENTRY_SIZE);
-				
-				read_positions.forEach(pos -> {
-					read_map_buffer.position(pos);
-					read_map_buffer.limit(pos + ENTRY_SIZE);
-					write_map_buffer.put(read_map_buffer);
+			if (to_push.isEmpty() == false) {
+				ByteBuffer write_buffer = ByteBuffer.allocate(to_push.size() * ENTRY_SIZE);
+				to_push.forEach(entry -> {
+					entry.write(write_buffer);
 				});
-				write_map_buffer.force();
+				write_buffer.flip();
+				file_channel.write(write_buffer);
 			}
 			
-			older_file_channel.close();
 			FileBackend.truncateFile(new_old);
-			
 			oldest_valid_recorded_value_position = HEADER_LENGTH;
 		}
 	}
