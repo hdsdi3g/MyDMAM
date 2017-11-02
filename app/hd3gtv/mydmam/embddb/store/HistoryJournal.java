@@ -35,7 +35,7 @@ import hd3gtv.tools.StreamMaker;
 
 @GsonIgnore
 /**
- * Limited to MAX_INT / 2 of lower if not has enough memory.
+ * Limited to MAX_INT / 2 or lower if not has enough memory.
  */
 public class HistoryJournal implements Closeable {
 	private static Logger log = Logger.getLogger(HistoryJournal.class);

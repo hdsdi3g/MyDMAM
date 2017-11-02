@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.embddb.store;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.Arrays;
@@ -59,7 +58,7 @@ public class HistoryJournalTest extends TestCase {
 		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test");
 		try {
 			FileUtils.forceDelete(file);
-		} catch (FileNotFoundException e) {
+		} catch (IOException e) {
 		}
 		FileUtils.forceMkdir(file);
 		return new File(file.getAbsolutePath() + File.separator + fname + ".journal");
@@ -236,7 +235,7 @@ public class HistoryJournalTest extends TestCase {
 		write(journal, 0, size, bulk_ttl, 0);
 		// long after_3rd = journal.getFileSize();
 		
-		Thread.sleep(100l + bulk_ttl * 2l);
+		Thread.sleep(100l + bulk_ttl * 3l);
 		journal.defragment();
 		assertEquals(before_3rd, journal.getFileSize());
 		
