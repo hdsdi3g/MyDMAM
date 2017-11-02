@@ -19,8 +19,8 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -28,20 +28,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 
-import hd3gtv.mydmam.embddb.store.HistoryJournal.HistoryEntry;
-import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
 public class HistoryJournalTest extends TestCase {
-	
-	private static Logger log = Logger.getLogger(HistoryJournalTest.class);
-	
-	static ThreadPoolExecutorFactory write_pool;
-	static {
-		write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
-	}
 	
 	static Map<ItemKey, Item> write(HistoryJournal journal, int from, int to, long ttl, long force_sleep) {
 		return IntStream.range(from, to).mapToObj(i -> {
@@ -217,10 +207,10 @@ public class HistoryJournalTest extends TestCase {
 		/**
 		 * Wait to expire
 		 */
-		Thread.sleep(10 + bulk_ttl * 2);
+		Thread.sleep(100l + bulk_ttl * 2l);
 		
 		journal.defragment();
-		assertEquals(0, journal.getAllSince(0).count());// XXX error
+		assertEquals(0, journal.getAllSince(0).count());
 		long shrinked_size = journal.getFileSize();
 		assertTrue(shrinked_size < previous_size);
 		
@@ -232,175 +222,120 @@ public class HistoryJournalTest extends TestCase {
 		write(journal, 0, size, bulk_ttl, 0);
 		write(journal, 0, size, TimeUnit.HOURS.toMillis(1), 0);
 		
-		Thread.sleep(1 + bulk_ttl * 2);
+		Thread.sleep(100l + bulk_ttl * 2l);
 		journal.defragment();
 		
-		assertTrue(shrinked_size > journal.getFileSize());
+		assertTrue(shrinked_size < journal.getFileSize());
 		assertEquals(previous_size, journal.getFileSize());
+		
+		/**
+		 * 3rd test
+		 * ++ should expire
+		 */
+		long before_3rd = journal.getFileSize();
+		write(journal, 0, size, bulk_ttl, 0);
+		// long after_3rd = journal.getFileSize();
+		
+		Thread.sleep(100l + bulk_ttl * 2l);
+		journal.defragment();
+		assertEquals(before_3rd, journal.getFileSize());
 		
 		journal.close();
 	}
 	
-	// TODO test create + push + close + open + read
-	// TODO test concurent push/pull
-	
-	/*	long all_from_now = journal.getAllSince(System.currentTimeMillis()).count();
-		assertEquals(0, all_from_now);
+	public void testOpenCloseReopen() throws IOException, InterruptedException, ExecutionException {
+		File file = makeCleanFile("mydmam-test-history-openclosereopen");
 		
-		log.info("Close 1");
+		final HistoryJournal journal = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 200);
+		
+		int size = 100;
+		
+		/**
+		 * Write bulk
+		 */
+		Map<ItemKey, Item> all_pushed_items = write(journal, 0, size, TimeUnit.SECONDS.toMillis(10), 0);
+		assertEquals(size, all_pushed_items.size());
+		
+		/**
+		 * Read bulk
+		 */
+		int all_count = (int) journal.getAllSince(0).peek(entry -> {
+			assertTrue(all_pushed_items.containsKey(entry.key));
+			Item item = all_pushed_items.get(entry.key);
+			assertTrue(Arrays.equals(item.getDigest(), entry.data_digest));
+			assertEquals(item.getPayload().length, entry.data_size);
+			assertEquals(item.getDeleteDate(), entry.delete_date);
+			assertEquals(item.getUpdated(), entry.update_date);
+		}).count();
+		
+		assertEquals(size, all_count);
 		journal.close();
 		
-		 * Re-open
-		HistoryJournal journal2 = new HistoryJournal(write_pool, file, TimeUnit.HOURS.toMillis(1), 1_000_000);
+		/**
+		 * Test if close really close
+		 */
+		ClosedChannelException real_error = null;
+		try {
+			journal.clear();
+		} catch (ClosedChannelException e) {
+			real_error = e;
+		}
+		assertNotNull(real_error);
 		
-		log.info("Start read (2)");
-		all_count = (int) journal2.getAllSince(0).count();
-		assertEquals(size, all_count);
+		final HistoryJournal journal2 = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 200);
 		
-		all_from_now = journal2.getAllSince(System.currentTimeMillis()).count();
-		assertEquals(0, all_from_now);
+		assertEquals(all_pushed_items.size(), journal2.getAllSince(0).peek(entry -> {
+			assertTrue(all_pushed_items.containsKey(entry.key));
+			Item item = all_pushed_items.get(entry.key);
+			assertTrue(Arrays.equals(item.getDigest(), entry.data_digest));
+			assertEquals(item.getPayload().length, entry.data_size);
+			assertEquals(item.getDeleteDate(), entry.delete_date);
+			assertEquals(item.getUpdated(), entry.update_date);
+		}).count());
 		
-		log.info("End read (2)");
+		write(journal2, 0, size, TimeUnit.SECONDS.toMillis(10), 0);
 		journal2.close();
 		
-		try {
-			FileUtils.forceDelete(file);
-		} catch (IOException e) {
-		}
-	}*/
+		final HistoryJournal journal3 = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 200);
+		
+		assertEquals(all_pushed_items.size() * 2, journal3.getAllSince(0).count());
+		journal3.close();
+	}
 	
-	@Deprecated
-	public void AtestParallelIO() throws IOException, InterruptedException, ExecutionException {
-		File file = new File(System.getProperty("user.home") + File.separator + "mydmam-test-history2");
-		try {
-			FileUtils.forceDelete(file);
-		} catch (FileNotFoundException e) {
-		}
-		FileUtils.forceMkdir(file);
+	public void testConcurentAccess() throws IOException, InterruptedException, ExecutionException {
+		File file = makeCleanFile("mydmam-test-history-testconcurrent");
 		
-		ThreadPoolExecutorFactory write_pool = new ThreadPoolExecutorFactory("Write journal", Thread.NORM_PRIORITY).setSimplePoolSize();
+		final HistoryJournal journal = new HistoryJournal(file, TimeUnit.HOURS.toMillis(1), 200);
 		
-		int size = 10_000;
-		long estimated_process_time = 1_000;
-		
-		final HistoryJournal journal = new HistoryJournal(file, estimated_process_time, size / 2);
-		int total_pushed = 0;
-		
-		/**
-		 * 1st writes
-		 */
-		long start_push_time = System.currentTimeMillis();
-		
-		Map<ItemKey, String> rainbow_key = IntStream.range(0, 100).mapToObj(i -> {
-			Item item = new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
-			try {
-				journal.writeSync(item);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-			return item;
-		}).collect(Collectors.toMap(item -> {
-			return item.getKey();
-		}, item -> {
-			return item.getId();
-		}));
-		long end_push_time = System.currentTimeMillis();
-		
-		total_pushed += size;
-		
-		/*
-		 * 2nd writes in background
-		 */
-		/*List<Item>> bgk_writes = journal.write(IntStream.range(size, size * 10).mapToObj(i -> {
-			return new Item(null, String.valueOf(i), String.valueOf(i).getBytes()).setTTL(estimated_process_time);
-		}).peek(item -> {
-			rainbow_key.put(item.getKey(), item.getId());
-		}));
-		total_pushed += size * 10;*/
-		
-		/**
-		 * Reads during new writes
-		 */
-		List<HistoryEntry> l_entries = journal.getAllSince(start_push_time).collect(Collectors.toList());
-		assertTrue(l_entries.size() >= size);
-		
-		Map<ItemKey, HistoryEntry> map_entries = l_entries.stream().filter(entry -> {
-			return entry.update_date <= end_push_time;
-		}).collect(Collectors.toMap(entry -> {
-			return entry.key;
-		}, entry -> {
-			return entry;
-		}));
-		
-		assertEquals(size, map_entries.size());
-		
-		/**
-		 * Checks first reads
-		 */
-		IntStream.range(0, size).forEach(i -> {
-			Item item_ref = new Item(null, String.valueOf(i), String.valueOf(i).getBytes());
-			assertTrue("Can't found " + i, map_entries.containsKey(item_ref.getKey()));
-			HistoryEntry h_entry = map_entries.get(item_ref.getKey());
-			assertEquals(item_ref.getPayload().length, h_entry.data_size);
-			item_ref.checkDigest(h_entry.data_digest);
+		int size = 100;
+		IntStream.range(0, size).parallel().forEach(i -> {
+			write(journal, i, i + 1, TimeUnit.SECONDS.toMillis(10), 0);
 		});
 		
-		Thread.sleep(1000);
+		assertEquals(size, journal.getAllSince(0).count());
 		
-		/**
-		 * Check since date for reading
-		 */
-		journal.getAllSince(end_push_time).forEach(h_e -> {
-			if (map_entries.containsKey(h_e.key)) {
-				if (rainbow_key.containsKey(h_e.key)) {
-					System.out.println(rainbow_key.get(h_e.key) + " " + (System.currentTimeMillis() - h_e.update_date) + " " + (System.currentTimeMillis() - h_e.delete_date));
+		Thread.sleep(10);
+		final long max_time = System.currentTimeMillis();
+		Thread.sleep(10);
+		
+		int size2 = IntStream.range(0, size / 2).parallel().map(i -> {
+			try {
+				if (i % 2 == 0) {
+					assertEquals(size, journal.getAllSince(0).filter(item -> {
+						return item.update_date < max_time;
+					}).count());
+					return 0;
 				} else {
-					System.out.println((System.currentTimeMillis() - h_e.update_date) + " " + (System.currentTimeMillis() - h_e.delete_date));
+					return write(journal, i, i + 1, TimeUnit.SECONDS.toMillis(10), 0).size();
 				}
-			}
-			assertFalse("Item: " + h_e.key, map_entries.containsKey(h_e.key));
-		});
-		
-		/**
-		 * Test TTL
-		 */
-		long wait_time = (end_push_time + 3 * estimated_process_time) - System.currentTimeMillis();
-		assertTrue("Too long processing...", wait_time > 0);
-		
-		log.info("Wait " + wait_time + " ms...");
-		Thread.sleep(wait_time);
-		
-		assertEquals(0, journal.getAllSince(start_push_time).count());
-		
-		int size_2nd_push = 10;
-		IntStream.range(0, size_2nd_push).forEach(i -> {
-			try {
-				journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes()));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-		});
+		}).sum();
 		
-		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
-		
-		journal.defragment();
-		
-		assertEquals(size_2nd_push, journal.getAllSince(start_push_time).count());
-		
-		IntStream.range(0, size_2nd_push).forEach(i -> {
-			try {
-				journal.writeSync(new Item(null, String.valueOf(i), String.valueOf(i).getBytes()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		});
-		journal.defragment();
-		
+		assertEquals(size2, size / 4);
+		assertEquals(size + size2, journal.getAllSince(0).count());
 		journal.close();
-		try {
-			FileUtils.forceDelete(file);
-		} catch (IOException e) {
-		}
 	}
 	
 }

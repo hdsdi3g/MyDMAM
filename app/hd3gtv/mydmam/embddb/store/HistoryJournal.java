@@ -22,8 +22,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -31,8 +34,11 @@ import hd3gtv.tools.FreeDiskSpaceWarningException;
 import hd3gtv.tools.StreamMaker;
 
 @GsonIgnore
+/**
+ * Limited to MAX_INT / 2 of lower if not has enough memory.
+ */
 public class HistoryJournal implements Closeable {
-	// private static Logger log = Logger.getLogger(HistoryJournal.class);
+	private static Logger log = Logger.getLogger(HistoryJournal.class);
 	
 	private static final byte[] JOURNAL_HEADER = "MYDMAMHISTORYJOURNAL".getBytes(MyDMAM.UTF8);
 	private static final int JOURNAL_VERSION = 1;
@@ -110,7 +116,7 @@ public class HistoryJournal implements Closeable {
 	 * @return
 	 * @throws IOException
 	 */
-	public long getFileSize() throws IOException {
+	long getFileSize() throws IOException {
 		synchronized (file) {
 			return file_channel.size();
 		}
@@ -224,11 +230,6 @@ public class HistoryJournal implements Closeable {
 		public final byte[] data_digest;
 		
 		/**
-		 * Null if read operation.
-		 */
-		private final transient Item item;
-		
-		/**
 		 * ENTRY_SEPARATOR, update_date, delete_date, key, data_size, data_digest
 		 */
 		private HistoryEntry(ByteBuffer read_buffer) throws IOException {
@@ -241,7 +242,6 @@ public class HistoryJournal implements Closeable {
 			data_size = read_buffer.getInt();
 			data_digest = new byte[Item.CRC32_SIZE];
 			read_buffer.get(data_digest);
-			item = null;
 		}
 		
 		private HistoryEntry(Item item) {
@@ -250,7 +250,6 @@ public class HistoryJournal implements Closeable {
 			key = item.getKey();
 			data_size = item.getPayload().length;
 			data_digest = item.getDigest();
-			this.item = item;
 		}
 		
 		private void write(ByteBuffer write_buffer) {
@@ -310,20 +309,21 @@ public class HistoryJournal implements Closeable {
 	 */
 	public Stream<HistoryEntry> getAllSince(long start_date) throws IOException {
 		synchronized (file) {
-			if (file_channel.size() - oldest_valid_recorded_value_position == 0) {
+			long datas_to_read = file_channel.size() - oldest_valid_recorded_value_position;
+			if (datas_to_read <= 0) {
 				return Stream.empty();
 			}
+			if (log.isTraceEnabled()) {
+				log.trace("Prepare to read " + datas_to_read + " bytes of datas from " + oldest_valid_recorded_value_position);
+			}
+			ByteBuffer read_buffer = ByteBuffer.allocate((int) datas_to_read);
+			file_channel.read(read_buffer, oldest_valid_recorded_value_position);
+			read_buffer.flip();
 			
-			file_channel.position(oldest_valid_recorded_value_position);
-			
-			ByteBuffer read_buffer = ByteBuffer.allocate(ENTRY_SIZE);
 			StreamMaker<HistoryEntry> s_m = StreamMaker.create(() -> {
 				try {
-					while (file_channel.read(read_buffer) == ENTRY_SIZE) {
-						read_buffer.flip();
-						HistoryEntry h_e = new HistoryEntry(read_buffer);
-						read_buffer.clear();
-						return h_e;
+					while (read_buffer.remaining() >= ENTRY_SIZE) {
+						return new HistoryEntry(read_buffer);
 					}
 					return null;
 				} catch (Exception e) {
@@ -334,7 +334,7 @@ public class HistoryJournal implements Closeable {
 			return s_m.stream().filter(h_e -> {
 				return h_e.update_date >= start_date;
 			}).filter(h_e -> {
-				return h_e.delete_date + grace_period_for_expired_items > System.currentTimeMillis();
+				return h_e.delete_date + grace_period_for_expired_items >= System.currentTimeMillis();
 			});
 		}
 	}
@@ -371,37 +371,72 @@ public class HistoryJournal implements Closeable {
 	 */
 	void defragment() throws IOException {
 		synchronized (file) {
-			if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
+			long actual_garbadge_size = oldest_valid_recorded_value_position - (long) HEADER_LENGTH;
+			if (actual_garbadge_size < max_losted_data_space_size) {
 				/**
 				 * SetOldestValidRecordedValuePosition: search the last expired entry.
 				 */
 				
-				boolean change_actual_marker = getAllSince(0).allMatch(h_e -> {
-					if (h_e.delete_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+				final int offset_read = (int) oldest_valid_recorded_value_position;
+				long datas_to_read = file_channel.size() - oldest_valid_recorded_value_position;
+				if (log.isTraceEnabled()) {
+					log.trace("Prepare to read " + datas_to_read + " bytes of datas from " + oldest_valid_recorded_value_position);
+				}
+				ByteBuffer read_buffer = ByteBuffer.allocate((int) datas_to_read);
+				file_channel.read(read_buffer, offset_read);
+				read_buffer.flip();
+				
+				Predicate<HistoryEntry> isEntryExpired = entry -> {
+					if (entry.delete_date + grace_period_for_expired_items >= System.currentTimeMillis()) {
 						/**
-						 * Last expired item
+						 * Not expired item
 						 */
-						return true;
-					} else if (h_e.update_date + grace_period_for_expired_items < System.currentTimeMillis()) {
-						/**
-						 * First too "old" item
-						 */
-						return true;
-					} else {
 						return false;
+					} else if (entry.update_date + grace_period_for_expired_items >= System.currentTimeMillis()) {
+						/**
+						 * Not too "old" item
+						 */
+						return false;
+					} else {
+						return true;
 					}
-				});
+				};
 				
-				if (change_actual_marker) {
+				while (read_buffer.remaining() >= ENTRY_SIZE) {
+					oldest_valid_recorded_value_position = offset_read + read_buffer.position();
+					if (isEntryExpired.test(new HistoryEntry(read_buffer)) == false) {
+						break;
+					}
+				}
+				
+				actual_garbadge_size = oldest_valid_recorded_value_position - (long) HEADER_LENGTH;
+				if (actual_garbadge_size < max_losted_data_space_size) {
+					while (read_buffer.remaining() >= ENTRY_SIZE & read_buffer.remaining() > (int) (max_losted_data_space_size - actual_garbadge_size) & actual_garbadge_size < max_losted_data_space_size) {
+						if (isEntryExpired.test(new HistoryEntry(read_buffer))) {
+							actual_garbadge_size += (long) ENTRY_SIZE;
+						}
+					}
+					read_buffer.clear();
+					
+					if (actual_garbadge_size < max_losted_data_space_size) {
+						/**
+						 * Ok, not too many garbadge.
+						 */
+						return;
+					} else {
+						/**
+						 * After read next entries, there are still too many losted datas in whole file: do a real defrag.
+						 */
+					}
+				} else {
 					/**
-					 * Get the last non-valid pos
+					 * After read first entries, there are too many losted datas here: do a real defrag.
 					 */
-					oldest_valid_recorded_value_position = file_channel.position() - (long) ENTRY_SIZE;
 				}
-				
-				if (oldest_valid_recorded_value_position < max_losted_data_space_size) {
-					return;
-				}
+			} else {
+				/**
+				 * Actually, too many losted datas in first entries: do a real defrag.
+				 */
 			}
 			
 			FreeDiskSpaceWarningException.check(file.getParentFile(), file.length() * 2l);
@@ -414,9 +449,7 @@ public class HistoryJournal implements Closeable {
 			open();
 			HistoryJournal old_history = new HistoryJournal(new_old, grace_period_for_expired_items, 1);
 			
-			List<HistoryEntry> to_push = old_history.getAllSince(0).filter(entry -> {
-				return entry.delete_date + grace_period_for_expired_items >= System.currentTimeMillis();
-			}).collect(Collectors.toList());
+			List<HistoryEntry> to_push = old_history.getAllSince(0).collect(Collectors.toList());
 			
 			if (to_push.isEmpty() == false) {
 				ByteBuffer write_buffer = ByteBuffer.allocate(to_push.size() * ENTRY_SIZE);
