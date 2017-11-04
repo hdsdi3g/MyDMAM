@@ -16,8 +16,10 @@
 */
 package hd3gtv.mydmam.embddb.pipeline;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -26,8 +28,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.store.FileBackend;
 import hd3gtv.mydmam.embddb.store.Item;
@@ -47,10 +51,16 @@ public class DistributedStore<T> extends Store<T> {
 	public final Consistency consistency;
 	private volatile RunningState running_state;
 	private final IOPipeline pipeline;
-	private final ArrayList<Node> external_dependant_nodes;
+	
+	/**
+	 * synchronizedList
+	 */
+	private final List<Node> external_dependant_nodes;
 	private final ConcurrentHashMap<ItemKey, UpdateItem> update_list;
 	
-	// TODO block items size > max block size > create a special exception for that
+	private SavedStatus saved_status;
+	private final File saved_status_file;
+	// TODO2 block items size > max block size > create a special exception for that
 	
 	DistributedStore(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency, IOPipeline pipeline) throws IOException {
 		super(pipeline.getIOExecutor(), database_name, item_factory, file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count);
@@ -60,18 +70,78 @@ public class DistributedStore<T> extends Store<T> {
 		}
 		
 		this.pipeline = pipeline;
-		external_dependant_nodes = new ArrayList<>();// TODO update registed nodes
+		
+		external_dependant_nodes = Collections.synchronizedList(new ArrayList<>());// TODO update registed nodes
 		running_state = RunningState.WAKE_UP;// TODO update RunningState
 		update_list = new ConcurrentHashMap<ItemKey, UpdateItem>();
 		
-		// TODO use HistoryJournal
-		// getHistoryJournal().getAllSince(start_date)
-		// getHistoryJournal().getEntryCount(include_oldest_entries)
+		saved_status_file = backend.makeLocalFileName("saved_status.json");
+		if (saved_status_file.exists()) {
+			saved_status = MyDMAM.gson_kit.getGson().fromJson(FileUtils.readFileToString(saved_status_file, MyDMAM.UTF8), SavedStatus.class);
+		} else {
+			saved_status = new SavedStatus();
+			saved_status.save(saved_status_file);
+		}
+		
+		if (saved_status.last_sync_date + grace_period_for_expired_items < System.currentTimeMillis()) {
+			/**
+			 * Grace period expired (or first use of this DStore): sync all.
+			 */
+			clear();
+			pipeline.doAClusterDataSync(item_factory.getType(), 0);
+		} else {
+			/**
+			 * Grace period still valid, sync only items from last_sync_date
+			 */
+			pipeline.doAClusterDataSync(item_factory.getType(), saved_status.last_sync_date);
+		}
+		
+	}
+	
+	private static class SavedStatus {
+		
+		long last_sync_date;// TODO update on state change
+		
+		void save(File to_file) throws IOException {
+			FileUtils.writeStringToFile(to_file, MyDMAM.gson_kit.getGsonSimple().toJson(this), MyDMAM.UTF8);
+		}
 	}
 	
 	public RunningState getRunningState() {
 		return running_state;
 	}
+	
+	boolean addExternalDependantNode(Node new_node) {
+		synchronized (external_dependant_nodes) {
+			if (external_dependant_nodes.contains(new_node) == false) {
+				return external_dependant_nodes.add(new_node);
+			}
+		}
+		return false;
+	}
+	
+	boolean removeExternalDependantNode(Node old_node) {
+		synchronized (external_dependant_nodes) {
+			if (external_dependant_nodes.contains(old_node)) {
+				return external_dependant_nodes.remove(old_node);
+			}
+		}
+		return false;
+	}
+	
+	Stream<Node> getExternalDependantNodes() {
+		return external_dependant_nodes.stream();
+	}
+	
+	private class UpdateItem {
+		long size;
+		List<Node> requested_nodes;
+	}
+	
+	/*
+	 * =========== RunningState.ON_THE_FLY ZONE ===========
+	 * */
+	// TODO use HistoryJournal backend.getHistoryJournal().getAllSince(start_date)
 	
 	private CompletableFuture<Void> waitToCanAccessToDatas() {
 		return CompletableFuture.runAsync(() -> {
@@ -88,48 +158,30 @@ public class DistributedStore<T> extends Store<T> {
 	public CompletableFuture<String> put(String _id, String path, T element, long ttl, TimeUnit unit) {
 		return waitToCanAccessToDatas().thenComposeAsync(v -> {
 			return super.put(_id, path, element, ttl, unit);
-		}, executor); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
+		}, executor); // TODO2 add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
 	}
 	
 	public CompletableFuture<String> put(String _id, T element, long ttl, TimeUnit unit) {
 		return waitToCanAccessToDatas().thenComposeAsync(v -> {
 			return super.put(_id, element, ttl, unit);
-		}, executor); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
-	}
-	
-	/**
-	 * Blocking
-	 */
-	public void close() {
-		CompletableFuture<Void> on_close = pipeline.storeUnregister(item_factory.getType());
-		super.close();
-		try {
-			on_close.get();
-		} catch (InterruptedException | ExecutionException e) {
-			log.error("Can't close Store in pipeline", e);
-		}
+		}, executor); // TODO2 add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
 	}
 	
 	public CompletableFuture<Integer> removeAllByPath(String path) {
 		return waitToCanAccessToDatas().thenComposeAsync(v -> {
 			return super.removeAllByPath(path);
-		}, executor); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
+		}, executor); // TODO2 add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
 	}
 	
 	public CompletableFuture<String> removeById(String _id) {
 		return waitToCanAccessToDatas().thenComposeAsync(v -> {
 			return super.removeById(_id);
-		}, executor); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
+		}, executor); // TODO2 add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
 	}
 	
 	public void truncate() throws Exception {
 		waitToCanAccessToDatas().get();
-		super.clear(); // TODO add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
-	}
-	
-	private class UpdateItem {
-		long size;
-		List<Node> requested_nodes;
+		super.clear(); // TODO2 add sync update (here) + add async update (IOPipeline queue, regular pushs, low priority)
 	}
 	
 	public CompletableFuture<T> get(String _id) {
@@ -178,6 +230,19 @@ public class DistributedStore<T> extends Store<T> {
 		return waitToCanAccessToDatas().thenComposeAsync(v -> {
 			return super.hasPresence(_id);
 		}, executor);
+	}
+	
+	/**
+	 * Blocking
+	 */
+	public void close() {
+		CompletableFuture<Void> on_close = pipeline.storeUnregister(item_factory.getType());
+		super.close();
+		try {
+			on_close.get();
+		} catch (InterruptedException | ExecutionException e) {
+			log.error("Can't close Store in pipeline", e);
+		}
 	}
 	
 }

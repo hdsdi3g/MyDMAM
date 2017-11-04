@@ -624,6 +624,13 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	}
 	
 	/**
+	 * @return result / all nodes
+	 */
+	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option) {
+		return sayToAllNodes(request_class, option, n -> true);
+	}
+	
+	/**
 	 * Register new tricks to EmbDDB
 	 */
 	public void addRequestHandler(RequestHandler<?> rh) {

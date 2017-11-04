@@ -69,7 +69,7 @@ public class StoreTest extends TestCase {
 		}
 		backend = new FileBackend(backend_basedir, key -> {
 			ReadCacheEhcache.getCache().remove(key);
-		}, new ThreadPoolExecutorFactory("Write History Journal", Thread.MIN_PRIORITY).setSimplePoolSize());
+		});
 	}
 	
 	public void testSimplePushRemove() throws Exception {

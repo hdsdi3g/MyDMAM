@@ -167,18 +167,22 @@ public class ThreadPoolExecutorFactory implements Executor {
 	 * Blocking.
 	 * @param task will be run in this current Thread, not queued.
 	 */
-	public void insertPauseTask(Runnable task) throws Exception {
+	public void insertPauseTask(Runnable task) {
 		executor.pause_lock.lock();
 		if (executor.is_paused) {
 			executor.pause_lock.unlock();
-			throw new Exception("Already locked");
+			throw new IllegalMonitorStateException("Already locked");
 		}
 		
 		executor.is_paused = true;
 		
 		try {
 			while (getTotalActive() > 0) {
-				Thread.sleep(1);
+				try {
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
 			}
 			task.run();
 		} finally {

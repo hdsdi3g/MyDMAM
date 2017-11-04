@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb.pipeline;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -29,7 +30,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
+import hd3gtv.mydmam.embddb.pipeline.RegisterStoreMessage.Action;
 import hd3gtv.mydmam.embddb.store.FileBackend;
 import hd3gtv.mydmam.embddb.store.ItemFactory;
 import hd3gtv.mydmam.embddb.store.ReadCache;
@@ -40,17 +43,18 @@ import hd3gtv.tools.ThreadPoolExecutorFactory;
 /**
  * Mergue all IOs from Stores and all IOs from Network.
  */
-@GsonIgnore
 public class IOPipeline {
 	private static Logger log = Logger.getLogger(IOPipeline.class);
 	
+	@GsonIgnore
 	private final PoolManager poolmanager;
+	@GsonIgnore
+	private final ReadCache read_cache;
+	
 	private final ConcurrentHashMap<Class<?>, InternalStore> all_stores;
 	private final String database_name;
-	private final ReadCache read_cache;
 	private final FileBackend store_file_backend;
-	private final ThreadPoolExecutorFactory io_executor; // TODO re-do all tests with single Thread executor + can set executor size in configuration
-	private final ThreadPoolExecutorFactory history_journal_write_executor;// TODO stop with IO_executor
+	private final ThreadPoolExecutorFactory io_executor; // TODO4 re-do all tests with single Thread executor + can set executor size in configuration
 	private final ScheduledExecutorService maintenance_scheduled_ex_service;
 	
 	public IOPipeline(PoolManager poolmanager, String database_name, File durable_store_directory) throws IOException {
@@ -66,11 +70,9 @@ public class IOPipeline {
 		
 		read_cache = ReadCacheEhcache.getCache();
 		
-		history_journal_write_executor = new ThreadPoolExecutorFactory("Write History Journal", Thread.MIN_PRIORITY).setSimplePoolSize();
-		
 		store_file_backend = new FileBackend(durable_store_directory, key -> {
 			read_cache.remove(key);
-		}, history_journal_write_executor);
+		});
 		
 		io_executor = new ThreadPoolExecutorFactory("EMBDDB Store", Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for EMBDDB Store", e);
@@ -85,12 +87,15 @@ public class IOPipeline {
 				return t;
 			}
 		});
+		
+		poolmanager.addRequestHandler(new RequestHandlerRegisterStore(poolmanager, this));
 	}
 	
 	private class InternalStore {
 		
 		final DistributedStore<?> store;
 		ScheduledFuture<?> maintenance_timer;
+		ScheduledFuture<?> sync_timeout;
 		
 		InternalStore(DistributedStore<?> store) {
 			this.store = store;
@@ -103,9 +108,9 @@ public class IOPipeline {
 					if (store.isJournalWriteCacheIsTooBig()) {
 						store.doDurableWrites(); // <<<< this is global blocking
 					}
-					// TODO do cleanup, when ?
+					// TODO3 do cleanup, when ?
 				} catch (Exception e) {
-					log.error("Can't do maintenance operations for " + store + ". Cancel next operations.", e); // TODO terminate Store ?!
+					log.error("Can't do maintenance operations for " + store + ". Cancel next operations.", e); // TODO3 terminate Store ?!
 					cancelTimer();
 				}
 			}, 1, 10, TimeUnit.SECONDS);
@@ -196,19 +201,97 @@ public class IOPipeline {
 		return io_executor;
 	}
 	
-	/**
+	/*
 	 * Thread safe
-	 */
 	private DistributedStore<?> getStoreByClassName(String wrapped_class_name) {
 		Class<?> wrapped_class = MyDMAM.factory.getClassByName(wrapped_class_name);
 		if (wrapped_class == null) {
 			return null;
 		}
 		return all_stores.get(wrapped_class).store;
+	}*/
+	
+	void onExternalRegisterStore(RegisterStoreMessage message, Node from_node) {
+		if (message.database.equals(database_name) == false) {
+			if (log.isDebugEnabled()) {
+				log.debug("Get register message form " + from_node + " and if want to sync with database \"" + message.database + "\". This instance is configured with database \"" + database_name + "\"");
+			}
+			return;
+		}
+		
+		final Class<?> registed_sync_class = MyDMAM.factory.getClassByName(message.class_name);
+		if (registed_sync_class == null) {
+			log.warn("Get register message form " + from_node + " to sync with class " + message.class_name + ", but this class is not accessible by this JVM instance. Ignore it.");
+			return;
+		}
+		
+		if (all_stores.contains(registed_sync_class) == false) {
+			if (log.isTraceEnabled()) {
+				log.trace("Get register message form " + from_node + " to sync with class " + registed_sync_class + ", but it's not actually used here. Ignore it.");
+			}
+			return;
+		}
+		
+		InternalStore i_store = all_stores.get(registed_sync_class);
+		
+		/**
+		 * TODO Karnaugh table message.running_state / DStore.running_state, REGISTER/UNREGISTER
+		 * ~~~~~~If actual DStore is in WAKE_UP:~~~~~~
+		 * - add from_node in DStore ExternalDependantNodes
+		 * ...
+		 * Else
+		 * ...
+		 */
+		
+		// TODO release sync_timeout
+		/*	if (internal.sync_timeout != null) {
+				if (internal.sync_timeout.isDone() == false) {
+					internal.sync_timeout.cancel(true);
+				}
+			}
+		*/
+		
+		// TODO demander a pipeline, a un node qui a le ping le plus petit et qui sync aussi deja ce DStore, la liste des items depuis last_sync_date
 	}
 	
-	// TODO RequestHandler: register Store<T> & Node
-	// TODO RequestHandler: unregister Store<T> & Node
+	void doAClusterDataSync(Class<?> store_class, long since_date) {
+		if (all_stores.contains(store_class) == false) {
+			throw new IndexOutOfBoundsException("Can't found registed class " + store_class);
+		}
+		InternalStore internal = all_stores.get(store_class);
+		if (internal.store.getRunningState() == RunningState.WAKE_UP) {
+			List<Node> requested_nodes = poolmanager.sayToAllNodes(RequestHandlerRegisterStore.class, new RegisterStoreMessage(Action.REGISTER, database_name, store_class, RunningState.WAKE_UP));
+			if (requested_nodes.isEmpty()) {
+				log.info("Simplified wake up procedure for " + store_class.getSimpleName() + ": no active nodes");
+				// TODO switch to RunningState.ON_THE_FLY
+				return;
+			}
+			
+			log.info("Wake up procedure for " + store_class.getSimpleName() + " on " + requested_nodes.size() + " node(s)...");
+			
+			if (internal.sync_timeout != null) {
+				if (internal.sync_timeout.isDone() == false) {
+					internal.sync_timeout.cancel(true);
+				}
+			}
+			
+			long slower_node_delay = requested_nodes.stream().mapToLong(n -> {
+				return Math.abs(n.getLastDeltaTime());
+			}).max().orElse(1000);
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Arm sync_timeout schedule function in " + slower_node_delay * 2l + " ms");
+			}
+			
+			internal.sync_timeout = maintenance_scheduled_ex_service.schedule(() -> {
+				log.info("No one other node wants to sync with " + database_name + "/" + store_class.getSimpleName());
+				// TODO switch to RunningState.ON_THE_FLY
+			}, slower_node_delay * 2l, TimeUnit.MILLISECONDS);
+		} else {
+			// TODO send to all ExternalDependantNodes a cluster sync
+		}
+	}
+	
 	// TODO RequestHandler: keylist: Store<T>,get#page
 	// TODO RequestHandler: keylist: Store<T>,#total,#actual,#page,page_count,key+taille,... stored by DStore and node
 	// TODO RequestHandler: Key update pool list: #total,key,...

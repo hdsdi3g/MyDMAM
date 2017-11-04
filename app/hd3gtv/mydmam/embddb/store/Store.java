@@ -67,7 +67,7 @@ public class Store<T> implements Closeable {
 	
 	protected final String database_name;
 	private final ReadCache read_cache;
-	private final StoreBackend backend;
+	protected final StoreBackend backend;
 	protected final ItemFactory<T> item_factory;
 	protected final ThreadPoolExecutorFactory executor;
 	
@@ -119,10 +119,6 @@ public class Store<T> implements Closeable {
 		if (executor == null) {
 			throw new NullPointerException("\"executor\" can't to be null");
 		}
-	}
-	
-	protected HistoryJournal getHistoryJournal() {
-		return backend.getHistoryJournal();
 	}
 	
 	public boolean isJournalWriteCacheIsTooBig() throws Exception {
@@ -429,7 +425,7 @@ public class Store<T> implements Closeable {
 	/**
 	 * Blocking.
 	 */
-	public void clear() throws Exception {
+	public void clear() {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
@@ -452,7 +448,7 @@ public class Store<T> implements Closeable {
 	/**
 	 * Blocking.
 	 */
-	public final void doDurableWrites() throws Exception {
+	public final void doDurableWrites() {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
@@ -473,13 +469,14 @@ public class Store<T> implements Closeable {
 	/**
 	 * Blocking.
 	 */
-	public void cleanUpFiles() throws Exception {
+	public void cleanUpFiles() {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
 		executor.insertPauseTask(() -> {
 			try {
 				backend.cleanUpFiles();
+				backend.getHistoryJournal().defragment();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -489,7 +486,7 @@ public class Store<T> implements Closeable {
 	/**
 	 * Blocking.
 	 */
-	public void doDurableWritesAndCleanUpFiles() throws Exception {
+	public void doDurableWritesAndCleanUpFiles() {
 		if (closed) {
 			throw new RuntimeException("Store is closed");
 		}
@@ -502,6 +499,7 @@ public class Store<T> implements Closeable {
 				journal_write_cache_size.set(0);
 				journal_write_cache.clear();
 				backend.cleanUpFiles();
+				backend.getHistoryJournal().defragment();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -522,7 +520,7 @@ public class Store<T> implements Closeable {
 			FileOutputStream fileoutputstream = null;
 			try {
 				long now = System.currentTimeMillis();
-				File destination = backend.makeFile(Loggers.dateFilename(now) + ".xml");
+				File destination = backend.makeLocalFileName(Loggers.dateFilename(now) + ".xml");
 				
 				fileoutputstream = new FileOutputStream(destination);
 				OutputFormat of = new OutputFormat();

@@ -283,6 +283,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		synchronized (durable_store_directory) {
 			if (pipeline == null) {
 				pipeline = new IOPipeline(poolmanager, Configuration.global.getValue("embddb", "database_name", "default"), durable_store_directory);
+				// TODO4 let some time to boot and to have some connected nodes ?
 			}
 			return pipeline.createStore(item_factory, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency);
 		}
