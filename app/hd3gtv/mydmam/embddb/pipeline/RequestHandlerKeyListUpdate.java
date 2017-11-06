@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 4 nov. 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 6 nov. 2017
  * 
 */
 package hd3gtv.mydmam.embddb.pipeline;
@@ -23,12 +23,12 @@ import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
 
-class RequestHandlerRegisterStore extends RequestHandler<MessageRegisterStore> {
+public class RequestHandlerKeyListUpdate extends RequestHandler<MessageKeylistUpdate> {
 	
-	private static Logger log = Logger.getLogger(RequestHandlerRegisterStore.class);
+	private static Logger log = Logger.getLogger(RequestHandlerKeyListUpdate.class);
 	private final IOPipeline pipeline;
 	
-	public RequestHandlerRegisterStore(PoolManager pool_manager, IOPipeline pipeline) {
+	public RequestHandlerKeyListUpdate(PoolManager pool_manager, IOPipeline pipeline) {
 		super(pool_manager);
 		this.pipeline = pipeline;
 		if (pipeline == null) {
@@ -37,17 +37,17 @@ class RequestHandlerRegisterStore extends RequestHandler<MessageRegisterStore> {
 	}
 	
 	public String getHandleName() {
-		return "register_distributed_store";
+		return "keylistupdate_distributed_store";
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {
 		if (log.isTraceEnabled()) {
-			log.trace("Get register message from " + source_node + ": " + block.getStringDatas());
+			log.trace("Get KeyListBuild message from " + source_node + ": " + block.getStringDatas());
 		}
-		pipeline.onExternalRegisterStore(MessageRegisterStore.fromJson(block.getJsonDatas()), source_node);
+		pipeline.onExternalKeylistUpdate(MessageKeylistUpdate.fromJson(block.getJsonDatas()), source_node);
 	}
 	
-	public DataBlock createRequest(MessageRegisterStore options) {
+	public DataBlock createRequest(MessageKeylistUpdate options) {
 		return new DataBlock(this, options.toDataBlock());
 	}
 	

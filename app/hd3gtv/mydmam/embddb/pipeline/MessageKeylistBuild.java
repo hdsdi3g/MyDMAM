@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 4 nov. 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 6 nov. 2017
  * 
 */
 package hd3gtv.mydmam.embddb.pipeline;
@@ -20,46 +20,46 @@ import com.google.gson.JsonElement;
 
 import hd3gtv.mydmam.MyDMAM;
 
-class RegisterStoreMessage {
+/**
+ * When I recevied this request, I build a key update list limited to a specific date, and I send a KeylistUpdateMessage with this content.
+ */
+class MessageKeylistBuild implements MessageDStoreMapper {
 	
-	enum Action {
-		REGISTER, UNREGISTER
-	}
-	
-	Action action;
 	String database;
 	String class_name;
-	RunningState running_state;
 	
-	RegisterStoreMessage(Action action, String database, Class<?> sync_class, RunningState running_state) {
-		this.action = action;
-		if (action == null) {
-			throw new NullPointerException("\"action\" can't to be null");
-		}
+	long since_date;
+	
+	MessageKeylistBuild(String database, String class_name, long since_date) {
 		this.database = database;
 		if (database == null) {
 			throw new NullPointerException("\"database\" can't to be null");
 		}
-		if (sync_class == null) {
-			throw new NullPointerException("\"sync_class\" can't to be null");
+		this.class_name = class_name;
+		if (class_name == null) {
+			throw new NullPointerException("\"class_name\" can't to be null");
 		}
-		this.class_name = sync_class.getName();
-		this.running_state = running_state;
-		if (running_state == null) {
-			throw new NullPointerException("\"running_state\" can't to be null");
-		}
+		this.since_date = since_date;
 	}
 	
 	@SuppressWarnings("unused")
-	private RegisterStoreMessage() {
+	private MessageKeylistBuild() {
 	}
 	
-	static RegisterStoreMessage fromJson(JsonElement json) {
-		return MyDMAM.gson_kit.getGson().fromJson(json, RegisterStoreMessage.class);
+	static MessageKeylistBuild fromJson(JsonElement json) {
+		return MyDMAM.gson_kit.getGson().fromJson(json, MessageKeylistBuild.class);
 	}
 	
 	JsonElement toDataBlock() {
 		return MyDMAM.gson_kit.getGson().toJsonTree(this);
+	}
+	
+	public String getClassName() {
+		return class_name;
+	}
+	
+	public String getDatabase() {
+		return database;
 	}
 	
 }

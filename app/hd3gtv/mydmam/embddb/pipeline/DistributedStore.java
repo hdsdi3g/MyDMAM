@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.store.FileBackend;
+import hd3gtv.mydmam.embddb.store.HistoryJournal.HistoryEntry;
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.embddb.store.ItemFactory;
 import hd3gtv.mydmam.embddb.store.ItemKey;
@@ -254,6 +255,10 @@ public class DistributedStore<T> extends Store<T> {
 		} catch (InterruptedException | ExecutionException e) {
 			log.error("Can't close Store in pipeline", e);
 		}
+	}
+	
+	Stream<HistoryEntry> getLastHistoryJournalEntries(long since_date) throws IOException {
+		return this.backend.getHistoryJournal().getAllSince(since_date);
 	}
 	
 }

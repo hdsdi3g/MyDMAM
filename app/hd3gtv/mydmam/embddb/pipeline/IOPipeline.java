@@ -26,14 +26,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
-import hd3gtv.mydmam.embddb.pipeline.RegisterStoreMessage.Action;
+import hd3gtv.mydmam.embddb.pipeline.MessageRegisterStore.Action;
 import hd3gtv.mydmam.embddb.store.FileBackend;
+import hd3gtv.mydmam.embddb.store.HistoryJournal.HistoryEntry;
 import hd3gtv.mydmam.embddb.store.ItemFactory;
 import hd3gtv.mydmam.embddb.store.ReadCache;
 import hd3gtv.mydmam.embddb.store.ReadCacheEhcache;
@@ -89,6 +92,8 @@ public class IOPipeline {
 		});
 		
 		poolmanager.addRequestHandler(new RequestHandlerRegisterStore(poolmanager, this));
+		poolmanager.addRequestHandler(new RequestHandlerKeylistBuild(poolmanager, this));
+		poolmanager.addRequestHandler(new RequestHandlerKeyListUpdate(poolmanager, this));
 	}
 	
 	private class InternalStore {
@@ -216,31 +221,59 @@ public class IOPipeline {
 		return all_stores.get(wrapped_class).store;
 	}*/
 	
-	void onExternalRegisterStore(RegisterStoreMessage message, Node from_node) {
-		if (message.database.equals(database_name) == false) {
-			if (log.isDebugEnabled()) {
-				log.debug("Get register message form " + from_node + " and if want to sync with database \"" + message.database + "\". This instance is configured with database \"" + database_name + "\"");
-			}
-			return;
+	/**
+	 * @return can be null
+	 */
+	private InternalStore getInternalStoreFromRequestHandlerMessage(MessageDStoreMapper message, Node from_node) {
+		if (message == null) {
+			throw new NullPointerException("\"message\" can't to be null");
+		}
+		if (from_node == null) {
+			throw new NullPointerException("\"from_node\" can't to be null");
 		}
 		
-		final Class<?> registed_sync_class = MyDMAM.factory.getClassByName(message.class_name);
+		String database = message.getDatabase();
+		if (database == null) {
+			throw new NullPointerException("\"database\" can't to be null");
+		}
+		
+		String class_name = message.getClassName();
+		if (class_name == null) {
+			throw new NullPointerException("\"class_name\" can't to be null");
+		}
+		
+		if (database.equals(database_name) == false) {
+			if (log.isDebugEnabled()) {
+				log.debug("Get message form " + from_node + " and if want to sync with database \"" + database + "\". This instance is configured with database \"" + database_name + "\"");
+			}
+			return null;
+		}
+		
+		final Class<?> registed_sync_class = MyDMAM.factory.getClassByName(class_name);
 		if (registed_sync_class == null) {
-			log.warn("Get register message form " + from_node + " to sync with class " + message.class_name + ", but this class is not accessible by this JVM instance. Ignore it.");
-			return;
+			log.warn("Get message form " + from_node + " to sync with class " + class_name + ", but this class is not accessible by this JVM instance. Ignore it.");
+			return null;
 		}
 		
 		if (all_stores.contains(registed_sync_class) == false) {
 			if (log.isTraceEnabled()) {
-				log.trace("Get register message form " + from_node + " to sync with class " + registed_sync_class + ", but it's not actually used here. Ignore it.");
+				log.trace("Get message form " + from_node + " to sync with class " + registed_sync_class + ", but it's not actually used here. Ignore it.");
 			}
+			return null;
+		}
+		
+		return all_stores.get(registed_sync_class);
+	}
+	
+	void onExternalRegisterStore(MessageRegisterStore message, Node from_node) {
+		InternalStore i_store = getInternalStoreFromRequestHandlerMessage(message, from_node);
+		if (i_store == null) {
 			return;
 		}
 		
-		InternalStore i_store = all_stores.get(registed_sync_class);
-		
 		/**
 		 * TODO Karnaugh table message.running_state / DStore.running_state, REGISTER/UNREGISTER
+		 * L'idée est de savoir si on déclenche ou non un update list depuis ce node.
 		 * ~~~~~~If actual DStore is in WAKE_UP:~~~~~~
 		 * - add from_node in DStore ExternalDependantNodes
 		 * ...
@@ -270,7 +303,7 @@ public class IOPipeline {
 		}
 		InternalStore internal = all_stores.get(store_class);
 		if (internal.store.getRunningState() == RunningState.WAKE_UP) {
-			List<Node> requested_nodes = poolmanager.sayToAllNodes(RequestHandlerRegisterStore.class, new RegisterStoreMessage(Action.REGISTER, database_name, store_class, RunningState.WAKE_UP));
+			List<Node> requested_nodes = poolmanager.sayToAllNodes(RequestHandlerRegisterStore.class, new MessageRegisterStore(Action.REGISTER, database_name, store_class, RunningState.WAKE_UP));
 			if (requested_nodes.isEmpty()) {
 				log.info("Simplified wake up procedure for " + store_class.getSimpleName() + ": no active nodes");
 				// TODO switch to RunningState.ON_THE_FLY
@@ -302,9 +335,26 @@ public class IOPipeline {
 		}
 	}
 	
-	// TODO RequestHandler: keylist: Store<T>,get#page
-	// TODO RequestHandler: keylist: Store<T>,#total,#actual,#page,page_count,key+taille,... stored by DStore and node
-	// TODO RequestHandler: Key update pool list: #total,key,...
-	// TODO RequestHandler: Key update pool content: #total,item,item,item,...
+	void onExternalKeylistBuild(MessageKeylistBuild message, Node source_node) throws IOException {
+		InternalStore i_store = getInternalStoreFromRequestHandlerMessage(message, source_node);
+		if (i_store == null) {
+			return;
+		}
+		Stream<HistoryEntry> h_entries = i_store.store.getLastHistoryJournalEntries(message.since_date);
+		MessageKeylistUpdate response = new MessageKeylistUpdate(message.getDatabase(), message.getClassName(), h_entries.collect(Collectors.toList()));
+		source_node.sendRequest(RequestHandlerKeyListUpdate.class, response);
+	}
+	
+	void onExternalKeylistUpdate(MessageKeylistUpdate message, Node source_node) {
+		InternalStore i_store = getInternalStoreFromRequestHandlerMessage(message, source_node);
+		if (i_store == null) {
+			return;
+		}
+		// TODO get an update list: compare with actual items, and prepare an bulk update data
+		
+	}
+	
+	// TODO RequestHandler: bulk update data list: #total,key,key,key,key,key,...
+	// TODO RequestHandler: bulk update data content: #total,item,item,item,...
 	
 }
