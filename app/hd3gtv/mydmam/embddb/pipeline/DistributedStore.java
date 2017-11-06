@@ -98,13 +98,24 @@ public class DistributedStore<T> extends Store<T> {
 		
 	}
 	
-	private static class SavedStatus {
+	static class SavedStatus {
 		
-		long last_sync_date;// TODO update on state change
+		private long last_sync_date;// TODO update on state change
 		
-		void save(File to_file) throws IOException {
+		private SavedStatus() {
+		}
+		
+		private void save(File to_file) throws IOException {
 			FileUtils.writeStringToFile(to_file, MyDMAM.gson_kit.getGsonSimple().toJson(this), MyDMAM.UTF8);
 		}
+		
+		long getLastSyncDate() {
+			return last_sync_date;
+		}
+	}
+	
+	SavedStatus getSavedStatus() {
+		return saved_status;
 	}
 	
 	public RunningState getRunningState() {

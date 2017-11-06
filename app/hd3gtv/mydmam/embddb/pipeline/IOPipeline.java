@@ -159,7 +159,7 @@ public class IOPipeline {
 	 * Thread safe
 	 */
 	private <T> void storeRegister(Class<T> wrapped_class, DistributedStore<T> store) {
-		InternalStore current_store = all_stores.putIfAbsent(wrapped_class, new InternalStore(store)); // TODO register for all Nodes
+		InternalStore current_store = all_stores.putIfAbsent(wrapped_class, new InternalStore(store));
 		if (current_store != null) {
 			throw new RuntimeException("A store was previousely added for class " + wrapped_class);
 		}
@@ -169,8 +169,13 @@ public class IOPipeline {
 	 * Thread safe
 	 */
 	CompletableFuture<Void> storeUnregister(Class<?> wrapped_class) {
-		all_stores.remove(wrapped_class);
-		return CompletableFuture.completedFuture(null); // TODO unregister for all Nodes
+		InternalStore old_store = all_stores.remove(wrapped_class);
+		if (old_store != null) {
+			return CompletableFuture.runAsync(() -> {
+				// TODO unregister for all Nodes: old_store.store.getExternalDependantNodes()
+			}, this.io_executor);
+		}
+		return CompletableFuture.completedFuture(null);
 	}
 	
 	/**
@@ -243,15 +248,20 @@ public class IOPipeline {
 		 * ...
 		 */
 		
-		// TODO release sync_timeout
-		/*	if (internal.sync_timeout != null) {
-				if (internal.sync_timeout.isDone() == false) {
-					internal.sync_timeout.cancel(true);
-				}
+		/**
+		 * if WAKE_UP !
+		 * Once has a return, release sync_timeout
+		 */
+		if (i_store.sync_timeout != null) {
+			if (i_store.sync_timeout.isDone() == false) {
+				i_store.sync_timeout.cancel(true);
 			}
-		*/
+		}
 		
-		// TODO demander a pipeline, a un node qui a le ping le plus petit et qui sync aussi deja ce DStore, la liste des items depuis last_sync_date
+		/**
+		 * TODO Si on est en SYNC_LAST, choisir le node qui a le ping le plus petit (ou le premier), la liste des items depuis i_store.store.getSavedStatus().getLastSyncDate()
+		 * TODO Lancer un sync_timeout après la premiere demande.
+		 */
 	}
 	
 	void doAClusterDataSync(Class<?> store_class, long since_date) {
