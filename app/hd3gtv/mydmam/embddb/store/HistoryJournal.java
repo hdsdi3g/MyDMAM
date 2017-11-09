@@ -240,7 +240,7 @@ public class HistoryJournal implements Closeable {
 			delete_date = read_buffer.getLong();
 			key = new ItemKey(read_buffer);
 			data_size = read_buffer.getInt();
-			data_digest = new byte[Item.CRC32_SIZE];
+			data_digest = Item.DATA_DIGEST_INST.get();
 			read_buffer.get(data_digest);
 		}
 		

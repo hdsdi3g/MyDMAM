@@ -31,7 +31,8 @@ public final class ItemKey implements Serializable {
 	
 	final byte[] key;
 	
-	final static int SIZE = new ItemKey("").key.length;
+	public final static ItemKey EMPTY = new ItemKey("");
+	final static int SIZE = EMPTY.key.length;
 	
 	ItemKey(byte[] key) {
 		this.key = key;

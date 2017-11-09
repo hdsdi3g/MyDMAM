@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
@@ -64,6 +65,8 @@ public final class Item implements ByteBufferExporter, Serializable {
 		}
 		return key;
 	}
+	
+	public static final Supplier<byte[]> DATA_DIGEST_INST = () -> new byte[CRC32_SIZE];
 	
 	/**
 	 * crc32 on payload
