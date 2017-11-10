@@ -54,6 +54,17 @@ public final class ItemKey implements Serializable {
 		return MyDMAM.byteToString(key);
 	}
 	
+	/**
+	 * @return toString opposite
+	 */
+	public static ItemKey fromString(String bytes_hex) {
+		byte[] c = MyDMAM.hexStringToByteArray(bytes_hex);
+		if (c.length != SIZE) {
+			throw new IndexOutOfBoundsException("Invalid value: " + bytes_hex);
+		}
+		return new ItemKey(c);
+	}
+	
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;

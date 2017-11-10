@@ -61,7 +61,9 @@ public class DistributedStore<T> extends Store<T> {
 	
 	private SavedStatus saved_status;
 	private final File saved_status_file;
-	// TODO2 block items size > max block size > create a special exception for that
+	// TODO2 item size > max block size > create a special exception for that
+	
+	// TODO3 check behavior if sync is outside grace period (make XML + destroy)
 	
 	DistributedStore(String database_name, ItemFactory<T> item_factory, FileBackend file_backend, ReadCache read_cache, long max_size_for_cached_commit_log, long grace_period_for_expired_items, int expected_item_count, Consistency consistency, IOPipeline pipeline) throws IOException {
 		super(pipeline.getIOExecutor(), database_name, item_factory, file_backend, read_cache, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count);
@@ -72,8 +74,8 @@ public class DistributedStore<T> extends Store<T> {
 		
 		this.pipeline = pipeline;
 		
-		external_dependant_nodes = Collections.synchronizedList(new ArrayList<>());// TODO update registed nodes
-		running_state = RunningState.WAKE_UP;// TODO update RunningState
+		external_dependant_nodes = Collections.synchronizedList(new ArrayList<>());
+		running_state = RunningState.WAKE_UP;
 		update_list = new ConcurrentHashMap<ItemKey, UpdateItem>();
 		
 		saved_status_file = backend.makeLocalFileName("saved_status.json");
@@ -99,25 +101,9 @@ public class DistributedStore<T> extends Store<T> {
 		
 	}
 	
-	static class SavedStatus {
-		
-		private long last_sync_date;// TODO update on state change
-		
-		private SavedStatus() {
-		}
-		
-		private void save(File to_file) throws IOException {
-			FileUtils.writeStringToFile(to_file, MyDMAM.gson_kit.getGsonSimple().toJson(this), MyDMAM.UTF8);
-		}
-		
-		long getLastSyncDate() {
-			return last_sync_date;
-		}
-	}
-	
-	SavedStatus getSavedStatus() {
-		return saved_status;
-	}
+	/*
+	 * =========== Tools zone ===========
+	 * */
 	
 	public RunningState getRunningState() {
 		return running_state;
@@ -145,6 +131,58 @@ public class DistributedStore<T> extends Store<T> {
 		return external_dependant_nodes.stream();
 	}
 	
+	String getGenericClassName() {
+		return this.item_factory.getType().getName();
+	}
+	
+	/*
+	 * =========== RunningState.WAKE_UP ZONE ===========
+	 * */
+	
+	static class SavedStatus {
+		
+		private long last_sync_date;// TODO update on state change
+		
+		private SavedStatus() {
+		}
+		
+		private void save(File to_file) throws IOException {
+			FileUtils.writeStringToFile(to_file, MyDMAM.gson_kit.getGsonSimple().toJson(this), MyDMAM.UTF8);
+		}
+		
+		long getLastSyncDate() {
+			return last_sync_date;
+		}
+	}
+	
+	SavedStatus getSavedStatus() {
+		return saved_status;
+	}
+	
+	void switchRunningState(RunningState new_state) {
+		switch (running_state) {
+		case WAKE_UP:
+			running_state = new_state;
+			break;
+		case SYNC_LAST:
+			if (new_state == RunningState.WAKE_UP) {
+				throw new RuntimeException("Can't go back running state from SYNC_LAST to WAKE_UP");
+			}
+			running_state = RunningState.ON_THE_FLY;
+			break;
+		case ON_THE_FLY:
+			if (new_state == RunningState.WAKE_UP) {
+				throw new RuntimeException("Can't go back running state from ON_THE_FLY to WAKE_UP");
+			} else if (new_state == RunningState.SYNC_LAST) {
+				throw new RuntimeException("Can't go back running state from ON_THE_FLY to SYNC_LAST");
+			}
+		}
+	}
+	
+	/*
+	 * =========== RunningState.SYNC_LAST ZONE ===========
+	 * */
+	
 	private class UpdateItem {
 		long size;
 		List<Node> requested_nodes;
@@ -153,7 +191,6 @@ public class DistributedStore<T> extends Store<T> {
 	/*
 	 * =========== RunningState.ON_THE_FLY ZONE ===========
 	 * */
-	// TODO use HistoryJournal backend.getHistoryJournal().getAllSince(start_date)
 	
 	private CompletableFuture<Void> waitToCanAccessToDatas() {
 		return CompletableFuture.runAsync(() -> {
@@ -258,7 +295,7 @@ public class DistributedStore<T> extends Store<T> {
 	}
 	
 	Stream<HistoryEntry> getLastHistoryJournalEntries(long since_date) throws IOException {
-		return this.backend.getHistoryJournal().getAllSince(since_date);
+		return backend.getHistoryJournal().getAllSince(since_date);
 	}
 	
 }

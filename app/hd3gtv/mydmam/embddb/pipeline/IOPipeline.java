@@ -77,7 +77,7 @@ public class IOPipeline {
 			read_cache.remove(key);
 		});
 		
-		io_executor = new ThreadPoolExecutorFactory("EMBDDB Store", Thread.MIN_PRIORITY + 1, e -> {
+		io_executor = new ThreadPoolExecutorFactory("EMBDDB Store IO", Thread.MIN_PRIORITY + 1, e -> {
 			log.error("Genric error for EMBDDB Store", e);
 		});
 		
@@ -177,7 +177,7 @@ public class IOPipeline {
 		InternalStore old_store = all_stores.remove(wrapped_class);
 		if (old_store != null) {
 			return CompletableFuture.runAsync(() -> {
-				// TODO unregister for all Nodes: old_store.store.getExternalDependantNodes()
+				// TODO3 unregister for all Nodes: old_store.store.getExternalDependantNodes()
 			}, this.io_executor);
 		}
 		return CompletableFuture.completedFuture(null);
@@ -270,32 +270,35 @@ public class IOPipeline {
 		if (i_store == null) {
 			return;
 		}
-		
-		/**
-		 * TODO Karnaugh table message.running_state / DStore.running_state, REGISTER/UNREGISTER
-		 * L'idée est de savoir si on déclenche ou non un update list depuis ce node.
-		 * ~~~~~~If actual DStore is in WAKE_UP:~~~~~~
-		 * - add from_node in DStore ExternalDependantNodes
-		 * ...
-		 * Else
-		 * ...
-		 */
-		
-		/**
-		 * if WAKE_UP !
-		 * Once has a return, release sync_timeout
-		 */
-		if (i_store.sync_timeout != null) {
-			if (i_store.sync_timeout.isDone() == false) {
-				i_store.sync_timeout.cancel(true);
+		if (message.action == Action.REGISTER) {
+			i_store.store.addExternalDependantNode(from_node);
+			
+			if (message.running_state == RunningState.ON_THE_FLY) {
+				if (i_store.store.getRunningState() == RunningState.WAKE_UP) {
+					/**
+					 * Once one has a return, release sync_timeout
+					 */
+					if (i_store.sync_timeout != null) {
+						if (i_store.sync_timeout.isDone() == false) {
+							i_store.sync_timeout.cancel(true);
+						}
+					}
+					
+					i_store.store.switchRunningState(RunningState.SYNC_LAST);
+					from_node.sendRequest(RequestHandlerKeylistBuild.class, new MessageKeylistBuild(i_store.store));
+				} else if (i_store.store.getRunningState() == RunningState.ON_THE_FLY) {
+					from_node.sendRequest(RequestHandlerKeylistBuild.class, new MessageKeylistBuild(i_store.store));
+				}
 			}
+		} else if (message.action == Action.UNREGISTER) {
+			i_store.store.removeExternalDependantNode(from_node);
+		} else {
+			throw new RuntimeException("Invalid Message action from " + from_node);
 		}
-		
-		/**
-		 * TODO Si on est en SYNC_LAST, choisir le node qui a le ping le plus petit (ou le premier), la liste des items depuis i_store.store.getSavedStatus().getLastSyncDate()
-		 * TODO Lancer un sync_timeout après la premiere demande.
-		 */
 	}
+	
+	// TODO3 Hook on new connected node (send all Action.REGISTER for each current store classes) / disconneted node (remove all ext depnd node)
+	// TODO3 Hook on close store/poolmanager and send Action.UNREGISTER for all connected nodes for all store classes
 	
 	void doAClusterDataSync(Class<?> store_class, long since_date) {
 		if (all_stores.contains(store_class) == false) {
@@ -306,7 +309,7 @@ public class IOPipeline {
 			List<Node> requested_nodes = poolmanager.sayToAllNodes(RequestHandlerRegisterStore.class, new MessageRegisterStore(Action.REGISTER, database_name, store_class, RunningState.WAKE_UP));
 			if (requested_nodes.isEmpty()) {
 				log.info("Simplified wake up procedure for " + store_class.getSimpleName() + ": no active nodes");
-				// TODO switch to RunningState.ON_THE_FLY
+				internal.store.switchRunningState(RunningState.ON_THE_FLY);
 				return;
 			}
 			
@@ -328,10 +331,10 @@ public class IOPipeline {
 			
 			internal.sync_timeout = maintenance_scheduled_ex_service.schedule(() -> {
 				log.info("No one other node wants to sync with " + database_name + "/" + store_class.getSimpleName());
-				// TODO switch to RunningState.ON_THE_FLY
+				internal.store.switchRunningState(RunningState.ON_THE_FLY);
 			}, slower_node_delay * 2l, TimeUnit.MILLISECONDS);
 		} else {
-			// TODO send to all ExternalDependantNodes a cluster sync
+			// TODO (after actual TODOs) send to all ExternalDependantNodes a cluster sync
 		}
 	}
 	
@@ -341,7 +344,7 @@ public class IOPipeline {
 			return;
 		}
 		Stream<HistoryEntry> h_entries = i_store.store.getLastHistoryJournalEntries(message.since_date);
-		MessageKeylistUpdate response = new MessageKeylistUpdate(message.getDatabase(), message.getClassName(), h_entries.collect(Collectors.toList()));
+		MessageKeylistUpdate response = new MessageKeylistUpdate(i_store.store, h_entries.collect(Collectors.toList()));
 		source_node.sendRequest(RequestHandlerKeyListUpdate.class, response);
 	}
 	
@@ -350,8 +353,18 @@ public class IOPipeline {
 		if (i_store == null) {
 			return;
 		}
-		// TODO get an update list: compare with actual items, and prepare an bulk update data
 		
+		// TODO compare with actual items, and prepare a bulk update data request
+		
+		// i_store.store.
+		
+		message.entries.stream().forEach(entry -> {
+			// entry.getDataDigest()
+			// entry.data_size
+			// entry.getItemKey()
+			// entry.update_date
+		});
+		// message.has_next_list
 	}
 	
 	// TODO RequestHandler: bulk update data list: #total,key,key,key,key,key,...

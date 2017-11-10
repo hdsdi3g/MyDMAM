@@ -54,6 +54,15 @@ class MessageKeylistUpdate implements MessageDStoreMapper {
 			data_size = h_entry.data_size;
 			data_digest = MyDMAM.byteToString(h_entry.data_digest);
 		}
+		
+		ItemKey getItemKey() {
+			return ItemKey.fromString(key);
+		}
+		
+		byte[] getDataDigest() {
+			return MyDMAM.hexStringToByteArray(data_digest);
+		}
+		
 	}
 	
 	private static final int KEY_ENTRY_JSON_SIZE;
@@ -65,18 +74,15 @@ class MessageKeylistUpdate implements MessageDStoreMapper {
 		ke.key = ItemKey.EMPTY.toString();
 		ke.data_digest = MyDMAM.byteToString(Item.DATA_DIGEST_INST.get());
 		KEY_ENTRY_JSON_SIZE = MyDMAM.gson_kit.getGson().toJson(ke).getBytes(MyDMAM.UTF8).length;
-		
 	}
 	
-	MessageKeylistUpdate(String database, String class_name, List<HistoryEntry> history_entries) {
-		this.database = database;
-		if (database == null) {
-			throw new NullPointerException("\"database\" can't to be null");
+	MessageKeylistUpdate(DistributedStore<?> store, List<HistoryEntry> history_entries) {
+		if (store == null) {
+			throw new NullPointerException("\"store\" can't to be null");
 		}
-		this.class_name = class_name;
-		if (class_name == null) {
-			throw new NullPointerException("\"class_name\" can't to be null");
-		}
+		database = store.getDatabaseName();
+		class_name = store.getGenericClassName();
+		
 		if (history_entries == null) {
 			throw new NullPointerException("\"history_entries\" can't to be null");
 		}

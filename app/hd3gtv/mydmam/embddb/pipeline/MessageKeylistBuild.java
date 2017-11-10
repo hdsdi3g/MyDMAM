@@ -30,16 +30,13 @@ class MessageKeylistBuild implements MessageDStoreMapper {
 	
 	long since_date;
 	
-	MessageKeylistBuild(String database, String class_name, long since_date) {
-		this.database = database;
-		if (database == null) {
-			throw new NullPointerException("\"database\" can't to be null");
+	MessageKeylistBuild(DistributedStore<?> store) {
+		if (store == null) {
+			throw new NullPointerException("\"store\" can't to be null");
 		}
-		this.class_name = class_name;
-		if (class_name == null) {
-			throw new NullPointerException("\"class_name\" can't to be null");
-		}
-		this.since_date = since_date;
+		database = store.getDatabaseName();
+		class_name = store.getGenericClassName();
+		since_date = store.getSavedStatus().getLastSyncDate();
 	}
 	
 	@SuppressWarnings("unused")
