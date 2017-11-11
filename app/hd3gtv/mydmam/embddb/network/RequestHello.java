@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
@@ -31,8 +32,14 @@ public class RequestHello extends RequestHandler<Void> {
 	
 	private static Logger log = Logger.getLogger(RequestHello.class);
 	
-	public RequestHello(PoolManager pool_manager) {
+	private final Consumer<Node> afterTheHello;
+	
+	public RequestHello(PoolManager pool_manager, Consumer<Node> afterTheHello) {
 		super(pool_manager);
+		this.afterTheHello = afterTheHello;
+		if (afterTheHello == null) {
+			throw new NullPointerException("\"afterTheHello\" can't to be null");
+		}
 	}
 	
 	public String getHandleName() {
@@ -47,7 +54,7 @@ public class RequestHello extends RequestHandler<Void> {
 			source_node.setUUIDRef(UUID.fromString(jo.get("uuid").getAsString()));
 			source_node.setLocalServerNodeAddresses(MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("listen_on"), GsonKit.type_ArrayList_InetSocketAddr));
 			
-			pool_manager.getNode_scheduler().add(source_node, source_node.getScheduledAction());
+			afterTheHello.accept(source_node);
 		} catch (IOException e) {
 			log.warn(e.getMessage() + ". Disconnect it.");
 			source_node.close(getClass());

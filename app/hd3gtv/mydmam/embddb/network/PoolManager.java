@@ -28,7 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -96,12 +99,10 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	private List<Node> nodes;
 	
 	@GsonIgnore
-	private AtomicBoolean autodiscover_can_be_remake = null;
-	/**
-	 * synchronizedList
-	 */
+	private final List<PoolActivityObserver> observers;
+	
 	@GsonIgnore
-	private List<Consumer<Node>> onRemoveNodeCallbackList;
+	private AtomicBoolean autodiscover_can_be_remake = null;
 	
 	public PoolManager(Protocol protocol, UUID uuid_ref) throws GeneralSecurityException, IOException {
 		this.protocol = protocol;
@@ -123,7 +124,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		pressure_measurement_netdiscover = new PressureMeasurement();
 		
 		nodes = Collections.synchronizedList(new ArrayList<>());
-		onRemoveNodeCallbackList = Collections.synchronizedList(new ArrayList<>());
+		observers = new ArrayList<>();
 		autodiscover_can_be_remake = new AtomicBoolean(true);
 		addr_master = new AddressMaster();
 		shutdown_hook = new ShutdownHook();
@@ -138,6 +139,33 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		if (net_discover == null) {
 			net_discover = new NetDiscover(this, multicast_groups, pressure_measurement_netdiscover);
 			net_discover.start();
+		}
+	}
+	
+	public void registerObserver(PoolActivityObserver observer) {
+		synchronized (observers) {
+			if (observers.contains(observer) == false) {
+				observers.add(observer);
+			}
+		}
+	}
+	
+	public void unRegisterObserver(PoolActivityObserver observer) {
+		synchronized (observers) {
+			observers.remove(observer);
+		}
+	}
+	
+	/**
+	 * Async
+	 */
+	private void forEachObservers(Consumer<PoolActivityObserver> eachObserver) {
+		synchronized (observers) {
+			observers.forEach(o -> {
+				executeInThePool(() -> {
+					eachObserver.accept(o);
+				});
+			});
 		}
 	}
 	
@@ -433,24 +461,18 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		}).findFirst().isPresent();
 	}
 	
-	/**
-	 * Async
-	 */
-	private void callbackAllListOnRemoveNode(Node node) {
-		this.executeInThePool(() -> {
-			onRemoveNodeCallbackList.forEach(h -> {
-				h.accept(node);
-			});
-		});
-	}
-	
 	public void purgeClosedNodes() {
 		nodes.removeIf(n -> {
 			if (n.isOpenSocket()) {
 				return false;
 			}
 			
-			callbackAllListOnRemoveNode(n);
+			if (n.isUUIDSet()) {
+				forEachObservers(observer -> {
+					observer.onPoolRemoveNode(n);
+				});
+			}
+			
 			autodiscover_can_be_remake.set(true);
 			return true;
 		});
@@ -464,8 +486,13 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		log.info("Remove node " + node);
 		
 		autodiscover_can_be_remake.set(true);
-		callbackAllListOnRemoveNode(node);
-		nodes.remove(node);
+		if (nodes.remove(node)) {
+			if (node.isUUIDSet()) {
+				forEachObservers(observer -> {
+					observer.onPoolRemoveNode(node);
+				});
+			}
+		}
 		
 		if (log.isDebugEnabled()) {
 			log.debug("Full node list: " + nodes);
@@ -559,20 +586,6 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		};
 	}
 	
-	public void addRemoveNodeCallback(Consumer<Node> h) {
-		if (h == null) {
-			throw new NullPointerException("\"h\" can't to be null");
-		}
-		onRemoveNodeCallbackList.add(h);
-	}
-	
-	public void removeRemoveNodeCallback(Consumer<Node> h) {
-		if (h == null) {
-			throw new NullPointerException("\"h\" can't to be null");
-		}
-		onRemoveNodeCallbackList.remove(h);
-	}
-	
 	private void sayToAllNodesToDisconnectMe(boolean blocking) {
 		DataBlock to_send = all_request_handlers.getRequestByClass(RequestDisconnect.class).createRequest("All nodes instance shutdown");
 		nodes.forEach(n -> {
@@ -593,7 +606,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	 * @param filter for select some nodes, can be null (all nodes)
 	 * @return result / all nodes
 	 */
-	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option, Predicate<Node> filter) {
+	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option, Predicate<Node> filter, long time_to_wait_for_have_nodes, TimeUnit unit) {
 		if (request_class == null) {
 			throw new NullPointerException("\"request_class\" can't to be null");
 		}
@@ -603,6 +616,22 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		Predicate<Node> filterActiveNodes = node -> {
 			return node.isUUIDSet() && node.isOpenSocket();
 		};
+		
+		if (nodes.isEmpty() & time_to_wait_for_have_nodes > 0) {
+			try {
+				CompletableFuture.runAsync(() -> {
+					while (nodes.isEmpty()) {
+						try {
+							Thread.sleep(1);
+						} catch (InterruptedException e) {
+						}
+					}
+				}, executor).get(time_to_wait_for_have_nodes, unit);
+			} catch (TimeoutException te) {
+				log.debug("There are actually no connected nodes");
+			} catch (InterruptedException | ExecutionException e) {
+			}
+		}
 		
 		List<Node> nodes_to_send = nodes.stream().filter(node -> {
 			if (filter != null) {
@@ -626,8 +655,8 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	/**
 	 * @return result / all nodes
 	 */
-	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option) {
-		return sayToAllNodes(request_class, option, n -> true);
+	public <O, T extends RequestHandler<O>> List<Node> sayToAllNodes(Class<T> request_class, O option, long time_to_wait_for_have_nodes, TimeUnit unit) {
+		return sayToAllNodes(request_class, option, n -> true, time_to_wait_for_have_nodes, unit);
 	}
 	
 	/**
@@ -649,7 +678,12 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 			requestHandler = new HashMap<>();
 			
 			addRequest(new RequestError(referer));
-			addRequest(new RequestHello(referer));
+			addRequest(new RequestHello(referer, source_node -> {
+				getNode_scheduler().add(source_node, source_node.getScheduledAction());
+				forEachObservers(observer -> {
+					observer.onPoolAddAReadyNode(source_node);
+				});
+			}));
 			addRequest(new RequestDisconnect(referer));
 			addRequest(new RequestNodelist(referer));
 			addRequest(new RequestPoke(referer));

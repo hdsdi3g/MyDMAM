@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.log4j.Logger;
@@ -30,6 +31,7 @@ import org.apache.log4j.Logger;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.DataBlock;
 import hd3gtv.mydmam.embddb.network.Node;
+import hd3gtv.mydmam.embddb.network.PoolActivityObserver;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -52,11 +54,17 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		embddb.poolmanager.addRequestHandler(new RequestSendTelemetryReport(embddb.poolmanager));
 		embddb.poolmanager.addRequestHandler(new RequestTelemetryReport(embddb.poolmanager));
 		
-		embddb.poolmanager.addRemoveNodeCallback(n -> {
-			if (n.isUUIDSet()) {
-				last_reports_by_node_uuid.remove(n.getUUID().toString());
+		embddb.poolmanager.registerObserver(new PoolObserver());
+	}
+	
+	private class PoolObserver implements PoolActivityObserver {
+		
+		public void onPoolRemoveNode(Node old_node) {
+			if (old_node.isUUIDSet()) {
+				last_reports_by_node_uuid.remove(old_node.getUUID().toString());
 			}
-		});
+		}
+		
 	}
 	
 	/**
@@ -79,7 +87,7 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 		last_reports_by_node_uuid.clear();
 		last_reports_by_node_uuid.put(embddb.poolmanager.getUUIDRef().toString(), createNodeReport());
 		
-		List<Node> nodes = embddb.poolmanager.sayToAllNodes(RequestSendTelemetryReport.class, null, null);
+		List<Node> nodes = embddb.poolmanager.sayToAllNodes(RequestSendTelemetryReport.class, null, 0, TimeUnit.MILLISECONDS);
 		if (nodes.isEmpty()) {
 			return;
 		}

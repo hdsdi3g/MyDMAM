@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -33,6 +34,7 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.Node;
+import hd3gtv.mydmam.embddb.pipeline.MessageKeylistUpdate.KeyEntry;
 import hd3gtv.mydmam.embddb.store.FileBackend;
 import hd3gtv.mydmam.embddb.store.HistoryJournal.HistoryEntry;
 import hd3gtv.mydmam.embddb.store.Item;
@@ -91,12 +93,12 @@ public class DistributedStore<T> extends Store<T> {
 			 * Grace period expired (or first use of this DStore): sync all.
 			 */
 			clear();
-			pipeline.doAClusterDataSync(item_factory.getType(), 0);
+			pipeline.doAWakeUpClusterDataSync(item_factory.getType(), 0);
 		} else {
 			/**
 			 * Grace period still valid, sync only items from last_sync_date
 			 */
-			pipeline.doAClusterDataSync(item_factory.getType(), saved_status.last_sync_date);
+			pipeline.doAWakeUpClusterDataSync(item_factory.getType(), saved_status.last_sync_date);
 		}
 		
 	}
@@ -183,16 +185,60 @@ public class DistributedStore<T> extends Store<T> {
 	 * =========== RunningState.SYNC_LAST ZONE ===========
 	 * */
 	
-	private class UpdateItem {
-		long size;
-		List<Node> requested_nodes;
+	CompletableFuture<List<ItemKey>> bulkToPullUpdateFrom(ArrayList<KeyEntry> keylist_update_entries) {
+		return CompletableFuture.supplyAsync(() -> {
+			try {
+				return keylist_update_entries.stream().filter(updated_entry_ref -> {
+					try {
+						Item item = rawGetItem(updated_entry_ref.getItemKey(), false);
+						if (item == null) {
+							/**
+							 * Missing item, needs update
+							 */
+							return true;
+						}
+						if (updated_entry_ref.data_size != item.getPayload().length) {
+							/**
+							 * Different item size, needs update
+							 */
+							return true;
+						}
+						if (item.sameDigest(updated_entry_ref.getDataDigest()) == false) {
+							/**
+							 * Different item, needs update
+							 */
+							return true;
+						}
+						
+						/**
+						 * Same item, not needs to update
+						 */
+						return false;
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				}).map(updated_entry_ref -> {
+					return updated_entry_ref.getItemKey();
+				}).collect(Collectors.toList());
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}, executor);
 	}
 	
 	/*
 	 * =========== RunningState.ON_THE_FLY ZONE ===========
 	 * */
+	private class UpdateItem {
+		long size;
+		List<Node> requested_nodes;
+	}
 	
 	private CompletableFuture<Void> waitToCanAccessToDatas() {
+		if (running_state.canAccessToDatas()) {
+			return CompletableFuture.completedFuture(null);
+		}
+		
 		return CompletableFuture.runAsync(() -> {
 			while (running_state.canAccessToDatas() == false) {
 				try {

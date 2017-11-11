@@ -104,6 +104,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	private final InteractiveConsole console;
 	private File durable_store_directory;
 	private final UUID uuid_ref;
+	private long time_to_wait_to_have_nodes_for_data_sync;
 	private boolean is_functionnal;
 	
 	private EmbDDB(String master_password_key) throws GeneralSecurityException, IOException {
@@ -113,6 +114,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		poolmanager = new PoolManager(protocol, uuid_ref);
 		lock_engine = new LockEngine(poolmanager);
 		telemetry = new Telemetry(this);
+		time_to_wait_to_have_nodes_for_data_sync = Configuration.global.getValue("embddb", "time_to_wait_to_have_nodes_for_data_sync", 30_000l);
 	}
 	
 	private void setDurableStoreDirectory(File durable_store_directory, final boolean volatile_dir) throws IOException {
@@ -221,6 +223,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		public void execCliModule(ApplicationArgs args) throws Exception {
 			EmbDDB embddb = new EmbDDB(getMasterPasswordKey());
 			embddb.setVolatileStoreDirectory();
+			embddb.time_to_wait_to_have_nodes_for_data_sync = Configuration.global.getValue("embddb", "time_to_wait_to_have_nodes_for_data_sync_in_console_mode", 500l);
 			
 			if (args.getParamExist("-listen")) {
 				String specific_listen = args.getSimpleParamValue("-listen");
@@ -282,7 +285,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		}
 		synchronized (durable_store_directory) {
 			if (pipeline == null) {
-				pipeline = new IOPipeline(poolmanager, Configuration.global.getValue("embddb", "database_name", "default"), durable_store_directory);
+				pipeline = new IOPipeline(poolmanager, Configuration.global.getValue("embddb", "database_name", "default"), durable_store_directory, time_to_wait_to_have_nodes_for_data_sync);
 				// TODO4 let some time to boot and to have some connected nodes ?
 			}
 			return pipeline.createStore(item_factory, max_size_for_cached_commit_log, grace_period_for_expired_items, expected_item_count, consistency);

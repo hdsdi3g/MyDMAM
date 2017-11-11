@@ -184,6 +184,28 @@ public class Store<T> implements Closeable {
 	}
 	
 	/**
+	 * Sync
+	 * Can return deleted item or null.
+	 */
+	protected Item rawGetItem(ItemKey key, boolean put_in_read_cache_if_needed) throws IOException {
+		Item item = journal_write_cache.get(key);
+		if (item == null) {
+			item = read_cache.get(key);
+			if (item == null) {
+				ByteBuffer read_buffer = backend.read(key);
+				if (read_buffer == null) {
+					return null;
+				}
+				item = new Item(read_buffer);
+				if (put_in_read_cache_if_needed) {
+					read_cache.put(item);
+				}
+			}
+		}
+		return item;
+	}
+	
+	/**
 	 * @return null if not found
 	 */
 	public CompletableFuture<Item> getItem(String _id) {
@@ -192,21 +214,7 @@ public class Store<T> implements Closeable {
 		}
 		return CompletableFuture.supplyAsync(() -> {
 			try {
-				ItemKey key = new ItemKey(_id);
-				
-				Item item = journal_write_cache.get(key);
-				if (item == null) {
-					item = read_cache.get(key);
-					if (item == null) {
-						ByteBuffer read_buffer = backend.read(key);
-						if (read_buffer == null) {
-							return null;
-						}
-						item = new Item(read_buffer);
-						read_cache.put(item);
-					}
-				}
-				
+				Item item = rawGetItem(new ItemKey(_id), true);
 				if (item.isDeleted()) {
 					return null;
 				}

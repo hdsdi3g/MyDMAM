@@ -35,7 +35,6 @@ class MessageKeylistUpdate implements MessageDStoreMapper {
 	String database;
 	String class_name;
 	
-	boolean has_next_list;
 	ArrayList<KeyEntry> entries;
 	
 	static class KeyEntry {
@@ -99,9 +98,7 @@ class MessageKeylistUpdate implements MessageDStoreMapper {
 		 */
 		AtomicInteger item_count_available = new AtomicInteger(Protocol.BUFFER_SIZE - 100 / KEY_ENTRY_JSON_SIZE);
 		
-		List<KeyEntry> k_entries = history_entries_by_keys.keySet().stream().filter(item -> {
-			return has_next_list == false;
-		}).map(key -> {
+		List<KeyEntry> k_entries = history_entries_by_keys.keySet().stream().map(key -> {
 			return history_entries_by_keys.get(key).stream().sorted((l, r) -> {
 				/**
 				 * Reverse sort: keep the most recent entry in case of > 1 updates for this key.
@@ -122,11 +119,7 @@ class MessageKeylistUpdate implements MessageDStoreMapper {
 				return 1;
 			}
 		}).map(item -> {
-			if (has_next_list) {
-				return null;
-			}
 			if (item_count_available.getAndDecrement() < 0) {
-				has_next_list = true;
 				return null;
 			}
 			return new KeyEntry(item);

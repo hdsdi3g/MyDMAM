@@ -33,6 +33,7 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.Node;
+import hd3gtv.mydmam.embddb.network.PoolActivityObserver;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.pipeline.MessageRegisterStore.Action;
 import hd3gtv.mydmam.embddb.store.FileBackend;
@@ -54,13 +55,15 @@ public class IOPipeline {
 	@GsonIgnore
 	private final ReadCache read_cache;
 	
+	private long time_to_wait_sync_nodes;
+	
 	private final ConcurrentHashMap<Class<?>, InternalStore> all_stores;
 	private final String database_name;
 	private final FileBackend store_file_backend;
 	private final ThreadPoolExecutorFactory io_executor; // TODO4 re-do all tests with single Thread executor + can set executor size in configuration
 	private final ScheduledExecutorService maintenance_scheduled_ex_service;
 	
-	public IOPipeline(PoolManager poolmanager, String database_name, File durable_store_directory) throws IOException {
+	public IOPipeline(PoolManager poolmanager, String database_name, File durable_store_directory, long time_to_wait_sync_nodes) throws IOException {
 		this.poolmanager = poolmanager;
 		if (poolmanager == null) {
 			throw new NullPointerException("\"poolmanager\" can't to be null");
@@ -69,6 +72,8 @@ public class IOPipeline {
 		if (database_name == null) {
 			throw new NullPointerException("\"database_name\" can't to be null");
 		}
+		this.time_to_wait_sync_nodes = time_to_wait_sync_nodes;
+		
 		all_stores = new ConcurrentHashMap<>();
 		
 		read_cache = ReadCacheEhcache.getCache();
@@ -91,6 +96,7 @@ public class IOPipeline {
 			}
 		});
 		
+		poolmanager.registerObserver(new PoolObserver());
 		poolmanager.addRequestHandler(new RequestHandlerRegisterStore(poolmanager, this));
 		poolmanager.addRequestHandler(new RequestHandlerKeylistBuild(poolmanager, this));
 		poolmanager.addRequestHandler(new RequestHandlerKeyListUpdate(poolmanager, this));
@@ -297,45 +303,56 @@ public class IOPipeline {
 		}
 	}
 	
-	// TODO3 Hook on new connected node (send all Action.REGISTER for each current store classes) / disconneted node (remove all ext depnd node)
 	// TODO3 Hook on close store/poolmanager and send Action.UNREGISTER for all connected nodes for all store classes
 	
-	void doAClusterDataSync(Class<?> store_class, long since_date) {
+	private class PoolObserver implements PoolActivityObserver {
+		
+		public void onPoolAddAReadyNode(Node node) {
+			// TODO3 Hook on new connected node (send all Action.REGISTER for each current store classes)
+		}
+		
+		public void onPoolRemoveNode(Node old_node) {
+			// TODO3 Hook on disconneted node (remove all ext depnd node)
+		}
+		
+	}
+	
+	void doAWakeUpClusterDataSync(Class<?> store_class, long since_date) {
 		if (all_stores.contains(store_class) == false) {
 			throw new IndexOutOfBoundsException("Can't found registed class " + store_class);
 		}
 		InternalStore internal = all_stores.get(store_class);
-		if (internal.store.getRunningState() == RunningState.WAKE_UP) {
-			List<Node> requested_nodes = poolmanager.sayToAllNodes(RequestHandlerRegisterStore.class, new MessageRegisterStore(Action.REGISTER, database_name, store_class, RunningState.WAKE_UP));
-			if (requested_nodes.isEmpty()) {
-				log.info("Simplified wake up procedure for " + store_class.getSimpleName() + ": no active nodes");
-				internal.store.switchRunningState(RunningState.ON_THE_FLY);
-				return;
-			}
-			
-			log.info("Wake up procedure for " + store_class.getSimpleName() + " on " + requested_nodes.size() + " node(s)...");
-			
-			if (internal.sync_timeout != null) {
-				if (internal.sync_timeout.isDone() == false) {
-					internal.sync_timeout.cancel(true);
-				}
-			}
-			
-			long slower_node_delay = requested_nodes.stream().mapToLong(n -> {
-				return Math.abs(n.getLastDeltaTime());
-			}).max().orElse(1000);
-			
-			if (log.isTraceEnabled()) {
-				log.trace("Arm sync_timeout schedule function in " + slower_node_delay * 2l + " ms");
-			}
-			
-			internal.sync_timeout = maintenance_scheduled_ex_service.schedule(() -> {
-				log.info("No one other node wants to sync with " + database_name + "/" + store_class.getSimpleName());
-				internal.store.switchRunningState(RunningState.ON_THE_FLY);
-			}, slower_node_delay * 2l, TimeUnit.MILLISECONDS);
-		} else {
-			// TODO (after actual TODOs) send to all ExternalDependantNodes a cluster sync
+		if (internal.store.getRunningState() != RunningState.WAKE_UP) {
+			throw new RuntimeException("Invalid RunningState: use this only for startup store");
 		}
+		
+		List<Node> requested_nodes = poolmanager.sayToAllNodes(RequestHandlerRegisterStore.class, new MessageRegisterStore(Action.REGISTER, database_name, store_class, RunningState.WAKE_UP), time_to_wait_sync_nodes, TimeUnit.MILLISECONDS);
+		if (requested_nodes.isEmpty()) {
+			log.info("Simplified wake up procedure for " + store_class.getSimpleName() + ": no active nodes");
+			internal.store.switchRunningState(RunningState.ON_THE_FLY);
+			return;
+		}
+		
+		log.info("Wake up procedure for " + store_class.getSimpleName() + " on " + requested_nodes.size() + " node(s)...");
+		
+		if (internal.sync_timeout != null) {
+			if (internal.sync_timeout.isDone() == false) {
+				internal.sync_timeout.cancel(true);
+			}
+		}
+		
+		long slower_node_delay = requested_nodes.stream().mapToLong(n -> {
+			return Math.abs(n.getLastDeltaTime());
+		}).max().orElse(1000);
+		
+		if (log.isTraceEnabled()) {
+			log.trace("Arm sync_timeout schedule function in " + slower_node_delay * 2l + " ms");
+		}
+		
+		internal.sync_timeout = maintenance_scheduled_ex_service.schedule(() -> {
+			log.info("No one other node wants to sync with " + database_name + "/" + store_class.getSimpleName());
+			internal.store.switchRunningState(RunningState.ON_THE_FLY);
+		}, slower_node_delay * 2l, TimeUnit.MILLISECONDS);
 	}
 	
 	void onExternalKeylistBuild(MessageKeylistBuild message, Node source_node) throws IOException {
@@ -354,20 +371,22 @@ public class IOPipeline {
 			return;
 		}
 		
-		// TODO compare with actual items, and prepare a bulk update data request
+		if (message.entries.isEmpty()) {
+			if (i_store.store.getRunningState() != RunningState.ON_THE_FLY) {
+				/**
+				 * Now, all items are updated
+				 */
+				i_store.store.switchRunningState(RunningState.ON_THE_FLY);
+				return;
+			}
+		}
 		
-		// i_store.store.
-		
-		message.entries.stream().forEach(entry -> {
-			// entry.getDataDigest()
-			// entry.data_size
-			// entry.getItemKey()
-			// entry.update_date
-		});
-		// message.has_next_list
+		i_store.store.bulkToPullUpdateFrom(message.entries).thenAcceptAsync(update_list -> {
+			// TODO ask to send datas to source_node: *bulk update data list*
+		}, io_executor);
 	}
 	
 	// TODO RequestHandler: bulk update data list: #total,key,key,key,key,key,...
 	// TODO RequestHandler: bulk update data content: #total,item,item,item,...
-	
+	// TODO after recevie a bulk update data content, do a ExternalKeylistBuild/Update to data sender with a start date (last update date) == most recent updated item update_date (+1 ms)
 }

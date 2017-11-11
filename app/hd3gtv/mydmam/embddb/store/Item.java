@@ -85,6 +85,10 @@ public final class Item implements ByteBufferExporter, Serializable {
 		}
 	}
 	
+	public boolean sameDigest(byte[] data) {
+		return Arrays.equals(data, getDigest());
+	}
+	
 	Item(String path, String _id, byte[] payload) {
 		setId(_id).setPath(path).setPayload(payload);
 		created = System.currentTimeMillis();

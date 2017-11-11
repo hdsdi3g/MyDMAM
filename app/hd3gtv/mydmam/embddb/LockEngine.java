@@ -32,6 +32,7 @@ import com.google.gson.JsonObject;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.embddb.network.DataBlock;
 import hd3gtv.mydmam.embddb.network.Node;
+import hd3gtv.mydmam.embddb.network.PoolActivityObserver;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -59,22 +60,11 @@ public final class LockEngine {
 		active_locks = new ArrayList<>();
 		node_events_by_target_id = new ConcurrentHashMap<>();
 		
+		poolmanager.registerObserver(new PoolObserver());
 		poolmanager.addRequestHandler(new RequestLockAcquire(poolmanager));
 		poolmanager.addRequestHandler(new RequestLockRelease(poolmanager));
 		poolmanager.addRequestHandler(new RequestLockAlreadyBusy(poolmanager));
 		poolmanager.addRequestHandler(new RequestLockAccept(poolmanager));
-		
-		poolmanager.addRemoveNodeCallback(node -> {
-			synchronized (active_locks) {
-				active_locks.removeIf(lock -> {
-					if (node.equals(lock.node)) {
-						node_events_by_target_id.remove(lock.target_id);
-						return true;
-					}
-					return false;
-				});
-			}
-		});
 		
 		scheduled_ex_service = Executors.newSingleThreadScheduledExecutor();
 		scheduled_ex_service.scheduleAtFixedRate(() -> {
@@ -92,6 +82,22 @@ public final class LockEngine {
 				});
 			}
 		}, 60, 60, TimeUnit.SECONDS);
+		
+	}
+	
+	private class PoolObserver implements PoolActivityObserver {
+		
+		public void onPoolRemoveNode(Node old_node) {
+			synchronized (active_locks) {
+				active_locks.removeIf(lock -> {
+					if (old_node.equals(lock.node)) {
+						node_events_by_target_id.remove(lock.target_id);
+						return true;
+					}
+					return false;
+				});
+			}
+		}
 		
 	}
 	
@@ -165,7 +171,7 @@ public final class LockEngine {
 		
 		node_events_by_target_id.remove(target_id);
 		
-		ArrayList<Node> requested_nodes = new ArrayList<>(poolmanager.sayToAllNodes(RequestLockAcquire.class, new_lock, notForOuttimeNodes));
+		ArrayList<Node> requested_nodes = new ArrayList<>(poolmanager.sayToAllNodes(RequestLockAcquire.class, new_lock, notForOuttimeNodes, GRACE_TIME_FOR_GET_LOCK * 2l, TimeUnit.MILLISECONDS));
 		if (requested_nodes.isEmpty()) {
 			log.debug("No nodes for get lock " + target_id);
 			active_locks.add(new_lock);
@@ -328,7 +334,7 @@ public final class LockEngine {
 				return;
 			}
 			expiration_date = System.currentTimeMillis();
-			poolmanager.sayToAllNodes(RequestLockRelease.class, this, null);
+			poolmanager.sayToAllNodes(RequestLockRelease.class, this, GRACE_TIME_FOR_GET_LOCK * 2l, TimeUnit.MILLISECONDS);
 		}
 		
 		private synchronized void externalRelease() {
