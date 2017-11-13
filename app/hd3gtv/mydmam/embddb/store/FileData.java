@@ -74,7 +74,7 @@ class FileData {
 				}
 				bytebuffer_header_data.flip();
 				
-				TransactionJournal.readAndEquals(bytebuffer_header_data, FILE_DATA_HEADER, bad_datas -> {
+				Item.readAndEquals(bytebuffer_header_data, FILE_DATA_HEADER, bad_datas -> {
 					return new IOException("Invalid file header: " + new String(bad_datas) + " for " + data_file);
 				});
 				int version = bytebuffer_header_data.getInt();
@@ -207,10 +207,10 @@ class FileData {
 			throw new IOException("Invalid read size: read = " + size + " instead of " + ENTRY_HEADER.length + ItemKey.SIZE);
 		}
 		buffer.flip();
-		TransactionJournal.readAndEquals(buffer, ENTRY_HEADER, err -> {
+		Item.readAndEquals(buffer, ENTRY_HEADER, err -> {
 			return new IOException("Bad entry header: " + new String(err, MyDMAM.UTF8));
 		});
-		TransactionJournal.readAndEquals(buffer, expected_key.key, err -> {
+		Item.readAndEquals(buffer, expected_key.key, err -> {
 			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + expected_key);
 		});
 		
@@ -273,10 +273,10 @@ class FileData {
 		}
 		header_buffer.flip();
 		
-		TransactionJournal.readAndEquals(header_buffer, ENTRY_HEADER, err -> {
+		Item.readAndEquals(header_buffer, ENTRY_HEADER, err -> {
 			return new IOException("Bad entry header: " + new String(err, MyDMAM.UTF8));
 		});
-		TransactionJournal.readAndEquals(header_buffer, expected_key.key, err -> {
+		Item.readAndEquals(header_buffer, expected_key.key, err -> {
 			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + expected_key);
 		});
 		readByteAndEquals(header_buffer, MARK_VALID_ENTRY, err -> {

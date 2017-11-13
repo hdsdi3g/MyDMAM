@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.log4j.Logger;
@@ -101,14 +102,14 @@ public final class Item implements ByteBufferExporter, Serializable {
 		deleted = Long.MAX_VALUE - (System.currentTimeMillis() * 10l);
 	}
 	
-	Item(ByteBuffer read_buffer) {
-		_id = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
-		path = new String(TransactionJournal.readNextBlock(read_buffer), MyDMAM.UTF8);
+	public Item(ByteBuffer read_buffer) {
+		_id = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
+		path = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
 		created = read_buffer.getLong();
 		updated = read_buffer.getLong();
 		deleted = read_buffer.getLong();
-		payload = TransactionJournal.readNextBlock(read_buffer);
-		checkDigest(TransactionJournal.readNextBlock(read_buffer));
+		payload = readNextBlock(read_buffer);
+		checkDigest(readNextBlock(read_buffer));
 	}
 	
 	public Item setId(String _id) {
@@ -254,13 +255,13 @@ public final class Item implements ByteBufferExporter, Serializable {
 		if (b_id == null | b_path == null | b_digest == null) {
 			getByteBufferWriteSize();
 		}
-		TransactionJournal.writeNextBlock(write_buffer, b_id);
-		TransactionJournal.writeNextBlock(write_buffer, b_path);
+		Item.writeNextBlock(write_buffer, b_id);
+		Item.writeNextBlock(write_buffer, b_path);
 		write_buffer.putLong(created);
 		write_buffer.putLong(updated);
 		write_buffer.putLong(deleted);
-		TransactionJournal.writeNextBlock(write_buffer, payload);
-		TransactionJournal.writeNextBlock(write_buffer, b_digest);
+		Item.writeNextBlock(write_buffer, payload);
+		Item.writeNextBlock(write_buffer, b_digest);
 	}
 	
 	public int getByteBufferWriteSize() {
@@ -399,4 +400,32 @@ public final class Item implements ByteBufferExporter, Serializable {
 		}
 		return true;
 	}
+	
+	public static <T extends Exception> void readAndEquals(ByteBuffer buffer, byte[] compare_to, Function<byte[], T> onDifference) throws T {
+		byte[] real_value = new byte[compare_to.length];
+		buffer.get(real_value);
+		if (Arrays.equals(compare_to, real_value) == false) {
+			throw onDifference.apply(real_value);
+		}
+	}
+	
+	/**
+	 * Out size = 4 + value.length
+	 */
+	public static void writeNextBlock(ByteBuffer buffer, byte[] value) {
+		buffer.putInt(value.length);
+		if (value.length > 0) {
+			buffer.put(value);
+		}
+	}
+	
+	public static byte[] readNextBlock(ByteBuffer buffer) {
+		int size = buffer.getInt();
+		byte[] b = new byte[size];
+		if (size > 0) {
+			buffer.get(b);
+		}
+		return b;
+	}
+	
 }

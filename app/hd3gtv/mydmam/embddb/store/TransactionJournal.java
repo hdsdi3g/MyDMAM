@@ -21,8 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import hd3gtv.mydmam.MyDMAM;
@@ -55,7 +53,7 @@ class TransactionJournal implements Closeable {
 			file_channel.read(bytebuffer_header);
 			bytebuffer_header.flip();
 			
-			readAndEquals(bytebuffer_header, JOURNAL_HEADER, bad_datas -> {
+			Item.readAndEquals(bytebuffer_header, JOURNAL_HEADER, bad_datas -> {
 				return new IOException("Invalid file header: " + new String(bad_datas));
 			});
 			int journal_version = bytebuffer_header.getInt();
@@ -105,7 +103,7 @@ class TransactionJournal implements Closeable {
 					head_read_buffer.clear();
 					file_channel.read(head_read_buffer);
 					head_read_buffer.flip();
-					readAndEquals(head_read_buffer, ENTRY_SEPARATOR, buff -> {
+					Item.readAndEquals(head_read_buffer, ENTRY_SEPARATOR, buff -> {
 						return new IOException("Expected entry separator tag instead of " + new String(buff));
 					});
 					int next_size = head_read_buffer.getInt();
@@ -167,10 +165,10 @@ class TransactionJournal implements Closeable {
 				write_buffer.put(ENTRY_HEADER);
 				write_buffer.putLong(System.currentTimeMillis());
 				write_buffer.putLong(expiration_date);
-				writeNextBlock(write_buffer, key.key);
+				Item.writeNextBlock(write_buffer, key.key);
 				write_buffer.putInt(block_size);
 				data_source.toByteBuffer(write_buffer);
-				writeNextBlock(write_buffer, b_path);
+				Item.writeNextBlock(write_buffer, b_path);
 				write_buffer.flip();
 				
 				int writed_size = file_channel.write(write_buffer);
@@ -192,13 +190,13 @@ class TransactionJournal implements Closeable {
 		 * @param partial_read don't read content and path (set null)
 		 */
 		private JournalEntry(ByteBuffer read_buffer, boolean partial_read) throws IOException {
-			readAndEquals(read_buffer, ENTRY_HEADER, header -> {
+			Item.readAndEquals(read_buffer, ENTRY_HEADER, header -> {
 				return new IOException("Invalid header for entry: " + String.valueOf(header));
 			});
 			
 			date = read_buffer.getLong();
 			expiration_date = read_buffer.getLong();
-			key = new ItemKey(readNextBlock(read_buffer));
+			key = new ItemKey(Item.readNextBlock(read_buffer));
 			if (partial_read == false) {
 				int size = read_buffer.getInt();
 				
@@ -219,40 +217,13 @@ class TransactionJournal implements Closeable {
 				};
 				
 				read_buffer.position(actual_pos + size);
-				path = new String(readNextBlock(read_buffer), MyDMAM.UTF8);
+				path = new String(Item.readNextBlock(read_buffer), MyDMAM.UTF8);
 			} else {
 				data_export_source = null;
 				path = null;
 			}
 		}
 		
-	}
-	
-	public static <T extends Exception> void readAndEquals(ByteBuffer buffer, byte[] compare_to, Function<byte[], T> onDifference) throws T {
-		byte[] real_value = new byte[compare_to.length];
-		buffer.get(real_value);
-		if (Arrays.equals(compare_to, real_value) == false) {
-			throw onDifference.apply(real_value);
-		}
-	}
-	
-	/**
-	 * Out size = 4 + value.length
-	 */
-	public static void writeNextBlock(ByteBuffer buffer, byte[] value) {
-		buffer.putInt(value.length);
-		if (value.length > 0) {
-			buffer.put(value);
-		}
-	}
-	
-	public static byte[] readNextBlock(ByteBuffer buffer) {
-		int size = buffer.getInt();
-		byte[] b = new byte[size];
-		if (size > 0) {
-			buffer.get(b);
-		}
-		return b;
 	}
 	
 	long getFileSize() {

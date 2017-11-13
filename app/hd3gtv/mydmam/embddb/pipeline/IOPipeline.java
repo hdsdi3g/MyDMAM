@@ -386,7 +386,32 @@ public class IOPipeline {
 		}, io_executor);
 	}
 	
-	// TODO RequestHandler: bulk update data list: #total,key,key,key,key,key,...
-	// TODO RequestHandler: bulk update data content: #total,item,item,item,...
-	// TODO after recevie a bulk update data content, do a ExternalKeylistBuild/Update to data sender with a start date (last update date) == most recent updated item update_date (+1 ms)
+	void onExternalContentBulkListRequest(MessageKeyContentBulkList message, Node source_node) {
+		InternalStore i_store = getInternalStoreFromRequestHandlerMessage(message, source_node);
+		if (i_store == null) {
+			return;
+		}
+		if (message.key_list.isEmpty()) {
+			return;
+		}
+		// TODO create RequestHandlerKeyContentBulkDatas on this list
+		
+	}
+	
+	void onExternalContentBulkListDatas(MessageKeyContentBulkDatas message, Node source_node) { // TODO call during on-the-fly push (with consistency)
+		InternalStore i_store = getInternalStoreFromRequestHandlerMessage(message, source_node);
+		if (i_store == null) {
+			return;
+		}
+		if (message.items.isEmpty()) {
+			return;
+		}
+		// TODO import external datas
+		// TODO after recevie a bulk update data content, do a ExternalKeylistBuild/Update to data sender with a start date (last update date) == most recent updated item update_date (+1 ms)
+		// TODO update store last update date
+	}
+	
+	// TODO create RequestHandlerKeyContentBulkList request(s) on boot
+	// TODO regular sync with last update date for each nodes stores (passive on-the-fly sync)
+	
 }

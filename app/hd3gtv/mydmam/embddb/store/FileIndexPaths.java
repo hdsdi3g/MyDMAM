@@ -82,7 +82,7 @@ public class FileIndexPaths {
 				}
 				bytebuffer_header_index.flip();
 				
-				TransactionJournal.readAndEquals(bytebuffer_header_index, FILE_LLIST_HEADER, bad_datas -> {
+				Item.readAndEquals(bytebuffer_header_index, FILE_LLIST_HEADER, bad_datas -> {
 					return new IOException("Invalid file header: " + new String(bad_datas));
 				});
 				int version = bytebuffer_header_index.getInt();

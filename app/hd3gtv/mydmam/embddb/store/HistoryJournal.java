@@ -90,7 +90,7 @@ public class HistoryJournal implements Closeable {
 				file_channel.read(bytebuffer_header);
 				bytebuffer_header.flip();
 				
-				TransactionJournal.readAndEquals(bytebuffer_header, JOURNAL_HEADER, bad_datas -> {
+				Item.readAndEquals(bytebuffer_header, JOURNAL_HEADER, bad_datas -> {
 					return new IOException("Invalid file header: " + new String(bad_datas));
 				});
 				int journal_version = bytebuffer_header.getInt();

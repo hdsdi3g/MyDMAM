@@ -41,6 +41,16 @@ public final class DataBlock {
 	
 	private static final Logger log = Logger.getLogger(DataBlock.class);
 	
+	public static final int HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length + 4 /** VERSION */
+			+ 1 /** seed content */
+			+ 4 /** random int */
+			+ 1 /** tag */
+			+ 4 /** raw datas size */
+			+ 1 /** tag */
+			+ 4 /** data_size */
+			+ 8 /** create_date */
+	;
+	
 	private byte[] datas;
 	private String request_name;
 	private long create_date;
@@ -89,7 +99,6 @@ public final class DataBlock {
 		GZIPInputStream gzin = new GZIPInputStream(inputstream_client_request, Protocol.BUFFER_SIZE);
 		
 		DataInputStream dis = new DataInputStream(gzin);
-		
 		byte[] app_socket_header_tag = new byte[Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length];
 		dis.readFully(app_socket_header_tag, 0, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length);
 		
@@ -110,7 +119,7 @@ public final class DataBlock {
 		
 		tag = dis.readByte();
 		if (tag != 0) {
-			throw new IOException("Protocol error, can't found request_name raw datas");
+			throw new IOException("Protocol error, can't found tag");
 		}
 		
 		int size = dis.readInt();
