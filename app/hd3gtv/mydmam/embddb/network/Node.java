@@ -16,18 +16,26 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.CompletionHandler;
 import java.nio.channels.ReadPendingException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.log4j.Logger;
 
@@ -62,10 +70,10 @@ public class Node {
 	
 	@GsonIgnore
 	private final SocketProvider provider;
-	@GsonIgnore
-	private final ByteBuffer read_buffer;
-	@GsonIgnore
-	private final ByteBuffer write_buffer;
+	// @GsonIgnore
+	// private final ByteBuffer read_buffer;
+	// @GsonIgnore
+	// private final ByteBuffer write_buffer;
 	@GsonIgnore
 	private final AsynchronousSocketChannel channel;
 	@GsonIgnore
@@ -73,6 +81,17 @@ public class Node {
 	@GsonIgnore
 	private final PressureMeasurement pressure_measurement_recevied;
 	private final AtomicLong last_activity;
+	
+	@GsonIgnore
+	private final SocketHandlerReader handler_reader;
+	@GsonIgnore
+	private final SocketHandlerWriter handler_writer;
+	@GsonIgnore
+	private final SocketHandlerWriterCloser handler_writer_closer;
+	
+	@GsonIgnore
+	private final ArrayList<ByteBuffer> recevied_chunks;
+	private final AtomicInteger expected_recevied_chunks_size;
 	
 	Node(SocketProvider provider, PoolManager pool_manager, AsynchronousSocketChannel channel) {
 		this.provider = provider;
@@ -88,8 +107,14 @@ public class Node {
 			throw new NullPointerException("\"channel\" can't to be null");
 		}
 		
-		this.read_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
-		this.write_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
+		recevied_chunks = new ArrayList<>();
+		expected_recevied_chunks_size = new AtomicInteger(0);
+		// read_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
+		// write_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
+		
+		handler_reader = new SocketHandlerReader(this);
+		handler_writer = new SocketHandlerWriter();
+		handler_writer_closer = new SocketHandlerWriterCloser();
 		
 		this.pressure_measurement_recevied = pool_manager.getPressureMeasurementRecevied();
 		if (pressure_measurement_recevied == null) {
@@ -196,13 +221,99 @@ public class Node {
 		request.sendRequest(options, this);
 	}
 	
+	ByteBuffer compressAndCypher(ByteBuffer exchange_content) throws IOException, GeneralSecurityException {
+		byte[] source_data_to_send = new byte[exchange_content.remaining()];
+		exchange_content.get(source_data_to_send);
+		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		GZIPOutputStream gzout = new GZIPOutputStream(baos);
+		gzout.write(source_data_to_send, 0, source_data_to_send.length);
+		gzout.finish();
+		gzout.flush();
+		gzout.close();
+		
+		byte[] compressed_datas = baos.toByteArray();
+		return ByteBuffer.wrap(pool_manager.getProtocol().encrypt(compressed_datas, 0, compressed_datas.length));
+	}
+	
+	ByteBuffer unCypherAndUnCompress(ByteBuffer exchange_content) throws IOException, GeneralSecurityException {
+		byte[] received_source_data = new byte[exchange_content.remaining()];
+		exchange_content.get(received_source_data);
+		
+		ByteArrayInputStream bais = new ByteArrayInputStream(pool_manager.getProtocol().decrypt(received_source_data, 0, received_source_data.length));
+		GZIPInputStream gzin = new GZIPInputStream(bais, received_source_data.length);
+		
+		byte[] buffer = new byte[received_source_data.length];
+		int readed_size;
+		
+		ArrayList<ByteBuffer> b_buffers = new ArrayList<>(2);
+		while ((readed_size = gzin.read(buffer)) > 0) {
+			b_buffers.add(ByteBuffer.wrap(buffer, 0, readed_size));
+		}
+		
+		ByteBuffer result = ByteBuffer.allocate(b_buffers.stream().mapToInt(b_buffer -> b_buffer.remaining()).sum());
+		b_buffers.forEach(b_buffer -> {
+			result.put(b_buffer);
+		});
+		return result;
+	}
+	
+	public void sendBlock(ByteBuffer data_to_send, boolean close_channel_after_send) throws IOException, GeneralSecurityException {
+		ByteBuffer full_content = ByteBuffer.allocate(500 + data_to_send.remaining() + 1);// TODO real Buffer size
+		// TODO real protocol...
+		full_content.putInt(data_to_send.remaining());
+		full_content.put(data_to_send);
+		
+		if (close_channel_after_send) {
+			channel.write(compressAndCypher(full_content), this, handler_writer_closer);
+		} else {
+			channel.write(compressAndCypher(full_content), this, handler_writer);
+		}
+	}
+	
 	/**
 	 * It will add to queue
 	 */
+	@Deprecated
 	public void sendBlock(DataBlock to_send, boolean close_channel_after_send) {
+		final long start_time = System.currentTimeMillis();
+		
 		try {
-			sendData(to_send, close_channel_after_send);
+			checkIfOpen();
 		} catch (IOException e) {
+			throw new RuntimeException("Closed channek for node " + this.toString(), e);
+		}
+		
+		try {
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Get from " + toString() + " " + to_send.toString());
+			}
+			
+			byte[] data = to_send.getBytes(pool_manager.getProtocol());
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Prepare " + data.length + " bytes to encrypt");
+			}
+			
+			byte[] result = pool_manager.getProtocol().encrypt(data, 0, data.length);
+			
+			// write_buffer.clear();
+			// write_buffer.put(result);
+			// write_buffer.flip();
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Set " + result.length + " bytes encrypted");
+			}
+			
+			/*if (close_channel_after_send) {
+				channel.write(write_buffer, this, handler_writer_closer);
+			} else {
+				channel.write(write_buffer, this, handler_writer);
+			}*/
+			
+			pressure_measurement_sended.onDatas(result.length, System.currentTimeMillis() - start_time);
+		} catch (Exception e) {
 			log.error("Can't send datas to " + toString() + " > " + to_send.getRequestName() + ". Closing connection");
 			close(getClass());
 		}
@@ -407,9 +518,9 @@ public class Node {
 	}
 	
 	void asyncRead() {
-		read_buffer.clear();
 		try {
-			channel.read(read_buffer, this, pool_manager.getProtocol().getHandlerReader());
+			ByteBuffer read_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
+			channel.read(read_buffer, read_buffer, handler_reader);
 		} catch (ReadPendingException e) {
 			log.trace("No two reads at the same time for " + toString());
 		}
@@ -420,8 +531,8 @@ public class Node {
 			log.debug("Want to close node " + toString() + ", asked by " + by.getSimpleName());
 		}
 		
-		read_buffer.clear();
-		write_buffer.clear();
+		// read_buffer.clear();
+		// write_buffer.clear();
 		
 		if (channel.isOpen()) {
 			try {
@@ -446,86 +557,142 @@ public class Node {
 		pool_manager.remove(this);
 	}
 	
-	void doProcessReceviedDatas() throws Exception {
-		final long start_time = System.currentTimeMillis();
-		last_activity.set(start_time);
-		
-		read_buffer.flip();
-		byte[] content = new byte[read_buffer.remaining()];
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Prepare " + content.length + " bytes to decrypt");
-		}
-		
-		read_buffer.get(content, 0, content.length);
-		read_buffer.clear();
-		
-		final byte[] datas = pool_manager.getProtocol().decrypt(content, 0, content.length);
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Get " + datas.length + " bytes decrypted");
-		}
-		
-		try {
-			DataBlock block = new DataBlock(pool_manager.getProtocol(), datas);
-			pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
-			pressure_measurement_recevied.onDatas(datas.length, System.currentTimeMillis() - start_time);
-		} catch (IOException e) {
-			if (e instanceof WantToCloseLinkException) {
-				log.debug("Handler want to close link");
-				close(getClass());
-				pressure_measurement_recevied.onDatas(datas.length, System.currentTimeMillis() - start_time);
-				return;
-			} else {
-				log.error("Can't extract sended blocks " + toString(), e);
-				close(getClass());
-			}
-		}
-	}
-	
-	/**
-	 * It will add to queue.
-	 * @throws IOException if channel is closed.
-	 */
-	private void sendData(DataBlock to_send, boolean close_channel_after_send) throws IOException {
-		final long start_time = System.currentTimeMillis();
-		
-		checkIfOpen();
-		
-		try {
-			if (log.isTraceEnabled()) {
-				log.trace("Get from " + toString() + " " + to_send.toString());
-			}
-			
-			byte[] data = to_send.getBytes(pool_manager.getProtocol());
-			
-			if (log.isTraceEnabled()) {
-				log.trace("Prepare " + data.length + " bytes to encrypt");
-			}
-			
-			byte[] result = pool_manager.getProtocol().encrypt(data, 0, data.length);
-			
-			write_buffer.clear();
-			write_buffer.put(result);
-			write_buffer.flip();
-			
-			if (log.isTraceEnabled()) {
-				log.trace("Set " + result.length + " bytes encrypted");
-			}
-			
-			channel.write(write_buffer, this, pool_manager.getProtocol().getHandlerWriter(close_channel_after_send));
-			
-			pressure_measurement_sended.onDatas(result.length, System.currentTimeMillis() - start_time);
-		} catch (Exception e) {
-			log.error("Can't send datas " + toString(), e);
-		}
-	}
-	
 	/**
 	 * @return channel.hashCode
 	 */
 	public int hashCode() {
 		return channel.hashCode();
+	}
+	
+	private class SocketHandlerReader implements CompletionHandler<Integer, ByteBuffer> {
+		
+		private Node node;
+		
+		SocketHandlerReader(Node node) {
+			this.node = node;
+		}
+		
+		public void completed(Integer size, ByteBuffer read_buffer) {
+			if (size == -1) {
+				return;
+			} else if (size < 1) {
+				log.debug("Get empty datas from " + node.toString() + ", size = " + size);
+				return;
+			}
+			
+			if (log.isTraceEnabled()) {
+				log.trace("Recevied from " + node + " " + size + " bytes");
+			}
+			
+			if (node.isOpenSocket()) {
+				try {
+					/** doProcessReceviedDatas */
+					final long start_time = System.currentTimeMillis();
+					last_activity.set(start_time);
+					
+					read_buffer.flip();
+					
+					ByteBuffer cleared_data = unCypherAndUnCompress(read_buffer);
+					
+					synchronized (recevied_chunks) {
+						if (recevied_chunks.isEmpty()) {
+							expected_recevied_chunks_size.set(0);// TODO get size from cleared_data header...
+							
+							/**
+							 * From now, header is fully readed
+							 */
+							if (expected_recevied_chunks_size.get() == cleared_data.remaining()) {
+								// TODO callback cleared_data
+							} else {
+								recevied_chunks.add(cleared_data);
+							}
+						} else {
+							recevied_chunks.add(cleared_data);
+							int current_size = recevied_chunks.stream().mapToInt(b_buffer -> b_buffer.remaining()).sum();
+							if (current_size == expected_recevied_chunks_size.get()) {
+								ByteBuffer all_datas = ByteBuffer.allocate(current_size);
+								recevied_chunks.forEach(b -> {
+									all_datas.put(b);
+								});
+								
+								// TODO callback all_datas
+								
+								recevied_chunks.clear();
+							} else if (current_size > expected_recevied_chunks_size.get()) {
+								recevied_chunks.clear();
+								throw new IOException("Invalid chunk from " + node + ": to big " + current_size + " bytes > " + expected_recevied_chunks_size.get());
+							}
+						}
+					}
+					
+					/*try { TODO callback
+						DataBlock block = new DataBlock(pool_manager.getProtocol(), datas);
+						pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, node);
+						pressure_measurement_recevied.onDatas(datas.length, System.currentTimeMillis() - start_time);
+					} catch (IOException e) {
+						if (e instanceof WantToCloseLinkException) {
+							log.debug("Handler want to close link");
+							close(getClass());
+							pressure_measurement_recevied.onDatas(datas.length, System.currentTimeMillis() - start_time);
+							return;
+						} else {
+							log.error("Can't extract sended blocks " + toString(), e);
+							close(getClass());
+						}
+					}*/
+				} catch (Exception e) {
+					failed(e, read_buffer);
+				}
+			}
+			
+			if (node.isOpenSocket()) {
+				node.asyncRead();
+			}
+		}
+		
+		public void failed(Throwable e, ByteBuffer buffer) {
+			if (e instanceof AsynchronousCloseException) {
+				log.debug("Channel " + node + " was closed, so can't close it.");
+			} else {
+				log.error("Channel " + node + " failed, close socket because " + e.getMessage());
+				node.close(getClass());
+			}
+		}
+		
+	}
+	
+	private class SocketHandlerWriter implements CompletionHandler<Integer, Node> {
+		
+		public void completed(Integer size, Node node) {
+			if (size == -1) {
+				return;
+			}
+			if (log.isTraceEnabled()) {
+				log.trace("Sended to " + node + " " + size + " bytes");
+			}
+		}
+		
+		public void failed(Throwable e, Node node) {
+			if (e instanceof AsynchronousCloseException) {
+				log.debug("Channel " + node + " was closed, so can't close it.");
+			} else {
+				log.error("Channel " + node + " failed, close socket because " + e.getMessage());
+				close(getClass());
+			}
+		}
+		
+	}
+	
+	private class SocketHandlerWriterCloser extends SocketHandlerWriter {
+		
+		public void completed(Integer size, Node node) {
+			if (log.isTraceEnabled()) {
+				log.trace("Sended to " + node + " " + size + " bytes");
+			}
+			log.debug("Manual close socket after send datas to other node " + node.toString());
+			close(getClass());
+		}
+		
 	}
 	
 }

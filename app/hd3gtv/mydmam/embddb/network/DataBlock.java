@@ -51,6 +51,7 @@ public final class DataBlock {
 			+ 8 /** create_date */
 	;
 	
+	@Deprecated
 	private byte[] datas;
 	private String request_name;
 	private long create_date;
