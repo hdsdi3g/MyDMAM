@@ -29,8 +29,8 @@ public class RequestPoke extends RequestHandler<Void> {
 		super(pool_manager);
 	}
 	
-	public String getHandleName() {
-		return "poke";
+	public HandleName getHandleName() {
+		return new HandleName("poke");
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {

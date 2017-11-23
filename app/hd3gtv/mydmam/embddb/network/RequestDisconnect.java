@@ -26,8 +26,8 @@ public class RequestDisconnect extends RequestHandler<String> {
 		super(pool_manager);
 	}
 	
-	public String getHandleName() {
-		return "disconnectme";
+	public HandleName getHandleName() {
+		return new HandleName("disconnectme");
 	}
 	
 	public void onRequest(DataBlock block, Node node) {

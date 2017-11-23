@@ -31,6 +31,7 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.embddb.network.DataBlock;
+import hd3gtv.mydmam.embddb.network.HandleName;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolActivityObserver;
 import hd3gtv.mydmam.embddb.network.PoolManager;
@@ -390,8 +391,8 @@ public final class LockEngine {
 			super(pool_manager);
 		}
 		
-		public String getHandleName() {
-			return "lock-acquire";
+		public HandleName getHandleName() {
+			return new HandleName("lock-acquire");
 		}
 		
 		public void onRequest(DataBlock block, Node source_node) {
@@ -422,8 +423,8 @@ public final class LockEngine {
 			super(pool_manager);
 		}
 		
-		public String getHandleName() {
-			return "lock-alreadybusy";
+		public HandleName getHandleName() {
+			return new HandleName("lock-alreadybusy");
 		}
 		
 		public void onRequest(DataBlock block, Node source_node) {
@@ -465,8 +466,8 @@ public final class LockEngine {
 			super(pool_manager);
 		}
 		
-		public String getHandleName() {
-			return "lock-release";
+		public HandleName getHandleName() {
+			return new HandleName("lock-release");
 		}
 		
 		public void onRequest(DataBlock block, Node source_node) {
@@ -492,8 +493,8 @@ public final class LockEngine {
 			super(pool_manager);
 		}
 		
-		public String getHandleName() {
-			return "lock-accept";
+		public HandleName getHandleName() {
+			return new HandleName("lock-accept");
 		}
 		
 		public void onRequest(DataBlock block, Node source_node) {

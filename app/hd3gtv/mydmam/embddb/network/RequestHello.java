@@ -42,8 +42,8 @@ public class RequestHello extends RequestHandler<Void> {
 		}
 	}
 	
-	public String getHandleName() {
-		return "hello";
+	public HandleName getHandleName() {
+		return new HandleName("hello");
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {

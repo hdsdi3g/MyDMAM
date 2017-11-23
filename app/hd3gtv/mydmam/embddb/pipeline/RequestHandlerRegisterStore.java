@@ -19,6 +19,7 @@ package hd3gtv.mydmam.embddb.pipeline;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.network.DataBlock;
+import hd3gtv.mydmam.embddb.network.HandleName;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
@@ -36,8 +37,8 @@ class RequestHandlerRegisterStore extends RequestHandler<MessageRegisterStore> {
 		}
 	}
 	
-	public String getHandleName() {
-		return "register_distributed_store";
+	public HandleName getHandleName() {
+		return new HandleName("register_distributed_store");
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {

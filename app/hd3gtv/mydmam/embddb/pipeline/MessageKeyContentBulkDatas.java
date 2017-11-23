@@ -28,7 +28,6 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.DataBlock;
-import hd3gtv.mydmam.embddb.network.Protocol;
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
 
@@ -64,9 +63,8 @@ public class MessageKeyContentBulkDatas implements MessageDStoreMapper {
 		Item.writeNextBlock(header, db_name);
 		Item.writeNextBlock(header, cls_name);
 		
-		AtomicInteger remain_payload_size = new AtomicInteger(Protocol.BUFFER_SIZE - (DataBlock.HEADER_SIZE + header.capacity() + RequestHandlerKeyContentBulkDatas.HANDLE_NAME.getBytes(MyDMAM.UTF8).length + 4/** item size */
-				+ 1 /** 0 separator */
-		));
+		@Deprecated
+		AtomicInteger remain_payload_size = new AtomicInteger(0);// XXX remove this
 		
 		items = items_to_send.filter(item -> {
 			return remain_payload_size.get() > item.getByteBufferWriteSize();
@@ -97,13 +95,11 @@ public class MessageKeyContentBulkDatas implements MessageDStoreMapper {
 		}
 		
 		full_payload.flip();
-		byte[] datas = new byte[full_payload.remaining()];
-		full_payload.get(datas);
-		return new DataBlock(requester, datas);
+		return new DataBlock(requester, full_payload);
 	}
 	
 	MessageKeyContentBulkDatas(DataBlock source) {
-		ByteBuffer full_payload = ByteBuffer.wrap(source.getDatas());
+		ByteBuffer full_payload = source.getDatas();
 		database = new String(Item.readNextBlock(full_payload), MyDMAM.UTF8);
 		class_name = new String(Item.readNextBlock(full_payload), MyDMAM.UTF8);
 		int item_size = full_payload.getInt();

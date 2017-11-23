@@ -51,7 +51,6 @@ public final class Protocol {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	
 	public static final int VERSION = 2;
-	public static final int BUFFER_SIZE = 0xFFFF;// TODO2 remove I/O limit
 	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
 	
 	/**

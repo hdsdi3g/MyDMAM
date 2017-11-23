@@ -16,16 +16,9 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.apache.log4j.Logger;
 
@@ -36,193 +29,176 @@ import com.google.gson.JsonSyntaxException;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.Hexview;
+import hd3gtv.mydmam.embddb.store.Item;
 
-public final class DataBlock {
+public final class DataBlock {// TODO test me !
 	
 	private static final Logger log = Logger.getLogger(DataBlock.class);
 	
-	public static final int HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length + 4 /** VERSION */
-			+ 1 /** seed content */
+	private static final int HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length /** Generic Header */
+			+ 4 /** VERSION */
 			+ 4 /** random int */
+			+ HandleName.SIZE /** handle name size */
 			+ 1 /** tag */
-			+ 4 /** raw datas size */
-			+ 1 /** tag */
-			+ 4 /** data_size */
+			+ 4 /** payload size */
 			+ 8 /** create_date */
 	;
 	
-	@Deprecated
-	private byte[] datas;
-	private String request_name;
-	private long create_date;
+	private final HandleName handle_name;
+	private final long create_date;
+	private final ByteBuffer datas_buffer;
+	private final IOMode io_mode;
 	
-	private ByteBuffer datas_buffer;
-	
-	/**
-	 * Create mode
-	 */
-	public DataBlock(RequestHandler<?> requester, JsonElement datas) {
-		this(requester, datas.toString().getBytes(MyDMAM.UTF8));
+	private enum IOMode {
+		
+		GET_READ_FROM {
+			void checkIsGetReadFrom() {
+			}
+			
+			void checkIsPutWriteTo() {
+				throw new RuntimeException("Invalid internal state ! You can't use write functions in read mode.");
+			}
+		},
+		PUT_WRITE_TO {
+			void checkIsGetReadFrom() {
+				throw new RuntimeException("Invalid internal state ! You can't use read functions in write mode.");
+			}
+			
+			void checkIsPutWriteTo() {
+			}
+		};
+		
+		abstract void checkIsGetReadFrom();
+		
+		abstract void checkIsPutWriteTo();
 	}
 	
 	/**
 	 * Create mode
 	 */
-	public DataBlock(RequestHandler<?> requester, byte[] datas) {
-		this.request_name = requester.getHandleName();
-		if (request_name == null) {
-			throw new NullPointerException("\"HandleName\" can't to be null");
+	public DataBlock(RequestHandler<?> requester, JsonElement datas) {
+		this(requester, datas.toString());
+	}
+	
+	/**
+	 * Create mode
+	 * @param datas, a read-only copy will be created, without touch limit/position of datas, but actual datas limit/position will be keeped for this internal bytebuffer.
+	 */
+	public DataBlock(RequestHandler<?> requester, ByteBuffer datas) {
+		this.handle_name = requester.getHandleName();
+		if (handle_name == null) {
+			throw new NullPointerException("\"handle_name\" can't to be null");
 		}
 		if (datas == null) {
 			throw new NullPointerException("\"datas\" can't to be null");
 		}
-		this.datas = datas;
+		datas_buffer = datas.asReadOnlyBuffer();
 		create_date = System.currentTimeMillis();
 		if (log.isTraceEnabled()) {
-			log.trace("Set datas to block " + request_name + ": " + Hexview.LINESEPARATOR + Hexview.tracelog(datas));
+			log.trace("Set datas to block \"" + handle_name + "\" with " + datas_buffer.remaining() + " bytes");
 		}
+		io_mode = IOMode.PUT_WRITE_TO;
 	}
 	
 	/**
 	 * Create mode
 	 */
 	public DataBlock(RequestHandler<?> requester, String datas) {
-		this(requester, datas.getBytes(MyDMAM.UTF8));
-	}
-	
-	DataBlock(int expected_size) throws IOException {
-		datas_buffer = ByteBuffer.allocate(expected_size);
-	}
-	
-	void recevieDatas(ByteBuffer bucket_block) throws IOException {// TODO use this
-		if (datas_buffer.remaining() < bucket_block.remaining()) {
-			throw new IOException("Invalid bucket_block size (" + bucket_block.remaining() + " is upper than " + datas_buffer.remaining());
+		this.handle_name = requester.getHandleName();
+		if (handle_name == null) {
+			throw new NullPointerException("\"handle_name\" can't to be null");
 		}
-		datas_buffer.put(bucket_block);
+		if (datas == null) {
+			throw new NullPointerException("\"datas\" can't to be null");
+		}
+		datas_buffer = ByteBuffer.wrap(datas.getBytes(MyDMAM.UTF8));
+		create_date = System.currentTimeMillis();
+		if (log.isTraceEnabled()) {
+			log.trace("Set string datas to block \"" + handle_name + "\" " + datas);
+		}
+		io_mode = IOMode.PUT_WRITE_TO;
 	}
 	
 	/**
-	 * Import mode
+	 * Import mode (receving)
+	 * It will call recevieDatas.
 	 */
-	@Deprecated
-	DataBlock(byte[] request_raw_datas) throws IOException {
-		/*if (log.isTraceEnabled()) {
-			log.trace("Get raw datas" + Hexview.LINESEPARATOR + Hexview.tracelog(request_raw_datas));
-		}*/
+	DataBlock(ByteBuffer header_and_first_block) throws IOException {
 		
-		ByteArrayInputStream inputstream_client_request = new ByteArrayInputStream(request_raw_datas);
-		GZIPInputStream gzin = new GZIPInputStream(inputstream_client_request, Protocol.BUFFER_SIZE);
+		Item.readAndEquals(header_and_first_block, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
+			return new IOException("Protocol error with app_socket_header_tag");
+		});
 		
-		DataInputStream dis = new DataInputStream(gzin);
-		byte[] app_socket_header_tag = new byte[Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length];
-		dis.readFully(app_socket_header_tag, 0, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length);
+		Item.readAndEquals(header_and_first_block, Protocol.VERSION, version -> {
+			return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
+		});
 		
-		if (Arrays.equals(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, app_socket_header_tag) == false) {
-			throw new IOException("Protocol error with app_socket_header_tag");
+		/**
+		 * From a ThreadLocalRandom
+		 */
+		header_and_first_block.getInt();
+		
+		handle_name = new HandleName(header_and_first_block);
+		
+		Item.readByteAndEquals(header_and_first_block, (byte) 0, sep -> {
+			return new IOException("Protocol error with 0 separator, this = " + 0 + " and dest = " + sep);
+		});
+		
+		int payload_size = header_and_first_block.getInt();
+		if (payload_size < 0) {
+			throw new IOException("Protocol error, invalid payload_size: " + payload_size);
 		}
 		
-		int version = dis.readInt();
-		if (version != Protocol.VERSION) {
-			throw new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
-		}
+		create_date = header_and_first_block.getLong();
 		
-		byte tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, can't found seed content");
-		}
-		dis.readInt();
-		
-		tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, can't found tag");
-		}
-		
-		int size = dis.readInt();
-		if (size < 1) {
-			throw new IOException("Protocol error, can't found request_name raw datas size is too short (" + size + ")");
-		}
-		
-		byte[] request_name_raw = new byte[size];
-		dis.read(request_name_raw);
-		request_name = new String(request_name_raw, MyDMAM.UTF8);
-		
-		tag = dis.readByte();
-		if (tag != 0) {
-			throw new IOException("Protocol error, can't found gzip raw datas");
-		}
-		
-		int data_size = dis.readInt();
-		
-		create_date = dis.readLong();
 		long now = System.currentTimeMillis();
 		if (Math.abs(now - create_date) > Protocol.MAX_DELTA_AGE_BLOCK) {
 			throw new IOException("Protocol error, invalid date for block, now: " + Loggers.dateLog(now) + ", distant block: " + Loggers.dateLog(create_date));
 		}
 		
-		if (data_size == 0) {
-			datas = new byte[0];
-		} else {
-			datas = new byte[data_size];
-			dis.read(datas);
-		}
+		datas_buffer = ByteBuffer.allocate(payload_size);
+		
+		io_mode = IOMode.GET_READ_FROM;
+		
+		recevieDatas(header_and_first_block);
 	}
 	
-	byte[] getBytes() throws IOException {
-		ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
-		GZIPOutputStream gzout = new GZIPOutputStream(byte_array_out_stream, Protocol.BUFFER_SIZE);
+	void recevieDatas(ByteBuffer bucket_block) throws IOException {
+		io_mode.checkIsGetReadFrom();
 		
-		DataOutputStream dos = new DataOutputStream(gzout);
-		dos.write(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);
-		dos.writeInt(Protocol.VERSION);
-		
-		/**
-		 * Start seed content
-		 */
-		dos.writeByte(0);
-		dos.writeInt(ThreadLocalRandom.current().nextInt());
-		
-		/**
-		 * Start header name
-		 */
-		dos.writeByte(0);
-		byte[] request_name_data = request_name.getBytes(MyDMAM.UTF8);
-		dos.writeInt(request_name_data.length);
-		dos.write(request_name_data);
-		
-		/**
-		 * Start datas payload
-		 */
-		dos.writeByte(0);
-		dos.writeInt(datas.length);
-		dos.writeLong(create_date);
-		if (datas.length > 0) {
-			dos.write(datas);
+		if (datas_buffer.remaining() < bucket_block.remaining()) {
+			datas_buffer.clear();
+			throw new IOException("Invalid bucket_block size (" + bucket_block.remaining() + " is upper than " + datas_buffer.remaining());
 		}
+		datas_buffer.put(bucket_block);
+	}
+	
+	public HandleName getRequestName() {
+		return handle_name;
+	}
+	
+	/**
+	 * @return asReadOnlyBuffer
+	 */
+	public ByteBuffer getDatas() {
+		io_mode.checkIsGetReadFrom();
 		
-		dos.flush();
-		gzout.finish();
-		gzout.flush();
-		
-		byte[] result = byte_array_out_stream.toByteArray();
-		
-		if (log.isTraceEnabled()) {
-			log.trace("Make raw datas for " + request_name + Hexview.LINESEPARATOR + Hexview.tracelog(result));
-		}
-		
+		ByteBuffer result = datas_buffer.asReadOnlyBuffer();
+		result.flip();
+		result.position(0);
+		result.limit(result.capacity());
 		return result;
 	}
 	
-	public String getRequestName() {
-		return request_name;
-	}
-	
-	public byte[] getDatas() {
-		return datas;
-	}
-	
 	public String getStringDatas() {
-		return new String(getDatas(), MyDMAM.UTF8);
+		io_mode.checkIsGetReadFrom();
+		
+		synchronized (datas_buffer) {
+			datas_buffer.flip();
+			byte[] content = new byte[datas_buffer.remaining()];
+			datas_buffer.get(content);
+			return new String(content, MyDMAM.UTF8);
+		}
 	}
 	
 	private static final JsonParser parser = new JsonParser();
@@ -234,4 +210,70 @@ public final class DataBlock {
 	public long getCreateDate() {
 		return create_date;
 	}
+	
+	/**
+	 * Only use this in "In" Node operation
+	 */
+	boolean isFullyRecevied() {
+		io_mode.checkIsGetReadFrom();
+		return datas_buffer.hasRemaining() == false;
+	}
+	
+	/**
+	 * It will flip result.
+	 */
+	ByteBuffer getDatasForSend() throws IOException {
+		io_mode.checkIsPutWriteTo();
+		
+		ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE + datas_buffer.remaining());
+		
+		/**
+		 * Generic Headers
+		 */
+		result.put(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);
+		result.putInt(Protocol.VERSION);
+		
+		/**
+		 * Seed content
+		 */
+		result.putInt(ThreadLocalRandom.current().nextInt());
+		
+		/**
+		 * Handle name
+		 **/
+		handle_name.toByteBuffer(result);
+		
+		/**
+		 * Separator
+		 */
+		result.put((byte) 0);
+		
+		/**
+		 * Payload size + date
+		 */
+		result.putInt(datas_buffer.remaining());
+		result.putLong(create_date);
+		
+		/**
+		 * Full payload
+		 */
+		result.put(datas_buffer);
+		
+		if (result.hasRemaining() == true) {
+			throw new IOException("Invalid bytebuffer prepare: missing " + result.remaining() + " bytes to write");
+		}
+		result.flip();
+		return result;
+	}
+	
+	/**
+	 * Only use this for get from external datas.
+	 * @return capacity
+	 */
+	public int getDataSize() {
+		io_mode.checkIsGetReadFrom();
+		
+		return datas_buffer.capacity();
+	}
+	
 }

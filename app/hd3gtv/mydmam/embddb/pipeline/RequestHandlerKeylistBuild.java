@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.JsonParseException;
 
 import hd3gtv.mydmam.embddb.network.DataBlock;
+import hd3gtv.mydmam.embddb.network.HandleName;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
@@ -40,8 +41,8 @@ class RequestHandlerKeylistBuild extends RequestHandler<MessageKeylistBuild> {
 		}
 	}
 	
-	public String getHandleName() {
-		return "keylistbuild_distributed_store";
+	public HandleName getHandleName() {
+		return new HandleName("keylistbuild_distributed_store");
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {

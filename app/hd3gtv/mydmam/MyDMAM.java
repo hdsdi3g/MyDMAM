@@ -67,6 +67,7 @@ public class MyDMAM {
 	public static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
 	public static final Charset UTF8 = StandardCharsets.UTF_8;
 	public static final Charset ISO_8859_1 = StandardCharsets.ISO_8859_1;
+	public static final Charset US_ASCII = StandardCharsets.US_ASCII;
 	
 	public static final Factory factory = new Factory();
 	

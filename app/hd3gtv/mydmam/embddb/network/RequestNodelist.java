@@ -43,8 +43,8 @@ public class RequestNodelist extends RequestHandler<Void> {
 		address_master = pool_manager.getAddressMaster();
 	}
 	
-	public String getHandleName() {
-		return "nodelist";
+	public HandleName getHandleName() {
+		return new HandleName("nodelist");
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {

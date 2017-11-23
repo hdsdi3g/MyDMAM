@@ -33,7 +33,7 @@ public abstract class RequestHandler<T> {
 		this.pool_manager = pool_manager;
 	}
 	
-	public abstract String getHandleName();
+	public abstract HandleName getHandleName();
 	
 	public abstract void onRequest(DataBlock block, Node source_node);
 	

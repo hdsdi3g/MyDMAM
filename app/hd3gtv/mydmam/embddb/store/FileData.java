@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.function.Function;
 
 import org.apache.log4j.Logger;
 
@@ -242,20 +241,6 @@ class FileData {
 		}
 	}
 	
-	/*public static <T extends Exception> void readAndEquals(ByteBuffer buffer, long expected, Function<Long, T> onDifference) throws T {
-		long real_value = buffer.getLong();
-		if (expected != real_value) {
-			throw onDifference.apply(real_value);
-		}
-	}*/
-	
-	public static <T extends Exception> void readByteAndEquals(ByteBuffer buffer, byte expected, Function<Byte, T> onDifference) throws T {
-		byte real_value = buffer.get();
-		if (expected != real_value) {
-			throw onDifference.apply(real_value);
-		}
-	}
-	
 	Entry read(long data_pointer, ItemKey expected_key) throws IOException {
 		/*
 		<header size ><key_size><boolean, 1 byte><--int, 4 bytes--->              <-- byte 0 -->
@@ -279,7 +264,7 @@ class FileData {
 		Item.readAndEquals(header_buffer, expected_key.key, err -> {
 			return new IOException("Bad expected key in header: " + MyDMAM.byteToString(err) + " instead of " + expected_key);
 		});
-		readByteAndEquals(header_buffer, MARK_VALID_ENTRY, err -> {
+		Item.readByteAndEquals(header_buffer, MARK_VALID_ENTRY, err -> {
 			return new IOException("Data entry marked as deleted/invalid: " + err + " for " + expected_key);
 		});
 		int user_data_length = header_buffer.getInt();
@@ -304,7 +289,7 @@ class FileData {
 		Entry result = new Entry(expected_key, out_bytebuffer);
 		data_buffer.position(actual_pos + user_data_length);
 		
-		readByteAndEquals(data_buffer, ENTRY_FOOTER, err -> {
+		Item.readByteAndEquals(data_buffer, ENTRY_FOOTER, err -> {
 			return new IOException("Invalid data entry footer: " + err);
 		});
 		

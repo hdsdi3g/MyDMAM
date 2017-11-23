@@ -641,7 +641,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		}).collect(Collectors.toList());
 		
 		if (log.isTraceEnabled()) {
-			log.trace("Send a " + request_class.getSimpleName() + " request (" + to_send.getDatas().length + " bytes) to " + nodes_to_send.size() + " node(s): " + nodes_to_send);
+			log.trace("Send a " + request_class.getSimpleName() + " request (" + to_send.getDatas().remaining() + " bytes) to " + nodes_to_send.size() + " node(s): " + nodes_to_send);
 		} else if (log.isDebugEnabled()) {
 			log.debug("Send a " + request_class.getSimpleName() + " request to " + nodes_to_send.size() + " node(s)");
 		}
@@ -671,11 +671,11 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	
 	public class AllRequestHandlers {
 		private PoolManager referer;
-		private HashMap<String, RequestHandler<?>> requestHandler;
+		private HashMap<HandleName, RequestHandler<?>> request_handler;
 		
 		private AllRequestHandlers(PoolManager referer) {
 			this.referer = referer;
-			requestHandler = new HashMap<>();
+			request_handler = new HashMap<>();
 			
 			addRequest(new RequestError(referer));
 			addRequest(new RequestHello(referer, source_node -> {
@@ -690,22 +690,19 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		}
 		
 		private synchronized void addRequest(RequestHandler<?> r) {
-			String name = r.getHandleName();
-			if (name == null) {
+			HandleName handle_name = r.getHandleName();
+			if (handle_name == null) {
 				throw new NullPointerException("Request getHandleName can't to be null");
 			}
-			if (name.isEmpty()) {
-				throw new NullPointerException("Request getHandleName can't to be empty");
+			if (request_handler.containsKey(handle_name)) {
+				throw new IndexOutOfBoundsException("Another Request was loaded with name " + handle_name + " (" + r.getClass() + " and " + request_handler.get(handle_name).getClass() + ")");
 			}
-			if (requestHandler.containsKey(name)) {
-				throw new IndexOutOfBoundsException("Another Request was loaded with name " + name + " (" + r.getClass() + " and " + requestHandler.get(name).getClass() + ")");
-			}
-			requestHandler.put(name, r);
+			request_handler.put(handle_name, r);
 		}
 		
 		@SuppressWarnings("unchecked")
 		public <T extends RequestHandler<?>> T getRequestByClass(Class<T> request_class) {
-			Optional<RequestHandler<?>> o_r = requestHandler.values().stream().filter(r -> {
+			Optional<RequestHandler<?>> o_r = request_handler.values().stream().filter(r -> {
 				return r.getClass().equals(request_class);
 			}).findFirst();
 			
@@ -730,14 +727,14 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 				log.trace("Get " + block.toString() + " from " + node);
 			}
 			
-			if (requestHandler.containsKey(block.getRequestName()) == false) {
+			if (request_handler.containsKey(block.getRequestName()) == false) {
 				if (log.isTraceEnabled()) {
 					log.trace("Can't handle block name \"" + block.getRequestName() + "\" from " + node);
 				}
 				return;
 			}
 			
-			requestHandler.get(block.getRequestName()).onRequest(block, node);
+			request_handler.get(block.getRequestName()).onRequest(block, node);
 		}
 		
 	}

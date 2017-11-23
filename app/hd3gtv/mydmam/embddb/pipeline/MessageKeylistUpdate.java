@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import com.google.gson.JsonElement;
 
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.embddb.network.Protocol;
 import hd3gtv.mydmam.embddb.store.HistoryJournal.HistoryEntry;
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.embddb.store.ItemKey;
@@ -96,7 +95,8 @@ class MessageKeylistUpdate implements MessageDStoreMapper {
 		/**
 		 * Protect to not propose a too big item list.
 		 */
-		AtomicInteger item_count_available = new AtomicInteger(Protocol.BUFFER_SIZE - 100 / KEY_ENTRY_JSON_SIZE);
+		@Deprecated
+		AtomicInteger item_count_available = new AtomicInteger(0);// TODO remove this
 		
 		List<KeyEntry> k_entries = history_entries_by_keys.keySet().stream().map(key -> {
 			return history_entries_by_keys.get(key).stream().sorted((l, r) -> {

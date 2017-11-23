@@ -71,6 +71,8 @@ class NetDiscover {
 	@GsonIgnore
 	private final PressureMeasurement pressure_measurement;
 	
+	private static final int BUFFER_SIZE = 0xFFFF;
+	
 	NetDiscover(PoolManager pool_manager, List<InetSocketAddress> multicast_groups, PressureMeasurement pressure_measurement) {
 		this.pool_manager = pool_manager;
 		if (pool_manager == null) {
@@ -457,7 +459,7 @@ class NetDiscover {
 				
 				byte[] json_byted_payload = MyDMAM.gson_kit.getGsonSimple().toJson(payload).getBytes(MyDMAM.UTF8);
 				
-				ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
+				ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(BUFFER_SIZE);
 				DataOutputStream dos = new DataOutputStream(byte_array_out_stream);
 				
 				dos.write(Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG);
@@ -522,7 +524,7 @@ class NetDiscover {
 			void start() throws IOException {
 				channel = DatagramChannel.open(pf).setOption(StandardSocketOptions.SO_REUSEADDR, true).bind(bind_to);
 				key = channel.join(group_socket.getAddress(), network_interface);
-				ByteBuffer buffer = ByteBuffer.allocate(Protocol.BUFFER_SIZE);
+				ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 				
 				receiver = new Thread(() -> {
 					InetSocketAddress sender;

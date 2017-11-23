@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.network.DataBlock;
+import hd3gtv.mydmam.embddb.network.HandleName;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolActivityObserver;
 import hd3gtv.mydmam.embddb.network.PoolManager;
@@ -109,8 +110,8 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 			super(pool_manager);
 		}
 		
-		public String getHandleName() {
-			return "send-telemetry-report";
+		public HandleName getHandleName() {
+			return new HandleName("send-telemetry-report");
 		}
 		
 		public void onRequest(DataBlock block, Node source_node) {
@@ -129,8 +130,8 @@ public class Telemetry implements InteractiveConsoleOrderProducer {
 			super(pool_manager);
 		}
 		
-		public String getHandleName() {
-			return "telemetry-report";
+		public HandleName getHandleName() {
+			return new HandleName("telemetry-report");
 		}
 		
 		public void onRequest(DataBlock block, Node source_node) {

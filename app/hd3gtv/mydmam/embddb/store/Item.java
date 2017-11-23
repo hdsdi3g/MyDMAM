@@ -409,6 +409,20 @@ public final class Item implements ByteBufferExporter, Serializable {
 		}
 	}
 	
+	public static <T extends Exception> void readAndEquals(ByteBuffer buffer, int expected, Function<Long, T> onDifference) throws T {
+		long real_value = buffer.getInt();
+		if (expected != real_value) {
+			throw onDifference.apply(real_value);
+		}
+	}
+	
+	public static <T extends Exception> void readByteAndEquals(ByteBuffer buffer, byte expected, Function<Byte, T> onDifference) throws T {
+		byte real_value = buffer.get();
+		if (expected != real_value) {
+			throw onDifference.apply(real_value);
+		}
+	}
+	
 	/**
 	 * Out size = 4 + value.length
 	 */

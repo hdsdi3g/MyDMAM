@@ -19,6 +19,7 @@ package hd3gtv.mydmam.embddb.pipeline;
 import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.network.DataBlock;
+import hd3gtv.mydmam.embddb.network.HandleName;
 import hd3gtv.mydmam.embddb.network.Node;
 import hd3gtv.mydmam.embddb.network.PoolManager;
 import hd3gtv.mydmam.embddb.network.RequestHandler;
@@ -36,15 +37,15 @@ public class RequestHandlerKeyContentBulkDatas extends RequestHandler<MessageKey
 		}
 	}
 	
-	static final String HANDLE_NAME = "bulkupd_dstore";
+	static final HandleName HANDLE_NAME = new HandleName("bulkupd_dstore");
 	
-	public String getHandleName() {
+	public HandleName getHandleName() {
 		return HANDLE_NAME;
 	}
 	
 	public void onRequest(DataBlock block, Node source_node) {
 		if (log.isTraceEnabled()) {
-			log.trace("Get message from " + source_node + ": " + (block.getDatas().length - DataBlock.HEADER_SIZE) + " bytes");
+			log.trace("Get message from " + source_node + ": " + block.getDataSize() + " bytes");
 		}
 		pipeline.onExternalContentBulkListDatas(new MessageKeyContentBulkDatas(block), source_node);
 	}

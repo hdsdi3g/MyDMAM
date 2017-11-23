@@ -22,8 +22,8 @@ public class RequestError extends RequestHandler<ErrorReturn> {
 		super(pool_manager);
 	}
 	
-	public String getHandleName() {
-		return "error";
+	public HandleName getHandleName() {
+		return new HandleName("error");
 	}
 	
 	public void onRequest(DataBlock blocks, Node source_node) {
