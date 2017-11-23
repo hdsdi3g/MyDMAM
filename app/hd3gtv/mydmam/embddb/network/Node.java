@@ -260,7 +260,7 @@ public class Node {
 		
 		try {
 			ByteBuffer result = data.getDatasForSend();
-			ByteBuffer to_send = compressAndCypher(result);
+			ByteBuffer to_send = compressAndCypher(result);// TODO not in one take, split before cypher+compress !
 			
 			if (log.isTraceEnabled()) {
 				log.trace("Send to " + toString() + " \"" + data.getRequestName() + "\" " + result.remaining() + " bytes raw, " + to_send.remaining() + " bytes compressed + encrypted");
