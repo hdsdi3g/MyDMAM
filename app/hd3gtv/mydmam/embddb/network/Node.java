@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -90,8 +89,7 @@ public class Node {
 	private final SocketHandlerWriterCloser handler_writer_closer;
 	
 	@GsonIgnore
-	private final ArrayList<ByteBuffer> recevied_chunks;
-	private final AtomicInteger expected_recevied_chunks_size;
+	private volatile ReceviedBucketChunks current_recevied_bucket_chunks;
 	
 	Node(SocketProvider provider, PoolManager pool_manager, AsynchronousSocketChannel channel) {
 		this.provider = provider;
@@ -107,8 +105,6 @@ public class Node {
 			throw new NullPointerException("\"channel\" can't to be null");
 		}
 		
-		recevied_chunks = new ArrayList<>();
-		expected_recevied_chunks_size = new AtomicInteger(0);
 		// read_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
 		// write_buffer = ByteBuffer.allocateDirect(Protocol.BUFFER_SIZE);
 		
@@ -265,7 +261,7 @@ public class Node {
 		full_content.put(data_to_send);
 		
 		if (close_channel_after_send) {
-			channel.write(compressAndCypher(full_content), this, handler_writer_closer);
+			channel.write(compressAndCypher(full_content), this, handler_writer_closer);// TODO send by blocks, not fully
 		} else {
 			channel.write(compressAndCypher(full_content), this, handler_writer);
 		}
@@ -290,7 +286,7 @@ public class Node {
 				log.trace("Get from " + toString() + " " + to_send.toString());
 			}
 			
-			byte[] data = to_send.getBytes(pool_manager.getProtocol());
+			byte[] data = to_send.getBytes();
 			
 			if (log.isTraceEnabled()) {
 				log.trace("Prepare " + data.length + " bytes to encrypt");
@@ -594,52 +590,18 @@ public class Node {
 					
 					ByteBuffer cleared_data = unCypherAndUnCompress(read_buffer);
 					
-					synchronized (recevied_chunks) {
-						if (recevied_chunks.isEmpty()) {
-							expected_recevied_chunks_size.set(0);// TODO get size from cleared_data header...
-							
-							/**
-							 * From now, header is fully readed
-							 */
-							if (expected_recevied_chunks_size.get() == cleared_data.remaining()) {
-								// TODO callback cleared_data
-							} else {
-								recevied_chunks.add(cleared_data);
-							}
-						} else {
-							recevied_chunks.add(cleared_data);
-							int current_size = recevied_chunks.stream().mapToInt(b_buffer -> b_buffer.remaining()).sum();
-							if (current_size == expected_recevied_chunks_size.get()) {
-								ByteBuffer all_datas = ByteBuffer.allocate(current_size);
-								recevied_chunks.forEach(b -> {
-									all_datas.put(b);
-								});
-								
-								// TODO callback all_datas
-								
-								recevied_chunks.clear();
-							} else if (current_size > expected_recevied_chunks_size.get()) {
-								recevied_chunks.clear();
-								throw new IOException("Invalid chunk from " + node + ": to big " + current_size + " bytes > " + expected_recevied_chunks_size.get());
-							}
-						}
+					if (current_recevied_bucket_chunks == null) {
+						current_recevied_bucket_chunks = new ReceviedBucketChunks(node, 0/* expected_recevied_chunks_size*/, cleared_data, full_data_buffer -> {
+							// TODO callback
+						});// TODO get size+bucket_reference from cleared_data header...
+					} else {
+						current_recevied_bucket_chunks.update(cleared_data);// TODO get bucket_reference from cleared_data header...
 					}
 					
-					/*try { TODO callback
-						DataBlock block = new DataBlock(pool_manager.getProtocol(), datas);
-						pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, node);
-						pressure_measurement_recevied.onDatas(datas.length, System.currentTimeMillis() - start_time);
-					} catch (IOException e) {
-						if (e instanceof WantToCloseLinkException) {
-							log.debug("Handler want to close link");
-							close(getClass());
-							pressure_measurement_recevied.onDatas(datas.length, System.currentTimeMillis() - start_time);
-							return;
-						} else {
-							log.error("Can't extract sended blocks " + toString(), e);
-							close(getClass());
-						}
-					}*/
+					if (current_recevied_bucket_chunks.isDone()) {
+						current_recevied_bucket_chunks = null;
+					}
+					
 				} catch (Exception e) {
 					failed(e, read_buffer);
 				}

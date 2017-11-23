@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.zip.GZIPInputStream;
@@ -56,6 +57,8 @@ public final class DataBlock {
 	private String request_name;
 	private long create_date;
 	
+	private ByteBuffer datas_buffer;
+	
 	/**
 	 * Create mode
 	 */
@@ -88,13 +91,25 @@ public final class DataBlock {
 		this(requester, datas.getBytes(MyDMAM.UTF8));
 	}
 	
+	DataBlock(int expected_size) throws IOException {
+		datas_buffer = ByteBuffer.allocate(expected_size);
+	}
+	
+	void recevieDatas(ByteBuffer bucket_block) throws IOException {// TODO use this
+		if (datas_buffer.remaining() < bucket_block.remaining()) {
+			throw new IOException("Invalid bucket_block size (" + bucket_block.remaining() + " is upper than " + datas_buffer.remaining());
+		}
+		datas_buffer.put(bucket_block);
+	}
+	
 	/**
 	 * Import mode
 	 */
-	DataBlock(Protocol protocol, byte[] request_raw_datas) throws IOException {
-		if (log.isTraceEnabled()) {
+	@Deprecated
+	DataBlock(byte[] request_raw_datas) throws IOException {
+		/*if (log.isTraceEnabled()) {
 			log.trace("Get raw datas" + Hexview.LINESEPARATOR + Hexview.tracelog(request_raw_datas));
-		}
+		}*/
 		
 		ByteArrayInputStream inputstream_client_request = new ByteArrayInputStream(request_raw_datas);
 		GZIPInputStream gzin = new GZIPInputStream(inputstream_client_request, Protocol.BUFFER_SIZE);
@@ -153,7 +168,7 @@ public final class DataBlock {
 		}
 	}
 	
-	byte[] getBytes(Protocol protocol) throws IOException {
+	byte[] getBytes() throws IOException {
 		ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
 		GZIPOutputStream gzout = new GZIPOutputStream(byte_array_out_stream, Protocol.BUFFER_SIZE);
 		
