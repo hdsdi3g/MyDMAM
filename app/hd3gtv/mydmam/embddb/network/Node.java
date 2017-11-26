@@ -246,6 +246,14 @@ public class Node {
 		return result;
 	}
 	
+	/*static ByteBuffer ByteBufferJoiner(List<ByteBuffer> items) {
+		int size = items.stream().mapToInt(item -> item.remaining()).sum();
+		ByteBuffer result = ByteBuffer.allocate(size);
+		items.forEach(item -> result.put(item));
+		result.flip();
+		return result;
+	}*/
+	
 	/**
 	 * It will add to queue
 	 */
@@ -255,15 +263,33 @@ public class Node {
 		try {
 			checkIfOpen();
 		} catch (IOException e) {
-			throw new RuntimeException("Closed channek for node " + this.toString(), e);
+			throw new RuntimeException("Closed channel for node " + this.toString(), e);
 		}
 		
 		try {
-			ByteBuffer result = data.getDatasForSend();
-			ByteBuffer to_send = compressAndCypher(result);// TODO not in one take, split before cypher+compress !
+			ByteBuffer source_to_send = data.getDatasForSend();
+			
+			/*ArrayList<ByteBuffer> bucket_send_list = new ArrayList<>();
+			while (source_to_send.remaining() >= SOCKET_BUFFER_SEND_SIZE) {
+				int new_pos = source_to_send.position() + SOCKET_BUFFER_SEND_SIZE;
+				int previous_limit = source_to_send.limit();
+				source_to_send.limit(new_pos);
+				
+				bucket_send_list.add(compressAndCypher(source_to_send));
+				
+				source_to_send.limit(previous_limit);
+				source_to_send.position(new_pos);
+			}
+			
+			if (source_to_send.remaining() > 0) {
+				bucket_send_list.add((source_to_send));
+			}*/
+			
+			// XXX maybe with a fixed size cypher+compres[prefix(ref, size)] + cypher+compres[data+data+data+data] + cypher+compres[end suffix]
+			ByteBuffer to_send = compressAndCypher(source_to_send);
 			
 			if (log.isTraceEnabled()) {
-				log.trace("Send to " + toString() + " \"" + data.getRequestName() + "\" " + result.remaining() + " bytes raw, " + to_send.remaining() + " bytes compressed + encrypted");
+				log.trace("Send to " + toString() + " \"" + data.getRequestName() + "\" " + source_to_send.remaining() + " bytes raw, " + to_send.remaining() + " bytes compressed + encrypted");
 			}
 			
 			if (close_channel_after_send) {
@@ -524,6 +550,7 @@ public class Node {
 	private class SocketHandlerReader implements CompletionHandler<Integer, ByteBuffer> {
 		
 		private Node node;
+		
 		private volatile DataBlock current_block;
 		
 		SocketHandlerReader(Node node) {
@@ -549,7 +576,8 @@ public class Node {
 					last_activity.set(start_time);
 					
 					read_buffer.flip();
-					ByteBuffer cleared_data = unCypherAndUnCompress(read_buffer);
+					ByteBuffer cleared_data = unCypherAndUnCompress(read_buffer);// FIXME MUST UPDATE PROTOCOL READ, NOT BY BLOCK !
+					// XXX maybe with a fixed size cypher+compres[prefix(ref, size)] + cypher+compres[data+data+data+data] + cypher+compres[end suffix]
 					
 					if (current_block == null) {
 						current_block = new DataBlock(cleared_data);
