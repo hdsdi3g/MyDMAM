@@ -18,7 +18,6 @@ package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.log4j.Logger;
 
@@ -31,47 +30,19 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.Item;
 
-public final class DataBlock {// TODO test me !
+public final class DataBlock {
 	
 	private static final Logger log = Logger.getLogger(DataBlock.class);
 	
-	private static final int HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length /** Generic Header */
-			+ 4 /** VERSION */
-			+ 4 /** random int */
-			+ HandleName.SIZE /** handle name size */
-			+ 1 /** tag */
-			+ 4 /** payload size */
+	private static final int HEADER_SIZE = HandleName.SIZE /** handle name size */
 			+ 8 /** create_date */
+			+ 1 /** spacer */
+			+ 4 /** data size */
 	;
 	
 	private final HandleName handle_name;
 	private final long create_date;
 	private final ByteBuffer datas_buffer;
-	private final IOMode io_mode;
-	
-	private enum IOMode {
-		
-		GET_READ_FROM {
-			void checkIsGetReadFrom() {
-			}
-			
-			void checkIsPutWriteTo() {
-				throw new RuntimeException("Invalid internal state ! You can't use write functions in read mode.");
-			}
-		},
-		PUT_WRITE_TO {
-			void checkIsGetReadFrom() {
-				throw new RuntimeException("Invalid internal state ! You can't use read functions in write mode.");
-			}
-			
-			void checkIsPutWriteTo() {
-			}
-		};
-		
-		abstract void checkIsGetReadFrom();
-		
-		abstract void checkIsPutWriteTo();
-	}
 	
 	/**
 	 * Create mode
@@ -97,7 +68,6 @@ public final class DataBlock {// TODO test me !
 		if (log.isTraceEnabled()) {
 			log.trace("Set datas to block \"" + handle_name + "\" with " + datas_buffer.remaining() + " bytes");
 		}
-		io_mode = IOMode.PUT_WRITE_TO;
 	}
 	
 	/**
@@ -116,61 +86,49 @@ public final class DataBlock {// TODO test me !
 		if (log.isTraceEnabled()) {
 			log.trace("Set string datas to block \"" + handle_name + "\" " + datas);
 		}
-		io_mode = IOMode.PUT_WRITE_TO;
+	}
+	
+	ByteBuffer getFramePayloadContent() throws IOException {
+		ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE + datas_buffer.remaining());
+		
+		handle_name.toByteBuffer(result);
+		result.putLong(create_date);
+		
+		/**
+		 * Spacer
+		 */
+		result.put((byte) 0);
+		result.putInt(datas_buffer.remaining());
+		result.put(datas_buffer);
+		datas_buffer.flip();
+		result.flip();
+		
+		return result;
 	}
 	
 	/**
 	 * Import mode (receving)
-	 * It will call recevieDatas.
 	 */
-	DataBlock(ByteBuffer header_and_first_block) throws IOException {
-		
-		Item.readAndEquals(header_and_first_block, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
-			return new IOException("Protocol error with app_socket_header_tag");
-		});
-		
-		Item.readAndEquals(header_and_first_block, Protocol.VERSION, version -> {
-			return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
-		});
-		
-		/**
-		 * From a ThreadLocalRandom
-		 */
-		header_and_first_block.getInt();
-		
-		handle_name = new HandleName(header_and_first_block);
-		
-		Item.readByteAndEquals(header_and_first_block, (byte) 0, sep -> {
-			return new IOException("Protocol error with 0 separator, this = " + 0 + " and dest = " + sep);
-		});
-		
-		int payload_size = header_and_first_block.getInt();
-		if (payload_size < 0) {
-			throw new IOException("Protocol error, invalid payload_size: " + payload_size);
-		}
-		
-		create_date = header_and_first_block.getLong();
+	DataBlock(ByteBuffer full_datas) throws IOException {
+		handle_name = new HandleName(full_datas);
+		create_date = full_datas.getLong();
 		
 		long now = System.currentTimeMillis();
 		if (Math.abs(now - create_date) > Protocol.MAX_DELTA_AGE_BLOCK) {
 			throw new IOException("Protocol error, invalid date for block, now: " + Loggers.dateLog(now) + ", distant block: " + Loggers.dateLog(create_date));
 		}
 		
-		datas_buffer = ByteBuffer.allocate(payload_size);
+		Item.readByteAndEquals(full_datas, (byte) 0, sep -> {
+			return new IOException("Protocol error with 0 separator, this = " + 0 + " and dest = " + sep);
+		});
 		
-		io_mode = IOMode.GET_READ_FROM;
-		
-		recevieDatas(header_and_first_block);
-	}
-	
-	void recevieDatas(ByteBuffer bucket_block) throws IOException {
-		io_mode.checkIsGetReadFrom();
-		
-		if (datas_buffer.remaining() < bucket_block.remaining()) {
-			datas_buffer.clear();
-			throw new IOException("Invalid bucket_block size (" + bucket_block.remaining() + " is upper than " + datas_buffer.remaining());
+		int size = full_datas.getInt();
+		if (size != full_datas.remaining()) {
+			throw new IOException("Invalid internal data size: " + size + " bytes (remaining = " + full_datas.remaining() + ")");
 		}
-		datas_buffer.put(bucket_block);
+		
+		datas_buffer = ByteBuffer.allocate(size);
+		datas_buffer.put(full_datas);
 	}
 	
 	public HandleName getRequestName() {
@@ -181,8 +139,6 @@ public final class DataBlock {// TODO test me !
 	 * @return asReadOnlyBuffer
 	 */
 	public ByteBuffer getDatas() {
-		io_mode.checkIsGetReadFrom();
-		
 		ByteBuffer result = datas_buffer.asReadOnlyBuffer();
 		result.flip();
 		result.position(0);
@@ -191,14 +147,10 @@ public final class DataBlock {// TODO test me !
 	}
 	
 	public String getStringDatas() {
-		io_mode.checkIsGetReadFrom();
-		
-		synchronized (datas_buffer) {
-			datas_buffer.flip();
-			byte[] content = new byte[datas_buffer.remaining()];
-			datas_buffer.get(content);
-			return new String(content, MyDMAM.UTF8);
-		}
+		ByteBuffer internal = getDatas();
+		byte[] content = new byte[internal.remaining()];
+		internal.get(content);
+		return new String(content, MyDMAM.UTF8);
 	}
 	
 	private static final JsonParser parser = new JsonParser();
@@ -212,67 +164,9 @@ public final class DataBlock {// TODO test me !
 	}
 	
 	/**
-	 * Only use this in "In" Node operation
-	 */
-	boolean isFullyRecevied() {
-		io_mode.checkIsGetReadFrom();
-		return datas_buffer.hasRemaining() == false;
-	}
-	
-	/**
-	 * It will flip result.
-	 */
-	ByteBuffer getDatasForSend() throws IOException {
-		io_mode.checkIsPutWriteTo();
-		
-		ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE + datas_buffer.remaining());
-		
-		/**
-		 * Generic Headers
-		 */
-		result.put(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);
-		result.putInt(Protocol.VERSION);
-		
-		/**
-		 * Seed content
-		 */
-		result.putInt(ThreadLocalRandom.current().nextInt());
-		
-		/**
-		 * Handle name
-		 **/
-		handle_name.toByteBuffer(result);
-		
-		/**
-		 * Separator
-		 */
-		result.put((byte) 0);
-		
-		/**
-		 * Payload size + date
-		 */
-		result.putInt(datas_buffer.remaining());
-		result.putLong(create_date);
-		
-		/**
-		 * Full payload
-		 */
-		result.put(datas_buffer);
-		
-		if (result.hasRemaining() == true) {
-			throw new IOException("Invalid bytebuffer prepare: missing " + result.remaining() + " bytes to write");
-		}
-		result.flip();
-		return result;
-	}
-	
-	/**
-	 * Only use this for get from external datas.
 	 * @return capacity
 	 */
 	public int getDataSize() {
-		io_mode.checkIsGetReadFrom();
-		
 		return datas_buffer.capacity();
 	}
 	

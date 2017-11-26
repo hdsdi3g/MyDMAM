@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -29,12 +27,16 @@ import java.nio.channels.CompletionHandler;
 import java.nio.channels.ReadPendingException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -42,6 +44,7 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.ActivityScheduledAction;
@@ -52,6 +55,8 @@ public class Node {
 	
 	private static final Logger log = Logger.getLogger(Node.class);
 	private static final int SOCKET_BUFFER_SIZE = 0xFFFF;
+	private static final long GRACE_PERIOD_TO_KEEP_OLD_RECEVIED_FRAMES = TimeUnit.HOURS.toMillis(8);
+	private static final long MAX_RECEVIED_FRAMES_TO_KEEP_BEFORE_DO_GC = 100l;
 	
 	@GsonIgnore
 	private PoolManager pool_manager;
@@ -79,13 +84,12 @@ public class Node {
 	private final AtomicLong last_activity;
 	
 	@GsonIgnore
-	private final SocketHandlerReader handler_reader;
-	@GsonIgnore
-	private final SocketHandlerWriter handler_writer;
-	@GsonIgnore
-	private final SocketHandlerWriterCloser handler_writer_closer;
+	private final ConcurrentHashMap<Long, FrameContainer> recevied_frames;
 	
-	Node(SocketProvider provider, PoolManager pool_manager, AsynchronousSocketChannel channel) {
+	@GsonIgnore
+	private final SocketHandlerReader handler_reader;
+	
+	Node(SocketProvider provider, PoolManager pool_manager, AsynchronousSocketChannel channel) {// TODO test me
 		this.provider = provider;
 		if (provider == null) {
 			throw new NullPointerException("\"provider\" can't to be null");
@@ -100,8 +104,7 @@ public class Node {
 		}
 		
 		handler_reader = new SocketHandlerReader(this);
-		handler_writer = new SocketHandlerWriter();
-		handler_writer_closer = new SocketHandlerWriterCloser();
+		recevied_frames = new ConcurrentHashMap<>();
 		
 		this.pressure_measurement_recevied = pool_manager.getPressureMeasurementRecevied();
 		if (pressure_measurement_recevied == null) {
@@ -163,6 +166,10 @@ public class Node {
 		}
 	}
 	
+	private String thisToString() {
+		return toString();
+	}
+	
 	/**
 	 * Via SocketAddr and uuid
 	 */
@@ -208,42 +215,16 @@ public class Node {
 		request.sendRequest(options, this);
 	}
 	
-	ByteBuffer compressAndCypher(ByteBuffer source_content) throws IOException, GeneralSecurityException {// TODO test me
+	ByteBuffer cypher(ByteBuffer source_content) throws IOException, GeneralSecurityException {
 		byte[] source_data_to_send = new byte[source_content.remaining()];
 		source_content.get(source_data_to_send);
-		
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		GZIPOutputStream gzout = new GZIPOutputStream(baos);
-		gzout.write(source_data_to_send, 0, source_data_to_send.length);
-		gzout.finish();
-		gzout.flush();
-		gzout.close();
-		
-		byte[] compressed_datas = baos.toByteArray();
-		return ByteBuffer.wrap(pool_manager.getProtocol().encrypt(compressed_datas, 0, compressed_datas.length));
+		return ByteBuffer.wrap(pool_manager.getProtocol().encrypt(source_data_to_send, 0, source_data_to_send.length));
 	}
 	
-	ByteBuffer unCypherAndUnCompress(ByteBuffer source_content) throws IOException, GeneralSecurityException {// TODO test me
+	ByteBuffer deCypher(ByteBuffer source_content) throws IOException, GeneralSecurityException {
 		byte[] received_source_data = new byte[source_content.remaining()];
 		source_content.get(received_source_data);
-		
-		ByteArrayInputStream bais = new ByteArrayInputStream(pool_manager.getProtocol().decrypt(received_source_data, 0, received_source_data.length));
-		GZIPInputStream gzin = new GZIPInputStream(bais, received_source_data.length);
-		
-		byte[] buffer = new byte[received_source_data.length];
-		int readed_size;
-		
-		ArrayList<ByteBuffer> b_buffers = new ArrayList<>(2);
-		while ((readed_size = gzin.read(buffer)) > 0) {
-			b_buffers.add(ByteBuffer.wrap(buffer, 0, readed_size));
-		}
-		
-		ByteBuffer result = ByteBuffer.allocate(b_buffers.stream().mapToInt(b_buffer -> b_buffer.remaining()).sum());
-		b_buffers.forEach(b_buffer -> {
-			result.put(b_buffer);
-		});
-		result.flip();
-		return result;
+		return ByteBuffer.wrap(pool_manager.getProtocol().decrypt(received_source_data, 0, received_source_data.length));
 	}
 	
 	/*static ByteBuffer ByteBufferJoiner(List<ByteBuffer> items) {
@@ -267,38 +248,57 @@ public class Node {
 		}
 		
 		try {
-			ByteBuffer source_to_send = data.getDatasForSend();
+			ByteBuffer source_to_send = data.getFramePayloadContent();
 			
-			/*ArrayList<ByteBuffer> bucket_send_list = new ArrayList<>();
-			while (source_to_send.remaining() >= SOCKET_BUFFER_SEND_SIZE) {
-				int new_pos = source_to_send.position() + SOCKET_BUFFER_SEND_SIZE;
-				int previous_limit = source_to_send.limit();
-				source_to_send.limit(new_pos);
-				
-				bucket_send_list.add(compressAndCypher(source_to_send));
-				
-				source_to_send.limit(previous_limit);
-				source_to_send.position(new_pos);
+			CompressionFormat compress_format = CompressionFormat.NONE;
+			if (source_to_send.remaining() > 0xFFF) {
+				compress_format = CompressionFormat.GZIP;
 			}
 			
-			if (source_to_send.remaining() > 0) {
-				bucket_send_list.add((source_to_send));
-			}*/
+			byte[] b_source_to_send = new byte[source_to_send.remaining()];
+			source_to_send.get(b_source_to_send);
+			byte[] prepared_source_to_send = compress_format.shrink(b_source_to_send);
 			
-			// XXX maybe with a fixed size cypher+compres[prefix(ref, size)] + cypher+compres[data+data+data+data] + cypher+compres[end suffix]
-			ByteBuffer to_send = compressAndCypher(source_to_send);
+			long session_id = ThreadLocalRandom.current().nextLong();
+			
+			/** == ceilDiv */
+			final int MAX_CHUNK_SIZE = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
+			int chunk_count = -Math.floorDiv(-prepared_source_to_send.length, MAX_CHUNK_SIZE);
+			
+			ArrayList<FramePayload> frame_payloads = new ArrayList<>(chunk_count);
+			for (int i = 0; i < chunk_count; i++) {
+				int pos = i * MAX_CHUNK_SIZE;
+				int size = Math.min(prepared_source_to_send.length - pos, MAX_CHUNK_SIZE);
+				frame_payloads.add(new FramePayload(session_id, i, prepared_source_to_send, pos, size));
+			}
+			
+			FramePrologue frame_prologue = new FramePrologue(session_id, prepared_source_to_send.length, chunk_count, compress_format);
+			FrameEpilogue frame_epilogue = new FrameEpilogue(session_id);
+			
+			ByteBuffer prologue_to_send = cypher(frame_prologue.output());
+			ByteBuffer epilogue_to_send = cypher(frame_epilogue.output());
+			
+			List<ByteBuffer> frame_payloads_to_send = frame_payloads.stream().map(frame_payload -> {
+				try {
+					return cypher(frame_payload.output());
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}).collect(Collectors.toList());
+			
+			int total_size = prologue_to_send.remaining() + frame_payloads_to_send.stream().mapToInt(payload_to_send -> payload_to_send.remaining()).sum() + epilogue_to_send.remaining();
 			
 			if (log.isTraceEnabled()) {
-				log.trace("Send to " + toString() + " \"" + data.getRequestName() + "\" " + source_to_send.remaining() + " bytes raw, " + to_send.remaining() + " bytes compressed + encrypted");
+				log.trace("Send to " + toString() + " \"" + data.getRequestName() + "\" " + b_source_to_send.length + " bytes raw, " + total_size + " bytes for real size (compress: " + compress_format + ")");
 			}
 			
-			if (close_channel_after_send) {
-				channel.write(to_send, this, handler_writer_closer);
-			} else {
-				channel.write(to_send, this, handler_writer);
-			}
+			channel.write(prologue_to_send, new SocketWriter(false), null);
+			frame_payloads_to_send.forEach(payload_to_send -> {
+				channel.write(payload_to_send, new SocketWriter(false), null);
+			});
+			channel.write(epilogue_to_send, new SocketWriter(close_channel_after_send), null);
 			
-			pressure_measurement_sended.onDatas(to_send.capacity(), System.currentTimeMillis() - start_time);
+			pressure_measurement_sended.onDatas(total_size, System.currentTimeMillis() - start_time);
 		} catch (Exception e) {
 			log.error("Can't send datas to " + toString() + " > " + data.getRequestName() + ". Closing connection");
 			close(getClass());
@@ -508,7 +508,7 @@ public class Node {
 			ByteBuffer read_buffer = ByteBuffer.allocateDirect(SOCKET_BUFFER_SIZE);
 			channel.read(read_buffer, read_buffer, handler_reader);
 		} catch (ReadPendingException e) {
-			log.trace("No two reads at the same time for " + toString());
+			log.warn("No two reads at the same time for " + toString(), e);
 		}
 	}
 	
@@ -551,8 +551,6 @@ public class Node {
 		
 		private Node node;
 		
-		private volatile DataBlock current_block;
-		
 		SocketHandlerReader(Node node) {
 			this.node = node;
 		}
@@ -571,52 +569,108 @@ public class Node {
 			
 			if (node.isOpenSocket()) {
 				try {
-					/** doProcessReceviedDatas */
 					final long start_time = System.currentTimeMillis();
 					last_activity.set(start_time);
 					
 					read_buffer.flip();
-					ByteBuffer cleared_data = unCypherAndUnCompress(read_buffer);// FIXME MUST UPDATE PROTOCOL READ, NOT BY BLOCK !
-					// XXX maybe with a fixed size cypher+compres[prefix(ref, size)] + cypher+compres[data+data+data+data] + cypher+compres[end suffix]
 					
-					if (current_block == null) {
-						current_block = new DataBlock(cleared_data);
-					} else {
-						current_block.recevieDatas(cleared_data);
+					ByteBuffer sended_content = deCypher(read_buffer);
+					
+					if (sended_content.remaining() < Protocol.FRAME_HEADER_SIZE) {
+						throw new IOException("Invalid header remaining size: " + sended_content.remaining());
 					}
+					Item.readAndEquals(sended_content, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
+						return new IOException("Protocol error with app_socket_header_tag");
+					});
+					Item.readByteAndEquals(sended_content, Protocol.VERSION, version -> {
+						return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
+					});
+					int frame_type = sended_content.get();
+					sended_content.position(0);
 					
-					if (current_block.isFullyRecevied()) {
+					if (frame_type == Protocol.FRAME_TYPE_PROLOGUE) {
+						FramePrologue prologue = new FramePrologue(sended_content);
+						recevied_frames.putIfAbsent(prologue.session_id, new FrameContainer(prologue));
+						
+						if (recevied_frames.mappingCount() > MAX_RECEVIED_FRAMES_TO_KEEP_BEFORE_DO_GC) {
+							List<Long> delete_list_too_old = recevied_frames.reduceEntries(1, entry -> {
+								Long key = entry.getKey();
+								FramePrologue p = entry.getValue().prologue;
+								
+								if (p.create_date + GRACE_PERIOD_TO_KEEP_OLD_RECEVIED_FRAMES < System.currentTimeMillis()) {
+									return Arrays.asList(key);
+								}
+								return new ArrayList<Long>(0);
+							}, (l, r) -> {
+								int l_size = l.size();
+								int r_size = r.size();
+								
+								if (l_size + r_size == 0) {
+									return Collections.emptyList();
+								}
+								List<Long> result = new ArrayList<Long>();
+								result.addAll(l);
+								result.addAll(r);
+								return result;
+							});
+							
+							delete_list_too_old.forEach(session_id -> {
+								recevied_frames.remove(session_id);
+								if (log.isTraceEnabled()) {
+									log.trace("Remove old frame: session id: " + session_id);
+								}
+							});
+						}
+					} else if (frame_type == Protocol.FRAME_TYPE_PAYLOAD) {
+						FramePayload frame_payload = new FramePayload(sended_content);
+						FrameContainer f_container = recevied_frames.get(frame_payload.session_id);
+						if (f_container == null) {
+							throw new IOException("Can't found frame with session id: " + frame_payload.session_id);
+						}
+						f_container.appendPayload(frame_payload);
+						
+					} else if (frame_type == Protocol.FRAME_TYPE_EPILOGUE) {
+						FrameEpilogue epilogue = new FrameEpilogue(sended_content);
+						FrameContainer old_f_container = recevied_frames.remove(epilogue.session_id);
+						if (old_f_container == null) {
+							throw new IOException("Can't found frame with session id: " + epilogue.session_id);
+						}
+						
+						ByteBuffer raw_datas = old_f_container.close();
+						if (raw_datas == null) {
+							node.asyncRead();
+							return;
+						}
+						
+						DataBlock block = new DataBlock(raw_datas);
 						try {
-							pool_manager.getAllRequestHandlers().onReceviedNewBlock(current_block, node);
-							pressure_measurement_recevied.onDatas(current_block.getDataSize(), System.currentTimeMillis() - start_time);
+							pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, node);
+							pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - old_f_container.prologue.create_date);
 						} catch (IOException e) {
 							if (e instanceof WantToCloseLinkException) {
 								log.debug("Handler want to close link");
 								close(getClass());
-								pressure_measurement_recevied.onDatas(current_block.getDataSize(), System.currentTimeMillis() - start_time);
-								current_block = null;
-								return;
+								pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - old_f_container.prologue.create_date);
 							} else {
 								log.error("Can't extract sended blocks " + toString(), e);
 								close(getClass());
 							}
+							return;
 						}
-						
-						current_block = null;
+					} else {
+						throw new IOException("Invalid header, unknown frame_type: " + frame_type);
 					}
-					
 				} catch (Exception e) {
 					failed(e, read_buffer);
 				}
-			}
-			
-			if (node.isOpenSocket()) {
-				node.asyncRead();
+				
+				if (node.isOpenSocket()) {
+					node.asyncRead();
+				}
 			}
 		}
 		
 		public void failed(Throwable e, ByteBuffer buffer) {
-			current_block = null;
 			if (e instanceof AsynchronousCloseException) {
 				log.debug("Channel " + node + " was closed, so can't close it.");
 			} else {
@@ -627,36 +681,34 @@ public class Node {
 		
 	}
 	
-	private class SocketHandlerWriter implements CompletionHandler<Integer, Node> {
+	private class SocketWriter implements CompletionHandler<Integer, Void> {
 		
-		public void completed(Integer size, Node node) {
+		final boolean close_channel_after_send;
+		
+		SocketWriter(boolean close_channel_after_send) {
+			this.close_channel_after_send = close_channel_after_send;
+		}
+		
+		public void completed(Integer size, Void v) {
 			if (size == -1) {
 				return;
 			}
 			if (log.isTraceEnabled()) {
-				log.trace("Sended to " + node + " " + size + " bytes");
+				log.trace("Sended to " + thisToString() + " " + size + " bytes");
 			}
-		}
-		
-		public void failed(Throwable e, Node node) {
-			if (e instanceof AsynchronousCloseException) {
-				log.debug("Channel " + node + " was closed, so can't close it.");
-			} else {
-				log.error("Channel " + node + " failed, close socket because " + e.getMessage());
+			if (close_channel_after_send) {
+				log.debug("Manual close socket after send datas to other node " + thisToString());
 				close(getClass());
 			}
 		}
 		
-	}
-	
-	private class SocketHandlerWriterCloser extends SocketHandlerWriter {
-		
-		public void completed(Integer size, Node node) {
-			if (log.isTraceEnabled()) {
-				log.trace("Sended to " + node + " " + size + " bytes");
+		public void failed(Throwable e, Void v) {
+			if (e instanceof AsynchronousCloseException) {
+				log.debug("Channel " + thisToString() + " was closed, so can't close it.");
+			} else {
+				log.error("Channel " + thisToString() + " failed, close socket because " + e.getMessage());
+				close(getClass());
 			}
-			log.debug("Manual close socket after send datas to other node " + node.toString());
-			close(getClass());
 		}
 		
 	}

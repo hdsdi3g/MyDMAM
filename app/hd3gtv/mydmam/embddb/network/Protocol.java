@@ -50,18 +50,26 @@ import hd3gtv.tools.Hexview;
 public final class Protocol {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	
-	public static final int VERSION = 2;
-	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
+	public static final byte VERSION = 2;
+	public static final byte FRAME_TYPE_PROLOGUE = 0;
+	public static final byte FRAME_TYPE_PAYLOAD = 1;
+	public static final byte FRAME_TYPE_EPILOGUE = 2;
 	
 	/**
-	 * EMBDDBMYD
+	 * EmbMYD
 	 */
-	public static final byte[] APP_EMBDDB_SOCKET_HEADER_TAG = "EMBDDBMYD".getBytes(MyDMAM.UTF8);
+	public static final byte[] APP_EMBDDB_SOCKET_HEADER_TAG = "EmbMYD".getBytes(MyDMAM.US_ASCII);
 	
 	/**
 	 * MYDNETDSCVR
 	 */
 	public static final byte[] APP_NETDISCOVER_SOCKET_HEADER_TAG = "MYDNETDSCVR".getBytes(MyDMAM.UTF8);
+	
+	public static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length + 1 /** version */
+			+ 1 /** Frame Type */
+	;
+	
+	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
 	
 	private final KeyParameter keyParam;
 	private final CipherParameters params;

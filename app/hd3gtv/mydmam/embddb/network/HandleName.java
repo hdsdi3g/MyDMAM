@@ -27,7 +27,7 @@ import hd3gtv.mydmam.MyDMAM;
 /**
  * A String wrapper, with fixed length.
  */
-public final class HandleName {// TODO test me !
+public final class HandleName {
 	
 	final String name;
 	
@@ -35,6 +35,8 @@ public final class HandleName {// TODO test me !
 	
 	/**
 	 * @param original_name remove special chars, non ascii chars, spaces, and limit to SIZE
+	 * @see MyDMAM.PATTERN_Special_Chars
+	 * @see MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced
 	 */
 	public HandleName(String original_name) {
 		String temp_name = original_name;
@@ -67,11 +69,31 @@ public final class HandleName {// TODO test me !
 	}
 	
 	public int hashCode() {
-		return name.hashCode();
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
 	}
 	
 	public boolean equals(Object obj) {
-		return name.equals(obj);
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		HandleName other = (HandleName) obj;
+		if (name == null) {
+			if (other.name != null) {
+				return false;
+			}
+		} else if (!name.equals(other.name)) {
+			return false;
+		}
+		return true;
 	}
 	
 }
