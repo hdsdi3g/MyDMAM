@@ -114,9 +114,6 @@ class FramePayload {
 		internal_compressed_raw_content = ByteBuffer.allocate(size);
 		internal_compressed_raw_content.put(recevied);
 		
-		if (recevied.hasRemaining()) {
-			throw new IOException("Invalid size: " + size);
-		}
 		if (internal_compressed_raw_content.hasRemaining()) {
 			throw new IOException("Invalid size: " + size);
 		}

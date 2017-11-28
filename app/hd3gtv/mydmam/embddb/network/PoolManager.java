@@ -647,7 +647,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		}
 		
 		nodes_to_send.forEach(n -> {
-			n.sendBlock(to_send);
+			n.sendBlock(to_send, false);
 		});
 		return nodes_to_send;
 	}

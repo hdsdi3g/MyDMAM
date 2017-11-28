@@ -47,7 +47,7 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 
 @GsonIgnore
-public final class Protocol {
+public final class Protocol implements CipherEngine {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	
 	public static final byte VERSION = 2;
@@ -75,6 +75,9 @@ public final class Protocol {
 	private final CipherParameters params;
 	private final String hashed_password_key;
 	
+	/**
+	 * @param master_password_key no security checks will be done here.
+	 */
 	public Protocol(String master_password_key) throws NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
 		if (master_password_key == null) {
 			throw new NullPointerException("\"master_password_key\" can't to be null");
@@ -132,17 +135,17 @@ public final class Protocol {
 		return hashed_password_key;
 	}
 	
-	public byte[] encrypt(byte[] cleared_datas, int pos, int len) throws GeneralSecurityException {
+	public byte[] encrypt(byte[] cleared_datas) throws GeneralSecurityException {
 		try {
-			return encryptDecrypt(cleared_datas, pos, len, Cipher.ENCRYPT_MODE);
+			return encryptDecrypt(cleared_datas, 0, cleared_datas.length, Cipher.ENCRYPT_MODE);
 		} catch (DataLengthException | IllegalStateException | InvalidCipherTextException e) {
 			throw new GeneralSecurityException(e);
 		}
 	}
 	
-	public byte[] decrypt(byte[] crypted_datas, int pos, int len) throws GeneralSecurityException {
+	public byte[] decrypt(byte[] crypted_datas) throws GeneralSecurityException {
 		try {
-			return encryptDecrypt(crypted_datas, pos, len, Cipher.DECRYPT_MODE);
+			return encryptDecrypt(crypted_datas, 0, crypted_datas.length, Cipher.DECRYPT_MODE);
 		} catch (DataLengthException | IllegalStateException | InvalidCipherTextException e) {
 			throw new GeneralSecurityException(e);
 		}
