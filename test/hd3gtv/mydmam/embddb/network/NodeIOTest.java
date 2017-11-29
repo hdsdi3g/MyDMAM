@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -27,6 +28,8 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadPendingException;
 import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -44,9 +47,30 @@ public class NodeIOTest extends TestCase {
 	
 	private static final Logger log = Logger.getLogger(NodeIOTest.class);
 	
+	private final Protocol protocol;
+	
+	public NodeIOTest() throws NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
+		protocol = new Protocol("InternalTest");
+	}
+	
+	/*ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
+	final KeyPair keyPair = ...
+	final Certificate bcCert = new Certificate(new org.spongycastle.asn1.x509.Certificate[] {
+	new X509V3CertificateStrategy().selfSignedCertificateHolder(keyPair).toASN1Structure()}); 
+	while (true) {
+	Socket socket = serverSocket.accept();
+	TlsServerProtocol tlsServerProtocol = new TlsServerProtocol(
+	socket.getInputStream(), socket.getOutputStream(), secureRandom);
+	tlsServerProtocol.accept(new DefaultTlsServer() {
+	    protected TlsSignerCredentials getRSASignerCredentials() throws IOException {
+	        return tlsSignerCredentials(context);
+	    }               
+	});      
+	new PrintStream(tlsServerProtocol.getOutputStream()).println("Hello TLS");
+	}*/
+	
 	private AsynchronousChannelGroup createAsynchronousChannelGroup() throws IOException {
 		ThreadPoolExecutorFactory executor = new ThreadPoolExecutorFactory("TestSockets", Thread.NORM_PRIORITY);
-		executor.setSimplePoolSize();/// XXX
 		return executor.createAsynchronousChannelGroup();
 	}
 	
@@ -131,8 +155,8 @@ public class NodeIOTest extends TestCase {
 		
 		AsynchronousSocketChannel client_channel = AsynchronousSocketChannel.open(channel_group);
 		client_channel.connect(server_addr).get(100, TimeUnit.MILLISECONDS);
-		NodeIO node_alice_client = new NodeIO(client_channel, dummy_cipher_engine, onGetDataBlock, new Events("AliceClient"));
-		NodeIO node_bob_server = new NodeIO(server.accept().get(100, TimeUnit.MILLISECONDS), dummy_cipher_engine, onGetDataBlock, new Events("BobServer"));
+		NodeIO node_alice_client = new NodeIO(client_channel, protocol, onGetDataBlock, new Events("AliceClient"));
+		NodeIO node_bob_server = new NodeIO(server.accept().get(100, TimeUnit.MILLISECONDS), protocol, onGetDataBlock, new Events("BobServer"));
 		node_bob_server.asyncRead();
 		
 		byte[] message = "Hello World".getBytes(MyDMAM.UTF8);
@@ -172,17 +196,6 @@ public class NodeIOTest extends TestCase {
 		}
 		
 	}*/
-	
-	private static final CipherEngine dummy_cipher_engine = new CipherEngine() {
-		
-		public byte[] encrypt(byte[] cleared_datas) throws GeneralSecurityException {
-			return cleared_datas;
-		}
-		
-		public byte[] decrypt(byte[] crypted_datas) throws GeneralSecurityException {
-			return crypted_datas;
-		}
-	};
 	
 	private class Events implements NodeIOEvent {
 		

@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.tools.Hexview;
 
 @GsonIgnore
 class NodeIO {// TODO test me
@@ -209,7 +210,7 @@ class NodeIO {// TODO test me
 			throw new IOException("Invalid header remaining size: " + sended_content.remaining());
 		}
 		Item.readAndEquals(sended_content, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
-			return new IOException("Protocol error with app_socket_header_tag");
+			return new IOException("Protocol error with app_socket_header_tag: " + Hexview.tracelog(b));
 		});
 		Item.readByteAndEquals(sended_content, Protocol.VERSION, version -> {
 			return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
