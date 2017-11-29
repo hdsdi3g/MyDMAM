@@ -40,3 +40,4 @@ databaseredist/
 archive/
 .cache/
 telemetry.json
+*.jks
