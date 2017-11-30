@@ -38,13 +38,15 @@ package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
-import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLException;
 
 import hd3gtv.tools.TableList;
 
@@ -55,39 +57,53 @@ public class TLSEngineSimpleDemo {
 	
 	// private static final Logger log = Logger.getLogger(TLSEngineSimpleDemo.class);
 	
+	private static final String[] CIPHER_SUITE;
+	
+	// TODO check same passwords (with hash + random salt)...
+	
 	static {
 		/**
 		 * Enables the JSSE system debugging system property
 		 */
 		// System.setProperty("javax.net.debug", "all");
+		
+		/**
+		 * https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices
+		 */
+		ArrayList<String> la_CIPHER_SUITE = new ArrayList<>();
+		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
+		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
+		// la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
+		// la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
+		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
+		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
+		// la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
+		// la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
+		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
+		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
+		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+		// la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
+		// la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
+		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
+		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
+		
+		CIPHER_SUITE = new String[la_CIPHER_SUITE.size()];
+		for (int pos = 0; pos < CIPHER_SUITE.length; pos++) {
+			CIPHER_SUITE[pos] = la_CIPHER_SUITE.get(pos);
+		}
 	}
 	
 	private TableList table = new TableList();
 	
-	private final SSLContext sslc;
+	private final SSLContext ssl_context;
 	
-	private final SSLEngine client_engine;
-	private final ByteBuffer bb_out_write_client;
-	private final ByteBuffer bb_in_read_client;
+	private final SessionWrapper sw_client;
+	private final SessionWrapper sw_server;
 	
-	private final SSLEngine server_engine;
-	private final ByteBuffer bb_out_write_server;
-	private final ByteBuffer bb_int_read_server;
-	
-	private final ByteBuffer bb_reliable_transport_cli_srv;
-	private final ByteBuffer bb_reliable_transport_srv_cli;
-	
-	private void checkSecurityPolicyString(String[] list, String expected, boolean only_one) throws IOException {
-		if (only_one && list.length > 1) {
-			throw new IOException("Missing value, expected: " + expected + ", real: " + Arrays.asList(list).toString());
-		}
-		
-		if (Arrays.asList(list).stream().filter(value -> {
-			return value.equals(expected);
-		}).findFirst().isPresent() == false) {
-			throw new IOException("Missing value, expected: " + expected + ", real: " + Arrays.asList(list).toString());
-		}
-	}
+	public static final String CONTEXT_PROTOCOL = "TLSv1.2";
 	
 	/**
 	 * Create an initialized SSLContext to use for this demo.
@@ -103,61 +119,13 @@ public class TLSEngineSimpleDemo {
 	 * One could easily separate these phases into separate
 	 * sections of code.
 	 */
-	public TLSEngineSimpleDemo(SSLContext sslCtx) throws Exception {
-		sslc = sslCtx;
+	public TLSEngineSimpleDemo(KeystoreTool kt_tool) throws Exception {
+		ssl_context = kt_tool.createTLSContext(CONTEXT_PROTOCOL);
 		
 		boolean dataDone = false;
-		/**
-		 * Using the SSLContext created during object creation,
-		 * create/configure the SSLEngines we'll use for this demo.
-		 * -
-		 * Configure the serverEngine to act as a server in the TLS
-		 * handshake. Also, require SSL client authentication.
-		 */
-		server_engine = sslc.createSSLEngine();
-		server_engine.setUseClientMode(false);
-		server_engine.setNeedClientAuth(true);
-		server_engine.setEnabledProtocols(new String[] { TestTLS.PROTOCOL });
-		server_engine.setEnabledCipherSuites(TestTLS.CIPHER_SUITE);
 		
-		/**
-		 * Similar to above, but using client mode instead.
-		 */
-		client_engine = sslc.createSSLEngine();
-		client_engine.setUseClientMode(true);
-		client_engine.setEnabledProtocols(new String[] { TestTLS.PROTOCOL });
-		client_engine.setEnabledCipherSuites(TestTLS.CIPHER_SUITE);
-		
-		/**
-		 * We'll assume the buffer sizes are the same
-		 * between client and server.
-		 */
-		SSLSession session = client_engine.getSession();
-		int appBufferMax = session.getApplicationBufferSize();
-		int netBufferMax = session.getPacketBufferSize();
-		
-		/**
-		 * We'll make the input buffers a bit bigger than the max needed
-		 * size, so that unwrap()s following a successful data transfer
-		 * won't generate BUFFER_OVERFLOWS.
-		 */
-		bb_in_read_client = ByteBuffer.allocateDirect(appBufferMax + 50);
-		bb_int_read_server = ByteBuffer.allocateDirect(appBufferMax + 50);
-		
-		bb_reliable_transport_cli_srv = ByteBuffer.allocateDirect(netBufferMax);
-		bb_reliable_transport_srv_cli = ByteBuffer.allocateDirect(netBufferMax);
-		
-		bb_out_write_client = ByteBuffer.wrap("Hi Server, I'm Client".getBytes());
-		bb_out_write_server = ByteBuffer.wrap("Hello Client, I'm Server".getBytes());
-		
-		/**
-		 * results from client's last operation
-		 */
-		SSLEngineResult client_result;
-		/**
-		 * results from server's last operation
-		 */
-		SSLEngineResult server_result;
+		sw_client = new SessionWrapper(ssl_context, SessionSide.client);
+		sw_server = new SessionWrapper(ssl_context, SessionSide.server);
 		
 		/**
 		 * Examining the SSLEngineResults could be much more involved,
@@ -166,31 +134,25 @@ public class TLSEngineSimpleDemo {
 		 * to write to the output pipe, we could reallocate a larger
 		 * pipe, but instead we wait for the peer to drain it.
 		 */
-		while (!isEngineClosed(client_engine) || !isEngineClosed(server_engine)) {
-			client_result = client_engine.wrap(bb_out_write_client, bb_reliable_transport_cli_srv);
-			log("client wrap: ", client_result);
-			runDelegatedTasks(client_result, client_engine);
+		while (!sw_client.isEngineClosed() || !sw_server.isEngineClosed()) {
+			System.out.println();
+			System.out.println("SEND: C:" + sw_client.payload_to_send.remaining() + " S:" + sw_server.payload_to_send.remaining());
+			System.out.println("RECE: C:" + sw_client.recevied_payload.remaining() + " S:" + sw_server.recevied_payload.remaining());
 			
-			server_result = server_engine.wrap(bb_out_write_server, bb_reliable_transport_srv_cli);
-			log("server wrap: ", server_result);
-			runDelegatedTasks(server_result, server_engine);
+			sw_client.wrap();
+			sw_server.wrap();
 			
-			bb_reliable_transport_cli_srv.flip();
-			bb_reliable_transport_srv_cli.flip();
+			sw_client.transport.flip();
+			sw_server.transport.flip();
 			
-			client_result = client_engine.unwrap(bb_reliable_transport_srv_cli, bb_in_read_client);
-			log("client unwrap: ", client_result);
-			runDelegatedTasks(client_result, client_engine);
+			sw_client.unwrap(sw_server.transport);
+			sw_server.unwrap(sw_client.transport);
 			
-			server_result = server_engine.unwrap(bb_reliable_transport_cli_srv, bb_int_read_server);
-			log("server unwrap: ", server_result);
-			runDelegatedTasks(server_result, server_engine);
+			sw_client.transport.compact();
+			sw_server.transport.compact();
 			
-			bb_reliable_transport_cli_srv.compact();
-			bb_reliable_transport_srv_cli.compact();
-			
-			checkSecurityPolicyString(server_engine.getEnabledProtocols(), TestTLS.PROTOCOL, true);
-			checkSecurityPolicyString(client_engine.getEnabledProtocols(), TestTLS.PROTOCOL, true);
+			sw_client.checkSecurityPolicyString(CONTEXT_PROTOCOL, true);
+			sw_server.checkSecurityPolicyString(CONTEXT_PROTOCOL, true);
 			
 			/**
 			 * After we've transfered all application data between the client
@@ -203,14 +165,14 @@ public class TLSEngineSimpleDemo {
 			 * determined that no more input data will ever be
 			 * available (say a closed input stream).
 			 */
-			if (!dataDone && (bb_out_write_client.limit() == bb_int_read_server.position()) && (bb_out_write_server.limit() == bb_in_read_client.position())) {
+			if (!dataDone && (sw_client.payload_to_send.limit() == sw_server.recevied_payload.position()) && (sw_server.payload_to_send.limit() == sw_client.recevied_payload.position())) {
 				
-				checkTransfer(bb_out_write_server, bb_in_read_client);
-				checkTransfer(bb_out_write_client, bb_int_read_server);
+				checkTransfer(sw_server.payload_to_send, sw_client.recevied_payload, table);
+				checkTransfer(sw_client.payload_to_send, sw_server.recevied_payload, table);
 				
 				table.addSimpleCellRow("Closing clientEngine's *OUTBOUND*...");
-				client_engine.closeOutbound();
-				server_engine.closeOutbound();
+				sw_client.engine.closeOutbound();
+				sw_server.engine.closeOutbound();
 				dataDone = true;
 			}
 		}
@@ -218,34 +180,96 @@ public class TLSEngineSimpleDemo {
 		table.print();
 	}
 	
-	/**
-	 * If the result indicates that we have outstanding tasks to do,
-	 * go ahead and run them in this thread.
-	 */
-	private void runDelegatedTasks(SSLEngineResult result, SSLEngine engine) throws Exception {
-		if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-			Runnable runnable;
-			while ((runnable = engine.getDelegatedTask()) != null) {
-				table.addSimpleCellRow("Running delegated task");
-				runnable.run();
-			}
-			HandshakeStatus hsStatus = engine.getHandshakeStatus();
-			if (hsStatus == HandshakeStatus.NEED_TASK) {
-				throw new Exception("handshake shouldn't need additional tasks");
-			}
-			table.addRow("new HandshakeStatus:", hsStatus.toString());
-		}
+	enum SessionSide {
+		client, server;
 	}
 	
-	private static boolean isEngineClosed(SSLEngine engine) {
-		return (engine.isOutboundDone() && engine.isInboundDone());
+	public static int MAX_PAYLOAD_SIZE = 0xFFFFF;
+	
+	private class SessionWrapper {
+		final SSLEngine engine;
+		final ByteBuffer payload_to_send;
+		final ByteBuffer recevied_payload;
+		final ByteBuffer transport;
+		final SessionSide session_side;
+		
+		SessionWrapper(SSLContext ssl_context, SessionSide session_side) {
+			this.session_side = session_side;
+			if (session_side == null) {
+				throw new NullPointerException("\"session_side\" can't to be null");
+			}
+			
+			engine = ssl_context.createSSLEngine();
+			if (session_side == SessionSide.client) {
+				engine.setUseClientMode(true);
+				engine.setEnabledProtocols(new String[] { CONTEXT_PROTOCOL });
+				engine.setEnabledCipherSuites(CIPHER_SUITE);
+			} else if (session_side == SessionSide.server) {
+				engine.setUseClientMode(false);
+				engine.setNeedClientAuth(true);
+				engine.setEnabledProtocols(new String[] { CONTEXT_PROTOCOL });
+				engine.setEnabledCipherSuites(CIPHER_SUITE);
+			}
+			
+			recevied_payload = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize() + MAX_PAYLOAD_SIZE);
+			transport = ByteBuffer.allocateDirect(engine.getSession().getPacketBufferSize());
+			
+			byte[] payload = new byte[ThreadLocalRandom.current().nextInt(1, MAX_PAYLOAD_SIZE)];
+			ThreadLocalRandom.current().nextBytes(payload);
+			payload_to_send = ByteBuffer.wrap(payload);
+		}
+		
+		private void wrap() throws SSLException {
+			SSLEngineResult result = engine.wrap(payload_to_send, transport);
+			log(session_side.name() + " wrap: ", result);
+			runDelegatedTasks(result);
+		}
+		
+		private void unwrap(ByteBuffer bb_reliable_transport_other_side) throws SSLException {
+			SSLEngineResult result = engine.unwrap(bb_reliable_transport_other_side, recevied_payload);
+			log(session_side.name() + " unwrap: ", result);
+			runDelegatedTasks(result);
+		}
+		
+		private boolean isEngineClosed() {
+			return (engine.isOutboundDone() && engine.isInboundDone());
+		}
+		
+		private void runDelegatedTasks(SSLEngineResult result) throws SSLException {
+			if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+				Runnable runnable;
+				while ((runnable = engine.getDelegatedTask()) != null) {
+					table.addRow(session_side.name(), "Running delegated task");
+					runnable.run();
+				}
+				HandshakeStatus hsStatus = engine.getHandshakeStatus();
+				if (hsStatus == HandshakeStatus.NEED_TASK) {
+					throw new SSLException(session_side.name() + " handshake shouldn't need additional tasks");
+				}
+				table.addRow(session_side.name(), "new HandshakeStatus:", hsStatus.toString());
+			}
+		}
+		
+		private void checkSecurityPolicyString(String expected, boolean only_one) throws IOException {
+			String[] list = engine.getEnabledProtocols();
+			if (only_one && list.length > 1) {
+				throw new IOException(session_side.name() + ", missing value, expected: " + expected + ", real: " + Arrays.asList(list).toString());
+			}
+			
+			if (Arrays.asList(list).stream().filter(value -> {
+				return value.equals(expected);
+			}).findFirst().isPresent() == false) {
+				throw new IOException(session_side.name() + ", missing value, expected: " + expected + ", real: " + Arrays.asList(list).toString());
+			}
+		}
+		
 	}
 	
 	/**
 	 * A sanity check to ensure we got what was sent.
 	 * Simple check to make sure everything came across as expected.
 	 */
-	private void checkTransfer(ByteBuffer a, ByteBuffer b) throws Exception {
+	private static void checkTransfer(ByteBuffer a, ByteBuffer b, TableList table) throws Exception {
 		a.flip();
 		b.flip();
 		
@@ -261,19 +285,18 @@ public class TLSEngineSimpleDemo {
 		b.limit(b.capacity());
 	}
 	
-	private boolean resultOnce = true;
-	
-	private void log(String str, SSLEngineResult result) {
-		if (resultOnce) {
+	private static void log(String str, SSLEngineResult result) {
+		/*if (resultOnce) {
 			resultOnce = false;
 			table.addRow("", "getStatus()", "getHandshakeStatus()", "bytesConsumed()", "bytesProduced()");
-		}
+		}*/
 		HandshakeStatus hsStatus = result.getHandshakeStatus();
-		
-		table.addRow(str, result.getStatus().toString(), hsStatus.toString(), result.bytesConsumed() + "b", result.bytesProduced() + "b");
+		TableList table = new TableList();
+		table.addRow(str, "S " + result.getStatus().toString(), "HS " + hsStatus.toString(), "Csmd " + result.bytesConsumed() + "b", "Prod " + result.bytesProduced() + "b");
 		if (hsStatus == HandshakeStatus.FINISHED) {
 			table.addSimpleCellRow("ready for application data");
 		}
+		System.out.print(table.toString());
 	}
 	
 }

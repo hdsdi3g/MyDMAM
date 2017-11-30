@@ -41,3 +41,7 @@ archive/
 .cache/
 telemetry.json
 *.jks
+._sync_*.db
+._sync_*.db-shm
+._sync_*.db-wal
+.owncloudsync.log

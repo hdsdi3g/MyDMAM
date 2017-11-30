@@ -22,13 +22,26 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.UserPrincipal;
+import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.zip.CRC32;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.SystemUtils;
 
 import hd3gtv.mydmam.manager.JobProgression;
 
@@ -665,6 +678,31 @@ public class CopyMove {
 	 */
 	public static void main(String[] args) throws Exception {
 		new CopyMove().new InternalTests(new File(args[0]).getCanonicalFile());
+	}
+	
+	public static void setUserOnlyPermissionsToFile(File f) throws IOException {
+		if (SystemUtils.IS_OS_WINDOWS == false) {
+			HashSet<PosixFilePermission> perms = new HashSet<>();
+			perms.add(PosixFilePermission.OWNER_READ);
+			perms.add(PosixFilePermission.OWNER_WRITE);
+			Files.setPosixFilePermissions(f.toPath(), perms);
+		} else {
+			Path file = f.toPath();
+			AclFileAttributeView aclAttr = Files.getFileAttributeView(file, AclFileAttributeView.class);
+			System.out.println(aclAttr.getOwner());// XXX
+			for (AclEntry aclEntry : aclAttr.getAcl()) {
+				System.out.println(aclEntry);
+			}
+			System.out.println();
+			
+			UserPrincipalLookupService upls = file.getFileSystem().getUserPrincipalLookupService();
+			UserPrincipal user = upls.lookupPrincipalByName(System.getProperty("user.name"));
+			AclEntry.Builder builder = AclEntry.newBuilder();
+			builder.setPermissions(EnumSet.of(AclEntryPermission.READ_DATA, AclEntryPermission.EXECUTE, AclEntryPermission.READ_ACL, AclEntryPermission.READ_ATTRIBUTES, AclEntryPermission.READ_NAMED_ATTRS, AclEntryPermission.WRITE_ACL, AclEntryPermission.DELETE));
+			builder.setPrincipal(user);
+			builder.setType(AclEntryType.ALLOW);
+			aclAttr.setAcl(Collections.singletonList(builder.build()));
+		}
 	}
 	
 }

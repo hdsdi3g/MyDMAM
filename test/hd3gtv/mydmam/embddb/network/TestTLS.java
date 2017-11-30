@@ -17,49 +17,17 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
-import java.security.KeyManagementException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.Security;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManagerFactory;
-import javax.security.auth.x500.X500Principal;
 
 import org.apache.log4j.Logger;
-import org.bouncycastle.jce.X509Principal;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.x509.X509V3CertificateGenerator;
 
 public class TestTLS /*extends TestCase*/ {
 	
 	private static final Logger log = Logger.getLogger(TestTLS.class);
-	
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
 	
 	/*Arrays.asList(Security.getProviders()).forEach(p -> {
 	System.out.println(p.getName());
@@ -74,143 +42,17 @@ public class TestTLS /*extends TestCase*/ {
 	
 	*/
 	
-	private static boolean keyStoreContainsCertificate(KeyStore ks, String hostname) throws KeyStoreException {
-		Enumeration<String> e = ks.aliases();
-		while (e.hasMoreElements()) {
-			String alias = e.nextElement();
-			if (ks.isCertificateEntry(alias)) {
-				Certificate c = ks.getCertificate(alias);
-				if (c instanceof X509Certificate) {
-					X500Principal p = (X500Principal) ((X509Certificate) c).getSubjectX500Principal();
-					if (p.getName().contains(hostname)) return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	public static final String KEY_PAIR_GENERATOR_NAME = "RSA";// ECDSA is not avaliable
-	public static final int KEY_PAIR_GENERATOR_SIZE = 2048;
-	public static final String PROTOCOL = "TLSv1.2";
-	public static final String ALGORITHM = "SunX509";
-	
-	public static final String[] CIPHER_SUITE;
-	
-	static {
-		/**
-		 * https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices
-		 */
-		ArrayList<String> la_CIPHER_SUITE = new ArrayList<>();
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
-		// la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
-		// la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
-		// la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
-		// la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
-		// la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
-		// la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
-		
-		CIPHER_SUITE = new String[la_CIPHER_SUITE.size()];
-		for (int pos = 0; pos < CIPHER_SUITE.length; pos++) {
-			CIPHER_SUITE[pos] = la_CIPHER_SUITE.get(pos);
-		}
-	}
-	
-	/**
-	 * signature_algorithms: SHA512withECDSA, SHA512withRSA, SHA384withECDSA, SHA384withRSA, SHA256withECDSA, SHA256withRSA, SHA256withDSA, SHA224withECDSA, SHA224withRSA, SHA224withDSA, SHA1withECDSA, SHA1withRSA, SHA1withDSA
-	 */
-	public static final String SIGNATURE_ALGORITHM = "sha256WithRSAEncryption";
-	
-	static SSLContext createContext() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, CertificateException, IOException, InvalidKeyException, SecurityException, SignatureException {
-		/**
-		 * Generate a JKS
-		 * https://www.programcreek.com/java-api-examples/index.php?source_dir=geoserver-enterprise-master/src/web/app/src/test/java/org/geoserver/web/Start.java
-		 */
-		String hostname = "me";
-		File keyStoreFile = new File("ks.pks");
-		String password = "test";
-		
-		KeyStore privateKS = KeyStore.getInstance("JKS");
-		if (keyStoreFile.exists()) {
-			FileInputStream fis = new FileInputStream(keyStoreFile);
-			privateKS.load(fis, password.toCharArray());
-			
-			if (keyStoreContainsCertificate(privateKS, hostname) == false) {
-				throw new IOException("Oh No!");
-			}
-		} else {
-			privateKS.load(null);
-			
-			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_PAIR_GENERATOR_NAME);
-			keyPairGenerator.initialize(KEY_PAIR_GENERATOR_SIZE);
-			KeyPair KPair = keyPairGenerator.generateKeyPair();
-			
-			// cerate a X509 certifacte generator
-			X509V3CertificateGenerator v3CertGen = new X509V3CertificateGenerator();
-			
-			// set validity to 10 years, issuer and subject are equal --> self singed certificate
-			int random = new SecureRandom().nextInt();
-			if (random < 0) random *= -1;
-			v3CertGen.setSerialNumber(BigInteger.valueOf(random));
-			v3CertGen.setIssuerDN(new X509Principal("CN=" + hostname + ", OU=None, O=None L=None, C=None"));
-			v3CertGen.setNotBefore(new Date(System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 30));
-			v3CertGen.setNotAfter(new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365 * 10)));
-			v3CertGen.setSubjectDN(new X509Principal("CN=" + hostname + ", OU=None, O=None L=None, C=None"));
-			
-			v3CertGen.setPublicKey(KPair.getPublic());
-			v3CertGen.setSignatureAlgorithm(SIGNATURE_ALGORITHM);
-			
-			X509Certificate pk_certificate = v3CertGen.generateX509Certificate(KPair.getPrivate());
-			
-			// store the certificate containing the public key,this file is needed
-			// to import the public key in other key store.
-			// File certFile = new File(keyStoreFile.getParentFile(), hostname + ".cert");
-			// FileOutputStream fos = new FileOutputStream(certFile.getAbsoluteFile());
-			// fos.write(PKCertificate.getEncoded());
-			// fos.close();
-			
-			privateKS.setKeyEntry(hostname + ".key", KPair.getPrivate(), password.toCharArray(), new java.security.cert.Certificate[] { pk_certificate });
-			privateKS.setCertificateEntry(hostname + ".cert", pk_certificate);
-			privateKS.store(new FileOutputStream(keyStoreFile), password.toCharArray());
-		}
-		
-		/**
-		 * https://docs.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#SSLENG
-		 */
-		// KeyManager's decide which key material to use.
-		KeyManagerFactory kmf = KeyManagerFactory.getInstance(ALGORITHM);
-		kmf.init(privateKS, password.toCharArray());
-		
-		// TrustManager's decide whether to allow connections.
-		TrustManagerFactory tmf = TrustManagerFactory.getInstance(ALGORITHM);
-		tmf.init(privateKS);
-		
-		SSLContext sslContext = SSLContext.getInstance(PROTOCOL);
-		sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-		
-		return sslContext;
-	}
-	
 	public static void main(String[] args) throws Exception {
 		
-		new TLSEngineSimpleDemo(createContext());
+		KeystoreTool kt_tool = new KeystoreTool(new File("test.jks"), "test", "me");
+		new TLSEngineSimpleDemo(kt_tool);
 		
 		System.exit(0);
 		
 		/**
 		 * https://docs.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#SSLENG
 		 */
-		SSLEngine engine_client = createContext().createSSLEngine();
+		SSLEngine engine_client = kt_tool.createTLSContext(TLSEngineSimpleDemo.CONTEXT_PROTOCOL).createSSLEngine();
 		engine_client.setUseClientMode(true);
 		
 		SSLSession session = engine_client.getSession();
