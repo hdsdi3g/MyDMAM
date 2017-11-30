@@ -33,8 +33,8 @@ import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.zip.CRC32;
@@ -42,6 +42,7 @@ import java.util.zip.CRC32;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.SystemUtils;
+import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.manager.JobProgression;
 
@@ -680,6 +681,8 @@ public class CopyMove {
 		new CopyMove().new InternalTests(new File(args[0]).getCanonicalFile());
 	}
 	
+	private static Logger log = Logger.getLogger(CopyMove.class);
+	
 	public static void setUserOnlyPermissionsToFile(File f) throws IOException {
 		if (SystemUtils.IS_OS_WINDOWS == false) {
 			HashSet<PosixFilePermission> perms = new HashSet<>();
@@ -688,17 +691,37 @@ public class CopyMove {
 			Files.setPosixFilePermissions(f.toPath(), perms);
 		} else {
 			Path file = f.toPath();
+			
 			AclFileAttributeView aclAttr = Files.getFileAttributeView(file, AclFileAttributeView.class);
-			System.out.println(aclAttr.getOwner());// XXX
-			for (AclEntry aclEntry : aclAttr.getAcl()) {
-				System.out.println(aclEntry);
+			
+			if (log.isDebugEnabled()) {
+				LinkedHashMap<String, Object> lhm_log = new LinkedHashMap<String, Object>();
+				lhm_log.put("owner", aclAttr.getOwner());
+				for (AclEntry aclEntry : aclAttr.getAcl()) {
+					lhm_log.put("acl", aclEntry);
+				}
+				log.debug("Actual perms for \"" + f.getCanonicalPath() + "\" " + lhm_log);
 			}
-			System.out.println();
 			
 			UserPrincipalLookupService upls = file.getFileSystem().getUserPrincipalLookupService();
 			UserPrincipal user = upls.lookupPrincipalByName(System.getProperty("user.name"));
 			AclEntry.Builder builder = AclEntry.newBuilder();
-			builder.setPermissions(EnumSet.of(AclEntryPermission.READ_DATA, AclEntryPermission.EXECUTE, AclEntryPermission.READ_ACL, AclEntryPermission.READ_ATTRIBUTES, AclEntryPermission.READ_NAMED_ATTRS, AclEntryPermission.WRITE_ACL, AclEntryPermission.DELETE));
+			HashSet<AclEntryPermission> perms = new HashSet<>();
+			perms.add(AclEntryPermission.READ_DATA);
+			perms.add(AclEntryPermission.WRITE_DATA);
+			perms.add(AclEntryPermission.APPEND_DATA);
+			perms.add(AclEntryPermission.READ_NAMED_ATTRS);
+			perms.add(AclEntryPermission.WRITE_NAMED_ATTRS);
+			perms.add(AclEntryPermission.EXECUTE);
+			perms.add(AclEntryPermission.DELETE_CHILD);
+			perms.add(AclEntryPermission.READ_ATTRIBUTES);
+			perms.add(AclEntryPermission.WRITE_ATTRIBUTES);
+			perms.add(AclEntryPermission.DELETE);
+			perms.add(AclEntryPermission.READ_ACL);
+			perms.add(AclEntryPermission.WRITE_ACL);
+			perms.add(AclEntryPermission.WRITE_OWNER);
+			perms.add(AclEntryPermission.SYNCHRONIZE);
+			builder.setPermissions(perms);
 			builder.setPrincipal(user);
 			builder.setType(AclEntryType.ALLOW);
 			aclAttr.setAcl(Collections.singletonList(builder.build()));

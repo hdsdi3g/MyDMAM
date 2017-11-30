@@ -78,13 +78,13 @@ import hd3gtv.tools.CopyMove;
  * @see https://www.programcreek.com/java-api-examples/index.php?source_dir=geoserver-enterprise-master/src/web/app/src/test/java/org/geoserver/web/Start.java
  * @see https://www.programcreek.com/java-api-examples/index.php?source_dir=LittleProxy-mitm-master/src/main/java/org/littleshoot/proxy/mitm/CertificateHelper.java
  */
-public class KeystoreTool {// TODO tests
+public class KeystoreTool {
 	
 	private static Logger log = Logger.getLogger(KeystoreTool.class);
 	
 	private static final int PRIVATE_KEY_SIZE = 2048;
 	private static final String KEYGEN_ALGORITHM = "RSA";
-	private static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";// XXX upgrade
+	private static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
 	private static final String KMF_ALGORITHM = "SunX509";
 	
 	private final KeyStore keystore;
@@ -94,7 +94,7 @@ public class KeystoreTool {// TODO tests
 	/**
 	 * signature_algorithms: SHA512withECDSA, SHA512withRSA, SHA384withECDSA, SHA384withRSA, SHA256withECDSA, SHA256withRSA, SHA256withDSA, SHA224withECDSA, SHA224withRSA, SHA224withDSA, SHA1withECDSA, SHA1withRSA, SHA1withDSA
 	 */
-	private static final String SIGNATURE_ALGORITHM = "sha256WithRSAEncryption";
+	private static final String SIGNATURE_ALGORITHM = "SHA512withRSA";// "sha256WithRSAEncryption";// XXX up ?
 	
 	static {
 		Security.addProvider(new BouncyCastleProvider());
@@ -136,7 +136,7 @@ public class KeystoreTool {// TODO tests
 			BigInteger serial = BigInteger.valueOf(random);
 			long expiration_date = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(360l * 10l);
 			
-			log.info("Generate keystore for \"" + x590_principal_hostname + "\", with a self-signed certificate and a key size " + PRIVATE_KEY_SIZE + " bits, a validity up to the " + Loggers.dateLog(expiration_date) + ", a S/N " + serial.toString(16));
+			log.info("Generate keystore for \"" + x590_principal_hostname + "\", with a self-signed certificate and a key size " + PRIVATE_KEY_SIZE + " bits, a validity up to the " + Loggers.dateLog(expiration_date) + " and a S/N " + serial.toString(16));
 			
 			X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
 			nameBuilder.addRDN(BCStyle.CN, x590_principal_hostname);
