@@ -53,22 +53,6 @@ public class NodeIOTest extends TestCase {
 		protocol = new Protocol("InternalTest");
 	}
 	
-	/*ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
-	final KeyPair keyPair = ...
-	final Certificate bcCert = new Certificate(new org.spongycastle.asn1.x509.Certificate[] {
-	new X509V3CertificateStrategy().selfSignedCertificateHolder(keyPair).toASN1Structure()}); 
-	while (true) {
-	Socket socket = serverSocket.accept();
-	TlsServerProtocol tlsServerProtocol = new TlsServerProtocol(
-	socket.getInputStream(), socket.getOutputStream(), secureRandom);
-	tlsServerProtocol.accept(new DefaultTlsServer() {
-	    protected TlsSignerCredentials getRSASignerCredentials() throws IOException {
-	        return tlsSignerCredentials(context);
-	    }               
-	});      
-	new PrintStream(tlsServerProtocol.getOutputStream()).println("Hello TLS");
-	}*/
-	
 	private AsynchronousChannelGroup createAsynchronousChannelGroup() throws IOException {
 		ThreadPoolExecutorFactory executor = new ThreadPoolExecutorFactory("TestSockets", Thread.NORM_PRIORITY);
 		return executor.createAsynchronousChannelGroup();

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 
+@Deprecated
 public interface CipherEngine {
 	
 	public byte[] encrypt(byte[] cleared_datas) throws GeneralSecurityException;

@@ -1,6 +1,6 @@
 === MyDMAM Upgrade document ===
 
-No particular points to be check.
+Switch to JVM 8u152
 
 === Previous versions ===
 

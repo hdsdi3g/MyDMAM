@@ -37,6 +37,8 @@ import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Enumeration;
@@ -66,7 +68,6 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.bc.BcX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -82,25 +83,26 @@ public class KeystoreTool {
 	
 	private static Logger log = Logger.getLogger(KeystoreTool.class);
 	
-	private static final int PRIVATE_KEY_SIZE = 2048;
-	private static final String KEYGEN_ALGORITHM = "RSA";
+	private static final int PRIVATE_KEY_SIZE = 256;
+	private static final String KEYGEN_ALGORITHM = "EC";
 	private static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
 	private static final String KMF_ALGORITHM = "SunX509";
+	private static final long SELF_GEN_CERTIFICATE_VALIDITY_DURATION = TimeUnit.DAYS.toMillis(360l * 10l);
+	private static final long WARN_BEFORE_TIME_EXPIRATION_CERTIFICATES = TimeUnit.DAYS.toMillis(360);
 	
 	private final KeyStore keystore;
 	private final KeyManagerFactory key_manager_factory;
 	private final TrustManagerFactory trust_manager_factory;
 	
-	/**
+	/*
 	 * signature_algorithms: SHA512withECDSA, SHA512withRSA, SHA384withECDSA, SHA384withRSA, SHA256withECDSA, SHA256withRSA, SHA256withDSA, SHA224withECDSA, SHA224withRSA, SHA224withDSA, SHA1withECDSA, SHA1withRSA, SHA1withDSA
 	 */
-	private static final String SIGNATURE_ALGORITHM = "SHA512withRSA";// "sha256WithRSAEncryption";// XXX up ?
+	private static final String SIGNATURE_ALGORITHM = "SHA512withECDSA";
 	
 	static {
-		Security.addProvider(new BouncyCastleProvider());
+		Security.setProperty("crypto.policy", "unlimited");
+		// Security.addProvider(new BouncyCastleProvider());
 	}
-	
-	// TODO warn validity expiration at boot
 	
 	/**
 	 * @param keystore_file file.jks
@@ -123,6 +125,7 @@ public class KeystoreTool {
 			if (isContainsCertificateHostname(keystore, x590_principal_hostname) == false) {
 				throw new CertificateException("Invalid pks file " + keystore_file.getName() + ": missing \"" + x590_principal_hostname + "\" in x590 principal. You must regenerate it or change expected x590_principal_hostname");
 			}
+			checkValidityDates(keystore);
 		} else {
 			keystore.load(null);
 			
@@ -134,7 +137,7 @@ public class KeystoreTool {
 			int random = new SecureRandom().nextInt();
 			if (random < 0) random *= -1;
 			BigInteger serial = BigInteger.valueOf(random);
-			long expiration_date = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(360l * 10l);
+			long expiration_date = System.currentTimeMillis() + SELF_GEN_CERTIFICATE_VALIDITY_DURATION;
 			
 			log.info("Generate keystore for \"" + x590_principal_hostname + "\", with a self-signed certificate and a key size " + PRIVATE_KEY_SIZE + " bits, a validity up to the " + Loggers.dateLog(expiration_date) + " and a S/N " + serial.toString(16));
 			
@@ -180,8 +183,8 @@ public class KeystoreTool {
 			purposes.add(KeyPurposeId.anyExtendedKeyUsage);
 			generator.addExtension(Extension.extendedKeyUsage, false, new DERSequence(purposes));
 			
-			ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider("BC").build(keyPair.getPrivate());
-			X509Certificate PKCertificate = new JcaX509CertificateConverter().setProvider("BC").getCertificate(generator.build(signer));
+			ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).build(keyPair.getPrivate());
+			X509Certificate PKCertificate = new JcaX509CertificateConverter().getCertificate(generator.build(signer));
 			
 			/*File certFile = new File(keystore_file.getParentFile(), hostname + ".cert");
 			FileOutputStream fos = new FileOutputStream(certFile.getAbsoluteFile());
@@ -231,6 +234,30 @@ public class KeystoreTool {
 			}
 		}
 		return false;
+	}
+	
+	private static void checkValidityDates(KeyStore ks) throws CertificateExpiredException, CertificateNotYetValidException, KeyStoreException {
+		Enumeration<String> e = ks.aliases();
+		while (e.hasMoreElements()) {
+			String alias = e.nextElement();
+			if (ks.isCertificateEntry(alias) == false) {
+				continue;
+			}
+			Certificate c = ks.getCertificate(alias);
+			if (c instanceof X509Certificate) {
+				X509Certificate certificate = (X509Certificate) c;
+				certificate.checkValidity();
+				
+				long max_date = certificate.getNotAfter().getTime();
+				long threshold_date = System.currentTimeMillis() + WARN_BEFORE_TIME_EXPIRATION_CERTIFICATES;
+				
+				if (threshold_date > max_date) {
+					log.warn("Certificate \"" + alias + "\" will expire soon (expiration date: " + Loggers.dateLog(max_date) + ") you should regeneate it (and re-deploy it)");
+				} else if (log.isDebugEnabled()) {
+					log.debug("Certificate \"" + alias + "\" expiration date: " + Loggers.dateLog(max_date));
+				}
+			}
+		}
 	}
 	
 }

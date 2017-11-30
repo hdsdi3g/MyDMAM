@@ -10,9 +10,9 @@
 
 	<property name="mydmam.website.url.download" value="http://mydmam.org/dwl" />
 	<property name="archive.jre.cache" location=".cache" />
-	<property name="archive.jre.windows" value="jre-8u121-windows-x64.zip" />
-	<property name="archive.jre.linux" value="jre-8u121-linux-x64.tar.gz" />
-	<property name="archive.jre.mac" value="jre-8u121-macosx-x64.tar.gz" />
+	<property name="archive.jre.windows" value="jre-8u152-windows-x64.zip" />
+	<property name="archive.jre.linux" value="jre-8u152-linux-x64.tar.gz" />
+	<property name="archive.jre.mac" value="jre-8u152-macosx-x64.tar.gz" />
 	<property name="archive.jre.extractedbasename" value="jre1.8.0_121" />
 	<property name="archive.jre.extractedbasename.windows" value="${archive.jre.extractedbasename}-windows" />
 	<property name="archive.jre.extractedbasename.linux" value="${archive.jre.extractedbasename}-linux" />
