@@ -73,6 +73,7 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
 
 /**
@@ -100,6 +101,7 @@ public class KeystoreTool {
 	private static final String SIGNATURE_ALGORITHM = "SHA512withECDSA";
 	
 	static {
+		MyDMAM.checkJVM(true);
 		Security.setProperty("crypto.policy", "unlimited");
 		// Security.addProvider(new BouncyCastleProvider());
 	}

@@ -181,6 +181,7 @@ public class MyDMAM {
 	 * Use this instead of String.compareTo() for a non-lexicographical
 	 * comparison that works for version strings. e.g. "1.10".compareTo("1.6").
 	 * It remove the "v" char in front.
+	 * It replace "_" by ".", for comparing JVM versions.
 	 * @note It does not work if "1.10" is supposed to be equal to "1.10.0".
 	 * @param str1 a string of ordinal numbers separated by decimal points.
 	 * @param str2 a string of ordinal numbers separated by decimal points.
@@ -194,13 +195,13 @@ public class MyDMAM {
 		if (str1.startsWith("v")) {
 			str1 = str1.substring(1);
 		}
-		str1 = str1.trim();
+		str1 = str1.trim().replace('_', '.');
 		
 		String str2 = version2;
 		if (str2.startsWith("v")) {
 			str2 = str2.substring(1);
 		}
-		str2 = str2.trim();
+		str2 = str2.trim().replace('_', '.');
 		
 		String[] vals1 = str1.split("\\.");
 		String[] vals2 = str2.split("\\.");
@@ -246,6 +247,17 @@ public class MyDMAM {
 	public static int getJVMProcessPID() {
 		String instance_raw = ManagementFactory.getRuntimeMXBean().getName();
 		return Integer.valueOf(instance_raw.substring(0, instance_raw.indexOf("@")));
+	}
+	
+	private static volatile CheckJVM check_jvm;
+	
+	/**
+	 * Only checks once.
+	 */
+	public static void checkJVM(boolean strict_check) {
+		if (check_jvm == null) {
+			check_jvm = new CheckJVM(strict_check);
+		}
 	}
 	
 }

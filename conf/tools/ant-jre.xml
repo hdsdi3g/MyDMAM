@@ -42,7 +42,9 @@
 	</target>
 
 	<target name="getjrewindows" depends="prepare, downloadjre" description="Get Oracle JRE for Windows in build directory">
-		<unzip src="${archive.jre.cache}/${archive.jre.windows}" dest="${out.jre}"/>
+		<gunzip src="${archive.jre.cache}/${archive.jre.windows}" dest="${out.jre}/jre-windows.tar"/>
+		<untar src="${out.jre}/jre-windows.tar" dest="${out.jre}" />
+		<delete file="${out.jre}/jre-windows.tar" />
 		<move file="${out.jre}/${archive.jre.extractedbasename}" tofile="${out.jre.windows}"/>
 	</target>
 

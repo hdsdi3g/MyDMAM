@@ -1,0 +1,30 @@
+/*
+ * This file is part of MyDMAM.
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
+ * 
+ * This is only validated JVM and OS combinations.
+ * You can setup manually here others definitions.
+ * @see CheckJVM.java
+ */
+{
+  "jvm_vendors": {
+    "Oracle Corporation": {
+      "jvm_version": {
+        "min": "1.8.0_152",
+        "max": "1.8.0_152"
+      },
+      "arch": {
+        "x86_64": {
+          "os": {
+            "Mac OS X": {
+              "version": {
+                "min": "10.12.0",
+                "max": "10.13"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
