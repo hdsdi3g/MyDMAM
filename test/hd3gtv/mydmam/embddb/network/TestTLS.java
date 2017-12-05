@@ -52,7 +52,7 @@ public class TestTLS /*extends TestCase*/ {
 		/**
 		 * https://docs.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#SSLENG
 		 */
-		SSLEngine engine_client = kt_tool.createTLSContext(TLSEngineSimpleDemo.CONTEXT_PROTOCOL).createSSLEngine();
+		SSLEngine engine_client = kt_tool.createTLSContext().createSSLEngine();
 		engine_client.setUseClientMode(true);
 		
 		SSLSession session = engine_client.getSession();

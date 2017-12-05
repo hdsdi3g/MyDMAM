@@ -42,6 +42,7 @@ public class ThreadPoolExecutorFactory implements Executor {
 	
 	private static Logger log = Logger.getLogger(ThreadPoolExecutorFactory.class);
 	private final PausableThreadPoolExecutor executor;
+	private volatile boolean display_thread_count_in_thread_names;
 	
 	/**
 	 * @param thread_priority @see Thread.MIN_PRIORITY and Thread.MAX_PRIORITY
@@ -67,14 +68,19 @@ public class ThreadPoolExecutorFactory implements Executor {
 			}
 			log.error("Too many task to be executed at the same time for \"" + base_thread_name + "\" ! This will not proceed: " + r);
 		});*/
+		AtomicInteger t_count = new AtomicInteger(0);
 		executor.setThreadFactory(runnable -> {
 			Thread t = new Thread(runnable);
 			t.setDaemon(false);
-			t.setName(base_thread_name);
+			if (display_thread_count_in_thread_names) {
+				t.setName(base_thread_name + "-" + t_count.getAndIncrement());
+			} else {
+				t_count.getAndIncrement();
+			}
 			t.setPriority(thread_priority);
 			t.setUncaughtExceptionHandler((thread, throwable) -> {
 				if (uncaughtException == null) {
-					log.error("Uncaught exception for a Thread \"" + base_thread_name + "\"", throwable);
+					log.error("Uncaught exception for a Thread \"" + thread.getName() + "\"", throwable);
 				} else {
 					uncaughtException.accept(throwable);
 				}
@@ -99,6 +105,13 @@ public class ThreadPoolExecutorFactory implements Executor {
 	/*public ThreadPoolExecutor getThreadPoolExecutor() {
 		return executor;
 	}*/
+	
+	/**
+	 * @param display_thread_count_in_thread_names: if true, new threads names -> "BaseThreadName-55" else new threads names -> "BaseThreadName"
+	 */
+	public void setDisplayThreadCountInThreadNames(boolean display_thread_count_in_thread_names) {
+		this.display_thread_count_in_thread_names = display_thread_count_in_thread_names;
+	}
 	
 	public AsynchronousChannelGroup createAsynchronousChannelGroup() throws IOException {
 		return AsynchronousChannelGroup.withThreadPool(executor);

@@ -27,20 +27,40 @@ public class CheckJVM {
 	private static Logger log = Logger.getLogger(CheckJVM.class);
 	
 	public static final String BASE_FILENAME = "jvm_checked_versions.json";
+	
 	public static final String JAVA_VENDOR = System.getProperty("java.vendor", "");
 	public static final String JAVA_VERSION = System.getProperty("java.version", "");
 	public static final String OS_ARCH = System.getProperty("os.arch", "");
 	public static final String OS_NAME = System.getProperty("os.name", "");
 	public static final String OS_VERSION = System.getProperty("os.version", "");
 	
-	public CheckJVM(boolean strict_check) {
+	public enum Level {
+		/**
+		 * Don't do checks
+		 */
+		IGNORE,
+		/**
+		 * Do checks and warns if it's not compilant.
+		 */
+		WARN,
+		/**
+		 * Will throw an RuntimeException if it's not compilant.
+		 */
+		STRICT;
+	}
+	
+	public CheckJVM(Level check_level) {
+		if (check_level == Level.IGNORE) {
+			return;
+		}
+		
 		File json_file = new File(MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY.getAbsolutePath() + File.separator + BASE_FILENAME);
 		
 		String content = null;
 		try {
 			content = FileUtils.readFileToString(json_file, MyDMAM.UTF8);
 		} catch (IOException e) {
-			if (strict_check) {
+			if (check_level == Level.STRICT) {
 				throw new RuntimeException("Can't open json_file: " + json_file, e);
 			} else {
 				log.warn("Can't open json_file: " + json_file, e);
@@ -56,16 +76,12 @@ public class CheckJVM {
 			v_setups.checks();
 			log.debug("Conformance is OK");
 		} catch (Exception e) {
-			if (strict_check) {
+			if (check_level == Level.STRICT) {
 				throw new RuntimeException("Can't valid this setup: " + e.getMessage() + ". See " + json_file + " file.");
 			} else {
 				log.warn("Can't valid this JVM and this setup. You should not run MyDMAM with this JVM.", e);
 			}
 		}
-	}
-	
-	public static void main(String[] args) {
-		new CheckJVM(true);
 	}
 	
 	interface CheckConformance {

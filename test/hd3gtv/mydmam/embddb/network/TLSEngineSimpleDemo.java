@@ -56,7 +56,7 @@ public class TLSEngineSimpleDemo {
 	
 	// private static final Logger log = Logger.getLogger(TLSEngineSimpleDemo.class);
 	
-	private static final String[] CIPHER_SUITE;
+	public static final String[] CIPHER_SUITE;
 	
 	// TODO2 check same passwords (with hash + random salt)...
 	
@@ -104,8 +104,6 @@ public class TLSEngineSimpleDemo {
 	private final SessionWrapper sw_client;
 	private final SessionWrapper sw_server;
 	
-	public static final String CONTEXT_PROTOCOL = "TLSv1.2";
-	
 	private ByteBuffer createPayload() {
 		byte[] payload = new byte[ThreadLocalRandom.current().nextInt(1, MAX_PAYLOAD_SIZE)];
 		ThreadLocalRandom.current().nextBytes(payload);
@@ -125,7 +123,7 @@ public class TLSEngineSimpleDemo {
 	 * - engine closing
 	 */
 	public TLSEngineSimpleDemo(KeystoreTool kt_tool) throws Exception {
-		ssl_context = kt_tool.createTLSContext(CONTEXT_PROTOCOL);
+		ssl_context = kt_tool.createTLSContext();
 		
 		boolean dataDone = false;
 		
@@ -202,12 +200,12 @@ public class TLSEngineSimpleDemo {
 			engine = ssl_context.createSSLEngine();
 			if (session_side == TLSSessionSide.CLIENT) {
 				engine.setUseClientMode(true);
-				engine.setEnabledProtocols(new String[] { CONTEXT_PROTOCOL });
+				engine.setEnabledProtocols(new String[] { KeystoreTool.PROTOCOL });
 				engine.setEnabledCipherSuites(CIPHER_SUITE);
 			} else if (session_side == TLSSessionSide.SERVER) {
 				engine.setUseClientMode(false);
 				engine.setNeedClientAuth(true);
-				engine.setEnabledProtocols(new String[] { CONTEXT_PROTOCOL });
+				engine.setEnabledProtocols(new String[] { KeystoreTool.PROTOCOL });
 				engine.setEnabledCipherSuites(CIPHER_SUITE);
 			}
 			
@@ -258,9 +256,9 @@ public class TLSEngineSimpleDemo {
 			}
 			String[] list = engine.getEnabledProtocols();
 			if (list.length > 1) {
-				throw new SSLException(session_side.name() + ", missing value, expected: " + CONTEXT_PROTOCOL + ", real: " + Arrays.asList(list).toString());
-			} else if (CONTEXT_PROTOCOL.equalsIgnoreCase(list[0]) == false) {
-				throw new SSLException(session_side.name() + ", missing value, expected: " + CONTEXT_PROTOCOL + ", real: " + Arrays.asList(list).toString());
+				throw new SSLException(session_side.name() + ", missing value, expected: " + KeystoreTool.PROTOCOL + ", real: " + Arrays.asList(list).toString());
+			} else if (KeystoreTool.PROTOCOL.equalsIgnoreCase(list[0]) == false) {
+				throw new SSLException(session_side.name() + ", missing value, expected: " + KeystoreTool.PROTOCOL + ", real: " + Arrays.asList(list).toString());
 			}
 			ok_security = true;
 		}

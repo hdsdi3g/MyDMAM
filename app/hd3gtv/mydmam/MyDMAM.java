@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.CheckJVM.Level;
 import hd3gtv.mydmam.embddb.EmbDDB;
 import hd3gtv.mydmam.factory.Factory;
 import hd3gtv.mydmam.gson.GsonKit;
@@ -254,9 +255,9 @@ public class MyDMAM {
 	/**
 	 * Only checks once.
 	 */
-	public static void checkJVM(boolean strict_check) {
+	public static void checkJVM() {
 		if (check_jvm == null) {
-			check_jvm = new CheckJVM(strict_check);
+			check_jvm = new CheckJVM(Level.valueOf(Configuration.global.getValue("service", "check_jvm_strict_mode", "WARN").toUpperCase()));
 		}
 	}
 	

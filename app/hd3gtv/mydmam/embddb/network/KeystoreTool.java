@@ -91,6 +91,8 @@ public class KeystoreTool {
 	private static final long SELF_GEN_CERTIFICATE_VALIDITY_DURATION = TimeUnit.DAYS.toMillis(360l * 10l);
 	private static final long WARN_BEFORE_TIME_EXPIRATION_CERTIFICATES = TimeUnit.DAYS.toMillis(360);
 	
+	public static final String PROTOCOL = "TLSv1.2";
+	
 	private final KeyStore keystore;
 	private final KeyManagerFactory key_manager_factory;
 	private final TrustManagerFactory trust_manager_factory;
@@ -101,7 +103,7 @@ public class KeystoreTool {
 	private static final String SIGNATURE_ALGORITHM = "SHA512withECDSA";
 	
 	static {
-		MyDMAM.checkJVM(true);
+		MyDMAM.checkJVM();
 		Security.setProperty("crypto.policy", "unlimited");
 		// Security.addProvider(new BouncyCastleProvider());
 	}
@@ -217,8 +219,8 @@ public class KeystoreTool {
 		trust_manager_factory.init(keystore);
 	}
 	
-	SSLContext createTLSContext(String context_protocol) throws NoSuchAlgorithmException, KeyManagementException {
-		SSLContext sslContext = SSLContext.getInstance(context_protocol);
+	SSLContext createTLSContext() throws NoSuchAlgorithmException, KeyManagementException {
+		SSLContext sslContext = SSLContext.getInstance(PROTOCOL);
 		sslContext.init(key_manager_factory.getKeyManagers(), trust_manager_factory.getTrustManagers(), null);
 		return sslContext;
 	}
