@@ -40,13 +40,19 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
@@ -72,6 +78,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
@@ -83,30 +90,26 @@ import hd3gtv.tools.CopyMove;
 public class KeystoreTool {
 	
 	private static Logger log = Logger.getLogger(KeystoreTool.class);
-	
-	private static final int PRIVATE_KEY_SIZE = 256;
-	private static final String KEYGEN_ALGORITHM = "EC";
-	private static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
-	private static final String KMF_ALGORITHM = "SunX509";
-	private static final long SELF_GEN_CERTIFICATE_VALIDITY_DURATION = TimeUnit.DAYS.toMillis(360l * 10l);
-	private static final long WARN_BEFORE_TIME_EXPIRATION_CERTIFICATES = TimeUnit.DAYS.toMillis(360);
-	
-	public static final String PROTOCOL = "TLSv1.2";
-	
 	private final KeyStore keystore;
 	private final KeyManagerFactory key_manager_factory;
 	private final TrustManagerFactory trust_manager_factory;
-	
-	/*
-	 * signature_algorithms: SHA512withECDSA, SHA512withRSA, SHA384withECDSA, SHA384withRSA, SHA256withECDSA, SHA256withRSA, SHA256withDSA, SHA224withECDSA, SHA224withRSA, SHA224withDSA, SHA1withECDSA, SHA1withRSA, SHA1withDSA
-	 */
-	private static final String SIGNATURE_ALGORITHM = "SHA512withECDSA";
 	
 	static {
 		MyDMAM.checkJVM();
 		Security.setProperty("crypto.policy", "unlimited");
 		// Security.addProvider(new BouncyCastleProvider());
 	}
+	
+	private static final long SELF_GEN_CERTIFICATE_VALIDITY_DURATION = TimeUnit.DAYS.toMillis(360l * 10l);
+	private static final long WARN_BEFORE_TIME_EXPIRATION_CERTIFICATES = TimeUnit.DAYS.toMillis(360);
+	
+	private final int private_key_size;
+	private final String keygen_algorithm;
+	private final String[] cipher_suite;
+	private final String protocol;
+	private final String signature_algorithm;
+	private final String secure_random_algorithm;
+	private final String kmf_algorithm;
 	
 	/**
 	 * @param keystore_file file.jks
@@ -117,6 +120,50 @@ public class KeystoreTool {
 		}
 		if (keystore_password == null) {
 			throw new NullPointerException("\"keystore_password\" can't to be null");
+		}
+		
+		protocol = Configuration.global.getValue("tls_security", "protocol", "TLSv1.2");
+		private_key_size = Configuration.global.getValue("tls_security", "private_key_size", 256);
+		keygen_algorithm = Configuration.global.getValue("tls_security", "keygen_algorithm", "EC");
+		secure_random_algorithm = Configuration.global.getValue("tls_security", "secure_random_algorithm", "SHA1PRNG");
+		kmf_algorithm = Configuration.global.getValue("tls_security", "kmf_algorithm", "SunX509");
+		
+		/**
+		 * signature_algorithms: SHA512withECDSA, SHA512withRSA, SHA384withECDSA, SHA384withRSA, SHA256withECDSA, SHA256withRSA, SHA256withDSA, SHA224withECDSA, SHA224withRSA, SHA224withDSA, SHA1withECDSA, SHA1withRSA, SHA1withDSA
+		 */
+		signature_algorithm = Configuration.global.getValue("tls_security", "signature_algorithm", "SHA512withECDSA");
+		
+		ArrayList<String> configured_cipher_suite = Configuration.global.getValues("tls_security", "cipher_suite", null);
+		if (configured_cipher_suite == null) {
+			/**
+			 * https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices
+			 */
+			cipher_suite = new String[] { "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384" };
+			/*
+			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+			"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"
+			"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384"
+			"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256"
+			
+			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+			"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256"
+			"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256"
+			
+			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+			"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+			"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+			"TLS_DHE_RSA_WITH_AES_128_CBC_SHA"
+			"TLS_DHE_RSA_WITH_AES_256_CBC_SHA"
+			*/
+		} else {
+			cipher_suite = new String[configured_cipher_suite.size()];
+			for (int pos = 0; pos < cipher_suite.length; pos++) {
+				cipher_suite[pos] = configured_cipher_suite.get(pos);
+			}
 		}
 		
 		keystore = KeyStore.getInstance("JKS");
@@ -133,9 +180,9 @@ public class KeystoreTool {
 		} else {
 			keystore.load(null);
 			
-			KeyPairGenerator kp_generator = KeyPairGenerator.getInstance(KEYGEN_ALGORITHM);
-			SecureRandom secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
-			kp_generator.initialize(PRIVATE_KEY_SIZE, secureRandom);
+			KeyPairGenerator kp_generator = KeyPairGenerator.getInstance(keygen_algorithm);
+			SecureRandom secureRandom = SecureRandom.getInstance(secure_random_algorithm);
+			kp_generator.initialize(private_key_size, secureRandom);
 			KeyPair keyPair = kp_generator.generateKeyPair();
 			
 			int random = new SecureRandom().nextInt();
@@ -143,7 +190,7 @@ public class KeystoreTool {
 			BigInteger serial = BigInteger.valueOf(random);
 			long expiration_date = System.currentTimeMillis() + SELF_GEN_CERTIFICATE_VALIDITY_DURATION;
 			
-			log.info("Generate keystore for \"" + x590_principal_hostname + "\", with a self-signed certificate and a key size " + PRIVATE_KEY_SIZE + " bits, a validity up to the " + Loggers.dateLog(expiration_date) + " and a S/N " + serial.toString(16));
+			log.info("Generate keystore for \"" + x590_principal_hostname + "\", with a self-signed certificate and a key size " + private_key_size + " bits, a validity up to the " + Loggers.dateLog(expiration_date) + " and a S/N " + serial.toString(16));
 			
 			X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
 			nameBuilder.addRDN(BCStyle.CN, x590_principal_hostname);
@@ -187,7 +234,7 @@ public class KeystoreTool {
 			purposes.add(KeyPurposeId.anyExtendedKeyUsage);
 			generator.addExtension(Extension.extendedKeyUsage, false, new DERSequence(purposes));
 			
-			ContentSigner signer = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).build(keyPair.getPrivate());
+			ContentSigner signer = new JcaContentSignerBuilder(signature_algorithm).build(keyPair.getPrivate());
 			X509Certificate PKCertificate = new JcaX509CertificateConverter().getCertificate(generator.build(signer));
 			
 			/*File certFile = new File(keystore_file.getParentFile(), hostname + ".cert");
@@ -209,20 +256,38 @@ public class KeystoreTool {
 		/**
 		 * KeyManager's decide which key material to use.
 		 */
-		key_manager_factory = KeyManagerFactory.getInstance(KMF_ALGORITHM);
+		key_manager_factory = KeyManagerFactory.getInstance(kmf_algorithm);
 		key_manager_factory.init(keystore, keystore_password.toCharArray());
 		
 		/**
 		 * TrustManager's decide whether to allow connections.
 		 */
-		trust_manager_factory = TrustManagerFactory.getInstance(KMF_ALGORITHM);
+		trust_manager_factory = TrustManagerFactory.getInstance(kmf_algorithm);
 		trust_manager_factory.init(keystore);
 	}
 	
 	SSLContext createTLSContext() throws NoSuchAlgorithmException, KeyManagementException {
-		SSLContext sslContext = SSLContext.getInstance(PROTOCOL);
-		sslContext.init(key_manager_factory.getKeyManagers(), trust_manager_factory.getTrustManagers(), null);
-		return sslContext;
+		SSLContext ssl_context = SSLContext.getInstance(protocol);
+		ssl_context.init(key_manager_factory.getKeyManagers(), trust_manager_factory.getTrustManagers(), null);
+		
+		SSLParameters default_param = ssl_context.getDefaultSSLParameters();
+		default_param.setProtocols(new String[] { protocol });
+		default_param.setCipherSuites(cipher_suite);
+		return ssl_context;
+	}
+	
+	public void checkSecurity(SSLEngine engine) throws SSLException {
+		String engine_protocol = engine.getSession().getProtocol();
+		String engine_cipher_suite = engine.getSession().getCipherSuite();
+		
+		if (protocol.equalsIgnoreCase(engine_protocol) == false) {
+			throw new SSLException("Invalid protocol: " + engine_protocol + ", only " + protocol + " is avaliable");
+		}
+		
+		List<String> all_cipher_suite = Arrays.asList(cipher_suite);
+		if (all_cipher_suite.stream().anyMatch(c -> c.equalsIgnoreCase(engine_cipher_suite)) == false) {
+			throw new SSLException("Invalid cipher_suite: " + engine_cipher_suite + ", only " + all_cipher_suite + " are avaliable");
+		}
 	}
 	
 	private static boolean isContainsCertificateHostname(KeyStore ks, String x590_principal_hostname) throws KeyStoreException {

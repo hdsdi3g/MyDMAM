@@ -45,7 +45,7 @@ public class TestTLS /*extends TestCase*/ {
 	public static void main(String[] args) throws Exception {
 		
 		KeystoreTool kt_tool = new KeystoreTool(new File("test.jks"), "test", "me");
-		new TLSEngineSimpleDemo(kt_tool);
+		new TLSEngineSimpleDemo(kt_tool);// TODO to a real test
 		
 		System.exit(0);
 		

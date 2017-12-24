@@ -33,8 +33,6 @@ class TLSConnectionClientHandler implements CompletionHandler<Void, Asynchronous
 	TLSConnectionClientHandler(SSLContext ssl_context) {
 		engine = ssl_context.createSSLEngine();
 		engine.setUseClientMode(true);
-		engine.setEnabledProtocols(new String[] { KeystoreTool.PROTOCOL });
-		engine.setEnabledCipherSuites(TLSEngineSimpleDemo.CIPHER_SUITE);
 	}
 	
 	/**

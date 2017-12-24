@@ -37,8 +37,6 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.net.ssl.SSLContext;
@@ -56,47 +54,11 @@ public class TLSEngineSimpleDemo {
 	
 	// private static final Logger log = Logger.getLogger(TLSEngineSimpleDemo.class);
 	
-	public static final String[] CIPHER_SUITE;
-	
-	// TODO2 check same passwords (with hash + random salt)...
-	
 	static {
 		/**
 		 * Enables the JSSE system debugging system property
 		 */
 		// System.setProperty("javax.net.debug", "all");
-		
-		/**
-		 * https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices
-		 */
-		ArrayList<String> la_CIPHER_SUITE = new ArrayList<>();
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
-		/*la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");*/
-		
-		/*
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
-		
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
-		la_CIPHER_SUITE.add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
-		*/
-		
-		CIPHER_SUITE = new String[la_CIPHER_SUITE.size()];
-		for (int pos = 0; pos < CIPHER_SUITE.length; pos++) {
-			CIPHER_SUITE[pos] = la_CIPHER_SUITE.get(pos);
-		}
 	}
 	
 	private final SSLContext ssl_context;
@@ -175,6 +137,10 @@ public class TLSEngineSimpleDemo {
 			
 			if (!dataDone && loops_remaining <= 0) {
 				dataDone = true;
+				
+				kt_tool.checkSecurity(sw_client.engine);
+				kt_tool.checkSecurity(sw_server.engine);
+				
 				System.out.println("Closing engines *OUTBOUND*...");
 				sw_client.closeOutbound();
 				sw_server.closeOutbound();
@@ -200,13 +166,9 @@ public class TLSEngineSimpleDemo {
 			engine = ssl_context.createSSLEngine();
 			if (session_side == TLSSessionSide.CLIENT) {
 				engine.setUseClientMode(true);
-				engine.setEnabledProtocols(new String[] { KeystoreTool.PROTOCOL });
-				engine.setEnabledCipherSuites(CIPHER_SUITE);
 			} else if (session_side == TLSSessionSide.SERVER) {
 				engine.setUseClientMode(false);
 				engine.setNeedClientAuth(true);
-				engine.setEnabledProtocols(new String[] { KeystoreTool.PROTOCOL });
-				engine.setEnabledCipherSuites(CIPHER_SUITE);
 			}
 			
 			recevied_payload = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize() + MAX_PAYLOAD_SIZE);
@@ -225,8 +187,6 @@ public class TLSEngineSimpleDemo {
 			log(session_side.name() + " unwrap: ", result);
 			runDelegatedTasks(result);
 			bb_reliable_transport_other_side.compact();
-			
-			checkSecurityPolicyString();
 		}
 		
 		private boolean isEngineClosed() {
@@ -246,21 +206,6 @@ public class TLSEngineSimpleDemo {
 				}
 				System.out.println(session_side.name() + "\tnew HandshakeStatus: " + hsStatus.toString());
 			}
-		}
-		
-		private boolean ok_security = false;
-		
-		private void checkSecurityPolicyString() throws SSLException {
-			if (ok_security) {
-				return;
-			}
-			String[] list = engine.getEnabledProtocols();
-			if (list.length > 1) {
-				throw new SSLException(session_side.name() + ", missing value, expected: " + KeystoreTool.PROTOCOL + ", real: " + Arrays.asList(list).toString());
-			} else if (KeystoreTool.PROTOCOL.equalsIgnoreCase(list[0]) == false) {
-				throw new SSLException(session_side.name() + ", missing value, expected: " + KeystoreTool.PROTOCOL + ", real: " + Arrays.asList(list).toString());
-			}
-			ok_security = true;
 		}
 		
 		private void closeOutbound() {

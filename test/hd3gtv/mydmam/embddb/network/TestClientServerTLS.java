@@ -17,15 +17,23 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
+import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
+import hd3gtv.mydmam.embddb.network.tls.AsyncChannelWrapperSecure;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
@@ -44,10 +52,108 @@ public class TestClientServerTLS extends TestCase {
 		server.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 		server.bind(new InetSocketAddress("localhost", 0));
 		InetSocketAddress server_addr = (InetSocketAddress) server.getLocalAddress();
-		server.accept(null, new TLSConnectionServerHandler(ssl_context));
+		// new TLSConnectionServerHandler(ssl_context)
 		
+		AtomicInteger step = new AtomicInteger(0);
+		
+		/**
+		 * SERVER
+		 */
+		server.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
+			
+			public void completed(AsynchronousSocketChannel socket_channel, Void attachment) {
+				SSLEngine engine = ssl_context.createSSLEngine();
+				engine.setUseClientMode(false);
+				engine.setNeedClientAuth(true);
+				
+				AsyncChannelWrapperSecure acws = new AsyncChannelWrapperSecure(socket_channel, engine, (channel_wrapper, data_payload_received_buffer) -> {
+					byte[] datas = new byte[data_payload_received_buffer.remaining()];
+					data_payload_received_buffer.get(datas);
+					System.out.println(new String(datas));
+					
+					try {
+						step.incrementAndGet();
+						channel_wrapper.asyncWrite(ByteBuffer.wrap("Client, I am server".getBytes())).get(200, TimeUnit.MILLISECONDS);
+						step.incrementAndGet();
+						channel_wrapper.asyncWrite(ByteBuffer.wrap("And you ?".getBytes())).get(200, TimeUnit.MILLISECONDS);
+					} catch (InterruptedException | ExecutionException | TimeoutException e1) {
+						e1.printStackTrace();
+					}
+					
+					try {
+						socket_channel.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+						System.exit(0);
+					}
+					
+					return false;
+				}, executor);
+				
+				try {
+					acws.asyncHandshake().get(200, TimeUnit.MILLISECONDS);
+					kt_tool.checkSecurity(engine);
+					
+					step.incrementAndGet();
+					acws.asyncWrite(ByteBuffer.wrap("Welcome from server".getBytes())).get(200, TimeUnit.MILLISECONDS);
+					acws.readNext();
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.exit(0);
+				}
+			}
+			
+			public void failed(Throwable exc, Void attachment) {
+				exc.printStackTrace();
+				System.exit(1);
+			}
+		});
+		
+		/**
+		 * CLIENT
+		 */
 		AsynchronousSocketChannel client_channel = AsynchronousSocketChannel.open(channel_group);
-		client_channel.connect(server_addr, client_channel, new TLSConnectionClientHandler(ssl_context));
+		// new TLSConnectionClientHandler(ssl_context)
+		client_channel.connect(server_addr, null, new CompletionHandler<Void, Void>() {
+			
+			public void completed(Void result, Void attachment) {
+				SSLEngine engine = ssl_context.createSSLEngine();
+				engine.setUseClientMode(true);
+				
+				AsyncChannelWrapperSecure acws = new AsyncChannelWrapperSecure(client_channel, engine, (channel_wrapper, data_payload_received_buffer) -> {
+					byte[] datas = new byte[data_payload_received_buffer.remaining()];
+					data_payload_received_buffer.get(datas);
+					System.out.println(new String(datas));
+					
+					if (step.decrementAndGet() == 0) {
+						try {
+							client_channel.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						return false;
+					} else {
+						return true;
+					}
+				}, executor);
+				
+				try {
+					acws.asyncHandshake().get(200, TimeUnit.MILLISECONDS);
+					kt_tool.checkSecurity(engine);
+					
+					acws.asyncWrite(ByteBuffer.wrap("Hello from client".getBytes())).get(200, TimeUnit.MILLISECONDS);
+					acws.readNext();
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.exit(0);
+				}
+			}
+			
+			public void failed(Throwable exc, Void attachment) {
+				exc.printStackTrace();
+				System.exit(1);
+			}
+		});
 		
 		Thread.sleep(100);
 		while (client_channel.isOpen()) {
