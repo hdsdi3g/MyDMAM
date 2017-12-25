@@ -31,6 +31,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -76,7 +79,8 @@ public class TestClientServerTLS extends TestCase {
 			Thread.sleep(10);
 		}
 		
-		assertTrue(client_handler.isDone(server_hander));
+		client_handler.checksRecevied(server_hander);
+		server_hander.checksRecevied(client_handler);
 		
 		client_channel.close();
 		server.close();
@@ -98,7 +102,7 @@ public class TestClientServerTLS extends TestCase {
 		IOHistory io_history;
 		volatile boolean all_recevied = false;
 		
-		BulkDataEngine(AsynchronousSocketChannel socket_channel, SSLEngine engine, IOHistory io_history, boolean send) {// TODO remove send
+		BulkDataEngine(AsynchronousSocketChannel socket_channel, SSLEngine engine, IOHistory io_history) {
 			this.io_history = io_history;
 			acws = new AsyncChannelWrapperSecure(socket_channel, engine, this, executor);
 			
@@ -106,15 +110,14 @@ public class TestClientServerTLS extends TestCase {
 				acws.asyncHandshake().get(200, TimeUnit.MILLISECONDS);
 				kt_tool.checkSecurity(engine);
 				
-				if (send) {
-					int loop = 4;// ThreadLocalRandom.current().nextInt(1, 1);// XXX up to 10 or more
-					
-					for (int pos = 0; pos < loop; pos++) {
-						byte[] payload = getRandomPayload();
-						System.out.println("send " + payload.length + " to " + socket_channel.getRemoteAddress());
-						io_history.sended.add(payload);
-						acws.asyncWrite(ByteBuffer.wrap(payload)).get(200, TimeUnit.MILLISECONDS);
-					}
+				int loop = 2;/* ThreadLocalRandom.current().nextInt(5, 50);*/ // XXX
+				
+				for (int pos = 0; pos < loop; pos++) {
+					byte[] payload = getRandomPayload();
+					System.out.println("send " + payload.length + " to " + socket_channel.getRemoteAddress());
+					io_history.sended.add(payload);
+					int size = acws.asyncWrite(ByteBuffer.wrap(payload)).get(200, TimeUnit.MILLISECONDS);
+					assertEquals(size, payload.length);
 				}
 				
 				System.out.println("send " + END_TOKEN.length + " to " + socket_channel.getRemoteAddress());
@@ -178,11 +181,28 @@ public class TestClientServerTLS extends TestCase {
 		List<byte[]> sended = Collections.synchronizedList(new ArrayList<>());
 		List<byte[]> recevied = Collections.synchronizedList(new ArrayList<>());
 		
-		boolean isDone(IOHistory other) {
-			return other.sended.size() == recevied.size() && other.recevied.size() == sended.size();
+		void checksRecevied(IOHistory sender) {
+			int total_recevied = recevied.stream().mapToInt(buffer -> buffer.length).sum();
+			int total_sended = sender.sended.stream().mapToInt(buffer -> buffer.length).sum();
+			assertEquals(total_sended, total_recevied);
+			
+			Function<byte[], Stream<Byte>> explode_lists = buffer -> {
+				ArrayList<Byte> result = new ArrayList<>(buffer.length);
+				for (int pos = 0; pos < buffer.length; pos++) {
+					result.add(buffer[pos]);
+				}
+				return result.stream();
+			};
+			
+			List<Byte> all_recevied = recevied.stream().flatMap(explode_lists).collect(Collectors.toList());
+			List<Byte> all_sended = sender.sended.stream().flatMap(explode_lists).collect(Collectors.toList());
+			
+			assertEquals(all_sended.size(), all_recevied.size());
+			
+			for (int pos = 0; pos < all_sended.size(); pos++) {
+				assertEquals(all_sended.get(pos), all_recevied.get(pos));
+			}
 		}
-		
-		// XXX check real payloads
 		
 		abstract boolean allRecevied();
 	}
@@ -203,7 +223,7 @@ public class TestClientServerTLS extends TestCase {
 			engine.setUseClientMode(false);
 			engine.setNeedClientAuth(true);
 			
-			bda = new BulkDataEngine(socket_channel, engine, this, true);
+			bda = new BulkDataEngine(socket_channel, engine, this);
 		}
 		
 		public void failed(Throwable exc, Void attachment) {
@@ -227,7 +247,7 @@ public class TestClientServerTLS extends TestCase {
 			SSLEngine engine = ssl_context.createSSLEngine();
 			engine.setUseClientMode(true);
 			
-			bda = new BulkDataEngine(client_channel, engine, this, false);
+			bda = new BulkDataEngine(client_channel, engine, this);
 		}
 		
 		public void failed(Throwable exc, AsynchronousSocketChannel attachment) {

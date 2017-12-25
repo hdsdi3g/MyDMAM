@@ -23,7 +23,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.SSLEngine;
@@ -84,85 +87,30 @@ public class AsyncChannelWrapperSecure {
 		
 		socket_received_buffer.clear();
 		
+		// log.info("wait");
+		
 		socket_channel.read(socket_received_buffer, null, new CompletionHandler<Integer, Void>() {
 			public void completed(Integer size, Void _void) {
 				try {
-					int read = 0;
-					boolean force_read = false;
+					// log.info("get raw: " + size);
 					data_payload_received_buffer.clear();
 					
-					while (read == 0 | force_read) {
-						force_read = false;
-						
-						// System.out.println("AFTER " + socket_received_buffer.position() + " " + socket_received_buffer.limit() + " " + socket_received_buffer.remaining() + " " + socket_received_buffer.capacity());
-						
-						socket_received_buffer.flip();
-						/*if (socket_received_buffer.remaining() != size) {
-							throw new IOException("Invalid remaining: " + socket_received_buffer.remaining() + ", " + size);
-						}*/
-						
-						if (socket_received_buffer.hasRemaining()) {
-							// Decrypt the data in the buffer
-							SSLEngineResult r = ssl_engine.unwrap(socket_received_buffer, data_payload_received_buffer);
-							read += r.bytesProduced();
-							Status s = r.getStatus();
-							
-							if (s == Status.OK) {
-								// Bytes available for reading and there may be
-								// sufficient data in the socketReadBuffer to
-								// support further reads without reading from the
-								// socket
-							} else if (s == Status.BUFFER_UNDERFLOW) {
-								// There is partial data in the socketReadBuffer
-								if (read == 0) {
-									// Need more data before the partial data can be
-									// processed and some output generated
-									force_read = true;
-								}
-								// else return the data we have and deal with the
-								// partial data on the next read
-							} else if (s == Status.BUFFER_OVERFLOW) {
-								// Not enough space in the destination buffer to
-								// store all of the data. We could use a bytes read
-								// value of -bufferSizeRequired to signal the new
-								// buffer size required but an explicit exception is
-								// clearer.
-								throw new IOException("ReadBufferOverflowException: " + ssl_engine.getSession().getApplicationBufferSize());
-							} else {
-								// Status.CLOSED - unexpected
-								throw new IOException("Unexpected Status: " + s + " of SSLEngineResult after an unwrap() operation");
-							}
-							
-							// Check for tasks
-							if (r.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-								Runnable runnable = ssl_engine.getDelegatedTask();
-								while (runnable != null) {
-									runnable.run();
-									runnable = ssl_engine.getDelegatedTask();
-								}
-							}
-						} else {
-							force_read = true;
-						}
-						
-						socket_received_buffer.compact();
-						
-						if (force_read) {
-							if (socket_channel.read(socket_received_buffer).get() == -1) {
-								throw new EOFException("Unexpected end of stream");
-							}
-						}
+					decrypt();
+					
+					reading.set(false);
+					
+					int actual_end = data_payload_received_buffer.position();
+					data_payload_received_buffer.position(0);
+					data_payload_received_buffer.limit(actual_end);
+					
+					boolean restart_read = on_get_datas_event.onGetDatas(_this, data_payload_received_buffer);
+					if (restart_read) {
+						readNext();
 					}
+					
 				} catch (Exception e) {
 					log.error("Can't read from socket", e);
-				}
-				
-				reading.set(false);
-				
-				data_payload_received_buffer.flip();
-				boolean restart_read = on_get_datas_event.onGetDatas(_this, data_payload_received_buffer);
-				if (restart_read) {
-					readNext();
+					reading.set(false);
 				}
 			}
 			
@@ -171,6 +119,78 @@ public class AsyncChannelWrapperSecure {
 				reading.set(false);
 			}
 		});
+	}
+	
+	private void decrypt() throws IOException, InterruptedException, ExecutionException, TimeoutException {
+		
+		// int read = 0;
+		// boolean force_read = false;
+		
+		// while (read == 0 | force_read) {
+		
+		// System.out.println("AFTER " + socket_received_buffer.position() + " " + socket_received_buffer.limit() + " " + socket_received_buffer.remaining() + " " + socket_received_buffer.capacity());
+		socket_received_buffer.flip();
+		while (true) {
+			
+			boolean force_read = false;
+			
+			if (socket_received_buffer.hasRemaining()) {
+				// Decrypt the data in the buffer
+				SSLEngineResult r = ssl_engine.unwrap(socket_received_buffer, data_payload_received_buffer);
+				Status s = r.getStatus();
+				
+				switch (s) {
+				case OK:
+					// Bytes available for reading and there may be
+					// sufficient data in the socketReadBuffer to
+					// support further reads without reading from the
+					// socket
+					// log.info("ok: " + r.bytesProduced());
+					
+					break;
+				case BUFFER_UNDERFLOW:
+					// log.info("under: " + r.bytesProduced());
+					// There is partial data in the socketReadBuffer
+					if (r.bytesProduced() == 0) {
+						// Need more data before the partial data can be
+						// processed and some output generated
+						force_read = true;
+					}
+					
+					// else return the data we have and deal with the
+					// partial data on the next read
+					break;
+				case BUFFER_OVERFLOW:
+					/**
+					 * Not enough space in the destination buffer to store all of the data. We could use a bytes read value of -bufferSizeRequired to signal the new buffer size required but an explicit exception is clearer.
+					 */
+					throw new IOException("ReadBufferOverflowException: " + data_payload_received_buffer.capacity());
+				default:
+					throw new IOException("Unexpected Status: " + s + " of SSLEngineResult after an unwrap() operation");
+				}
+				
+				if (r.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+					Runnable runnable = ssl_engine.getDelegatedTask();
+					while (runnable != null) {
+						runnable.run();
+						runnable = ssl_engine.getDelegatedTask();
+					}
+				}
+			} else {
+				force_read = true;
+			}
+			
+			if (force_read) {
+				log.info("Force read");
+				socket_received_buffer.compact();
+				if (socket_channel.read(socket_received_buffer).get(1, TimeUnit.MINUTES) == -1) {
+					throw new EOFException("Unexpected end of stream");
+				}
+				socket_received_buffer.flip();
+			} else if (socket_received_buffer.hasRemaining() == false) {
+				return;
+			}
+		}
 	}
 	
 	public AsynchronousSocketChannel getChannel() {
@@ -219,7 +239,9 @@ public class AsyncChannelWrapperSecure {
 					// Do the write
 					int toWrite = r.bytesProduced();
 					while (toWrite > 0) {
-						toWrite -= socket_channel.write(socket_sended_buffer).get();
+						int size = socket_channel.write(socket_sended_buffer).get(1, TimeUnit.MINUTES);
+						toWrite -= size;
+						// log.info("Writed raw " + size);
 					}
 				}
 				
