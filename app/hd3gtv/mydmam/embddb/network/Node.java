@@ -91,7 +91,7 @@ public class Node {
 		}
 		last_activity = new AtomicLong(System.currentTimeMillis());
 		
-		node_io = new NodeIO(channel, pool_manager.getProtocol(), (block, create_date) -> {
+		node_io = new NodeIO(channel, (block, create_date) -> {
 			try {
 				pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
 				pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);

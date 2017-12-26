@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.CompletionHandler;
-import java.nio.channels.ReadPendingException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,23 +34,24 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import javax.net.ssl.SSLEngine;
+
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
+import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 @GsonIgnore
-class NodeIO {// TODO test me
+class NodeIO extends TLSSocketHandler {
 	
 	private static final int SOCKET_BUFFER_SIZE = 0xFFFF;
-	private final static int MAX_CHUNK_SIZE = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
+	private static final int MAX_SIZE_CHUNK = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
 	private static final long GRACE_PERIOD_TO_KEEP_OLD_RECEVIED_FRAMES = TimeUnit.HOURS.toMillis(8);
 	private static final long MAX_RECEVIED_FRAMES_TO_KEEP_BEFORE_DO_GC = 100l;
 	
 	@Deprecated
 	private final ConcurrentHashMap<Long, FrameContainer> recevied_frames;
-	private final SocketHandlerReader handler_reader;
-	private final AsynchronousSocketChannel channel;
-	private final CipherEngine cipher_engine;
+	// private final SocketHandlerReader handler_reader;
 	private final BiFunction<DataBlock, Long, Boolean> onGetDataBlock;
 	private final NodeIOEvent event_handler;
 	
@@ -61,15 +60,9 @@ class NodeIO {// TODO test me
 	/**
 	 * @param onGetDataBlock (recevied block, create date), return boolean: should close channel after this
 	 */
-	NodeIO(AsynchronousSocketChannel channel, CipherEngine cipher_engine, BiFunction<DataBlock, Long, Boolean> onGetDataBlock, NodeIOEvent event_handler) {
-		this.channel = channel;
-		if (channel == null) {
-			throw new NullPointerException("\"channel\" can't to be null");
-		}
-		this.cipher_engine = cipher_engine;
-		if (cipher_engine == null) {
-			throw new NullPointerException("\"cipher_engine\" can't to be null");
-		}
+	NodeIO(AsynchronousSocketChannel socket_channel, SSLEngine ssl_engine, BiFunction<DataBlock, Long, Boolean> onGetDataBlock, NodeIOEvent event_handler, ThreadPoolExecutorFactory executor) {
+		super(socket_channel, ssl_engine, executor);
+		
 		this.onGetDataBlock = onGetDataBlock;
 		if (onGetDataBlock == null) {
 			throw new NullPointerException("\"onGetDataBlock\" can't to be null");
@@ -80,16 +73,12 @@ class NodeIO {// TODO test me
 		}
 		send_lock = new Object();
 		
-		handler_reader = new SocketHandlerReader();
+		// handler_reader = new SocketHandlerReader();
 		recevied_frames = new ConcurrentHashMap<>();
 	}
 	
-	boolean isOpen() {
-		return channel.isOpen();
-	}
-	
-	InetSocketAddress getRemoteAddress() throws IOException {
-		return (InetSocketAddress) channel.getRemoteAddress();
+	InetSocketAddress getRemoteAddress() {
+		return (InetSocketAddress) getChannelRemoteAddress();
 	}
 	
 	int syncSend(ByteBuffer source_to_send, String request_name, boolean close_channel_after_send) throws IOException, GeneralSecurityException {
@@ -105,26 +94,29 @@ class NodeIO {// TODO test me
 		long session_id = ThreadLocalRandom.current().nextLong();
 		
 		/** == ceilDiv */
-		int chunk_count = -Math.floorDiv(-prepared_source_to_send.length, MAX_CHUNK_SIZE);
+		int chunk_count = -Math.floorDiv(-prepared_source_to_send.length, MAX_SIZE_CHUNK);
 		
 		ArrayList<FramePayload> frame_payloads = new ArrayList<>(chunk_count);
 		for (int i = 0; i < chunk_count; i++) {
-			int pos = i * MAX_CHUNK_SIZE;
-			int size = Math.min(prepared_source_to_send.length - pos, MAX_CHUNK_SIZE);
+			int pos = i * MAX_SIZE_CHUNK;
+			int size = Math.min(prepared_source_to_send.length - pos, MAX_SIZE_CHUNK);
 			frame_payloads.add(new FramePayload(session_id, i, prepared_source_to_send, pos, size));
 		}
 		
 		FramePrologue frame_prologue = new FramePrologue(session_id, prepared_source_to_send.length, chunk_count, compress_format);
 		FrameEpilogue frame_epilogue = new FrameEpilogue(session_id);
 		
-		ByteBuffer prologue_to_send = cipher_engine.encrypt(frame_prologue.output());
-		ByteBuffer epilogue_to_send = cipher_engine.encrypt(frame_epilogue.output());
+		ByteBuffer prologue_to_send = /*cipher_engine.encrypt*/frame_prologue.output();// encrypt
+		ByteBuffer epilogue_to_send = /*cipher_engine.encrypt*/frame_epilogue.output();
 		
+		/**
+		 * XXX HOW ABOUT NO ?
+		 */
 		List<ByteBuffer> frame_payloads_to_send = frame_payloads.stream().map(frame_payload -> {
 			return frame_payload.output();
 		}).map(buffer -> {
 			try {
-				return cipher_engine.encrypt(buffer);
+				return buffer /*cipher_engine.encrypt(buffer)*/;
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -148,7 +140,7 @@ class NodeIO {// TODO test me
 		
 		try {
 			synchronized (send_lock) {
-				event_handler.onAfterSend(channel.write(all_frames_to_send).get());
+				event_handler.onAfterSend(asyncWrite(all_frames_to_send).get());
 				all_frames_to_send.clear();
 			}
 			
@@ -161,15 +153,6 @@ class NodeIO {// TODO test me
 		}
 		
 		return total_size;
-	}
-	
-	void asyncRead() {
-		try {
-			ByteBuffer read_buffer = ByteBuffer.allocateDirect(SOCKET_BUFFER_SIZE);
-			channel.read(read_buffer, read_buffer, handler_reader);
-		} catch (ReadPendingException e) {
-			event_handler.onReadPendingException(e);
-		}
 	}
 	
 	private void receviedFramesGC() {
@@ -251,7 +234,8 @@ class NodeIO {// TODO test me
 		
 	}
 	
-	private class SocketHandlerReader implements CompletionHandler<Integer, ByteBuffer> {
+	// XXX re-implement reader logic
+	/*private class SocketHandlerReader implements CompletionHandler<Integer, ByteBuffer> {
 		
 		public void completed(Integer size, ByteBuffer read_buffer) {
 			read_buffer.flip();
@@ -267,7 +251,7 @@ class NodeIO {// TODO test me
 				event_handler.onAfterReceviedDatas(size);
 				
 				try {
-					ByteBuffer sended_content = cipher_engine.decrypt(read_buffer);
+					ByteBuffer sended_content = read_buffer;// cipher_engine.decrypt();
 					while (sended_content.hasRemaining()) {
 						readNextFrame(sended_content);
 					}
@@ -281,43 +265,41 @@ class NodeIO {// TODO test me
 				}
 			}
 		}
-		
-		public void failed(Throwable e, ByteBuffer buffer) {
-			if (e instanceof AsynchronousCloseException) {
-				event_handler.onIOButClosed((AsynchronousCloseException) e);
-			} else {
-				event_handler.onIOExceptionCauseClosing(e);
-				close();
-			}
-		}
-	}
+	}*/
 	
-	void close() {
+	public void close() {
+		super.close();
 		recevied_frames.clear();
-		if (channel.isOpen()) {
-			try {
-				channel.shutdownInput();
-			} catch (IOException e) {
-				event_handler.onCloseException(e);
-			}
-			try {
-				channel.shutdownOutput();
-			} catch (IOException e) {
-				event_handler.onCloseException(e);
-			}
-			
-			try {
-				channel.close();
-			} catch (ClosedChannelException e) {
-				event_handler.onCloseButChannelWasClosed(e);
-			} catch (IOException e) {
-				event_handler.onCloseException(e);
-			}
-		}
 	}
 	
-	public int hashCode() {
-		return channel.hashCode();
+	@Override
+	protected boolean onGetDatas(boolean partial) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	protected void onIOButClosed(AsynchronousCloseException e) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	protected void onIOExceptionCauseClosing(Throwable e) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	protected void onCloseException(IOException e) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	protected void onCloseButChannelWasClosed(ClosedChannelException e) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

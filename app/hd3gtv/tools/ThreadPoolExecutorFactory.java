@@ -96,11 +96,21 @@ public class ThreadPoolExecutorFactory implements Executor {
 		this(base_thread_name, thread_priority, null);
 	}
 	
-	public ThreadPoolExecutorFactory setSimplePoolSize() {
+	public ThreadPoolExecutorFactory setMinimumPoolSize(int min_size) {
+		if (executor.getCorePoolSize() < min_size) {
+			executor.setCorePoolSize(min_size);
+		}
+		if (executor.getMaximumPoolSize() < min_size) {
+			executor.setMaximumPoolSize(min_size);
+		}
+		return this;
+	}
+	
+	/*public ThreadPoolExecutorFactory setSimplePoolSize() {
 		executor.setCorePoolSize(1);
 		executor.setMaximumPoolSize(1);
 		return this;
-	}
+	}*/
 	
 	/*public ThreadPoolExecutor getThreadPoolExecutor() {
 		return executor;

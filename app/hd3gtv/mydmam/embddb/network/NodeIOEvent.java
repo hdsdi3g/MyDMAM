@@ -19,7 +19,6 @@ package hd3gtv.mydmam.embddb.network;
 import java.io.IOException;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ReadPendingException;
 
 interface NodeIOEvent {
 	
@@ -29,7 +28,7 @@ interface NodeIOEvent {
 	
 	void onBeforeSendRawDatas(String request_name, int length, int total_size, CompressionFormat compress_format);
 	
-	void onReadPendingException(ReadPendingException e);
+	// void onReadPendingException(ReadPendingException e);
 	
 	void onRemoveOldStoredDataFrame(long session_id);
 	

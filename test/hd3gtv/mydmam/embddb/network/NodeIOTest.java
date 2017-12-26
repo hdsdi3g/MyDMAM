@@ -125,6 +125,10 @@ public class NodeIOTest extends TestCase {
 		channel_group.awaitTermination(100, TimeUnit.MILLISECONDS);
 	}
 	
+	/*
+	 * NOW, test MyDMAM NodeIO
+	 * */
+	
 	public void testIO() throws IOException, InterruptedException, ExecutionException, TimeoutException, GeneralSecurityException {
 		AsynchronousChannelGroup channel_group = createAsynchronousChannelGroup();
 		AsynchronousServerSocketChannel server = createServerChannel(channel_group, new InetSocketAddress("localhost", 0));
@@ -139,8 +143,8 @@ public class NodeIOTest extends TestCase {
 		
 		AsynchronousSocketChannel client_channel = AsynchronousSocketChannel.open(channel_group);
 		client_channel.connect(server_addr).get(100, TimeUnit.MILLISECONDS);
-		NodeIO node_alice_client = new NodeIO(client_channel, protocol, onGetDataBlock, new Events("AliceClient"));
-		NodeIO node_bob_server = new NodeIO(server.accept().get(100, TimeUnit.MILLISECONDS), protocol, onGetDataBlock, new Events("BobServer"));
+		NodeIO node_alice_client = new NodeIO(client_channel, onGetDataBlock, new Events("AliceClient"));
+		NodeIO node_bob_server = new NodeIO(server.accept().get(100, TimeUnit.MILLISECONDS), onGetDataBlock, new Events("BobServer"));
 		node_bob_server.asyncRead();
 		
 		byte[] message = "Hello World".getBytes(MyDMAM.UTF8);
@@ -156,30 +160,6 @@ public class NodeIOTest extends TestCase {
 		channel_group.shutdown();
 		channel_group.awaitTermination(100, TimeUnit.MILLISECONDS);
 	}
-	
-	// TODO test with real cipher
-	
-	/*private class SimpleCompletionHandler implements CompletionHandler<Void, Void> {
-		
-		private final Runnable onConnected;
-		
-		SimpleCompletionHandler(Runnable onConnected) {
-			this.onConnected = onConnected;
-			if (onConnected == null) {
-				throw new NullPointerException("\"onConnected\" can't to be null");
-			}
-		}
-		
-		public void completed(Void result, Void attachment) {
-			onConnected.run();
-		}
-		
-		public void failed(Throwable e, Void attachment) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		
-	}*/
 	
 	private class Events implements NodeIOEvent {
 		
