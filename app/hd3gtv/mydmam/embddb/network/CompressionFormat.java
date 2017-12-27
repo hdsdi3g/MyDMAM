@@ -37,6 +37,10 @@ public enum CompressionFormat {
 		public byte getReference() {
 			return 0;
 		}
+		
+		public String toString() {
+			return "uncompressed";
+		}
 	},
 	GZIP {
 		public byte[] shrink(byte[] source) throws IOException {
@@ -66,6 +70,10 @@ public enum CompressionFormat {
 		
 		public byte getReference() {
 			return 1;
+		}
+		
+		public String toString() {
+			return "gziped";
 		}
 	};
 	

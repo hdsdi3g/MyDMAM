@@ -111,11 +111,13 @@ class FramePayload {
 			throw new IOException("Invalid size: " + size);
 		}
 		
-		internal_compressed_raw_content = ByteBuffer.allocate(size);
-		internal_compressed_raw_content.put(recevied);
+		if (recevied.remaining() < size) {
+			throw new IOException("Invalid payload, expected " + size + ", real " + recevied.remaining());
+		}
 		
-		if (internal_compressed_raw_content.hasRemaining()) {
-			throw new IOException("Invalid size: " + size);
+		internal_compressed_raw_content = ByteBuffer.allocate(size);
+		for (int i = 0; i < size; i++) {
+			internal_compressed_raw_content.put(recevied.get());
 		}
 		internal_compressed_raw_content.flip();
 	}

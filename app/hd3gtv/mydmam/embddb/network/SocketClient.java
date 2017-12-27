@@ -51,7 +51,6 @@ public class SocketClient implements SocketProvider {
 		handler_connect = new SocketConnect();
 		
 		channel = AsynchronousSocketChannel.open(pool_manager.getChannelGroup());
-		// TODO manage pending cxt list...
 		channel.connect(server, null, handler_connect);
 	}
 	

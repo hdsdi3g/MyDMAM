@@ -89,7 +89,11 @@ public final class Protocol implements CipherEngine {
 	public Protocol() throws GeneralSecurityException, IOException, SecurityException, OperatorCreationException {
 		this(getMasterPasswordKey());
 		
-		kt_tool = new KeystoreTool(new File("test.jks"), "test", "me");// XXX real values
+		String keystore_file_name = Configuration.global.getValue("embddb", "keystore", MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY.getPath() + File.separator + "keystore.jks");
+		String keystore_password = Configuration.global.getValue("embddb", "keystore_password", getMasterPasswordKey());
+		String x590_principal_hostname = Configuration.global.getValue("embddb", "x590_principal_hostname", Configuration.global.getValue("service", "workername", InetAddress.getLocalHost().getHostName()));
+		
+		kt_tool = new KeystoreTool(new File(keystore_file_name), keystore_password, x590_principal_hostname);
 		ssl_context = kt_tool.createTLSContext();
 	}
 	

@@ -50,6 +50,9 @@ public final class HandleName {
 	
 	HandleName(ByteBuffer input_buffer) throws IOException {
 		byte[] raw_name = new byte[SIZE];
+		if (input_buffer.remaining() < SIZE) {
+			throw new IOException("Invalid buffer remaining: " + input_buffer.remaining() + " instead of " + SIZE);
+		}
 		input_buffer.get(raw_name);
 		name = new String(raw_name, MyDMAM.US_ASCII).trim();
 		if (name.isEmpty()) {

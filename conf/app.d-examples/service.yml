@@ -32,3 +32,21 @@ javamail:
 #    # listen_only_from: 127.0.0.1:35000, 192.168.0.3 # You can choose to listen only from specific addresses (IPv4 only)
 #    # disable_multicast_discover: true
 #    # multicast_groups: 239.0.0.1:9160,[FF02::110]:9160
+#    # keystore: ./conf/keystore.jks # Keystore (certificates for TLS networking)
+#    # keystore_password: # Will lock/unlock keystore file is the master_password_key by default
+#    # x590_principal_hostname: # Used by selfsigned CA creation, service.workername value by default, or set specific hostname.mydomain
+
+# Options for certificate/private keys generation and TLS configuration
+# Don't touch this, unless you know what you're doing.
+# Default parameters should be the best setup and the more secure.
+# This options must match with keystore certificates and all the others embddb nodes.
+# tls_security:
+#     protocol: TLSv1.2
+#     private_key_size: 256
+#     keygen_algorithm: EC
+#     secure_random_algorithm: SHA1PRNG
+#     kmf_algorithm: SunX509
+#     signature_algorithm: SHA512withECDSA
+#     cipher_suite:
+#         - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+#         - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384

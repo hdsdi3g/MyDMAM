@@ -42,8 +42,6 @@ import org.apache.log4j.Logger;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
-// TODO check same passwords (with hash + random salt)...
-
 /**
  * @see https://github.com/Oreste-Luci/apache-tomcat-8.0.26-src/blob/master/java/org/apache/tomcat/websocket/AsyncChannelWrapperSecure.java
  */
@@ -53,6 +51,7 @@ public abstract class TLSSocketHandler {
 	private static Logger log = Logger.getLogger(TLSSocketHandler.class);
 	
 	private static final int MAX_PAYLOAD_SIZE = 0xFFFF;
+	private static final long TIME_TO_GET_SYNC_NETWORK_IO = TimeUnit.SECONDS.toMillis(10);
 	
 	private static final ByteBuffer HAND_SHAKE_DUMMY = ByteBuffer.allocate(8192);
 	private final AsynchronousSocketChannel socket_channel;
@@ -193,7 +192,7 @@ public abstract class TLSSocketHandler {
 			if (force_read) {
 				log.trace("Force read");
 				socket_received_buffer.compact();
-				if (socket_channel.read(socket_received_buffer).get(1, TimeUnit.MINUTES) == -1) {
+				if (socket_channel.read(socket_received_buffer).get(TIME_TO_GET_SYNC_NETWORK_IO, TimeUnit.MILLISECONDS) == -1) {
 					throw new EOFException("Unexpected end of stream");
 				}
 				socket_received_buffer.flip();
@@ -204,7 +203,7 @@ public abstract class TLSSocketHandler {
 		}
 	}
 	
-	public InetSocketAddress getLocalAddress() {
+	InetSocketAddress getLocalAddress() {
 		try {
 			return (InetSocketAddress) socket_channel.getLocalAddress();
 		} catch (IOException e) {
@@ -212,7 +211,7 @@ public abstract class TLSSocketHandler {
 		}
 	}
 	
-	public InetSocketAddress getRemoteAddress() {
+	InetSocketAddress getRemoteAddress() {
 		try {
 			return (InetSocketAddress) socket_channel.getRemoteAddress();
 		} catch (IOException e) {
@@ -255,7 +254,7 @@ public abstract class TLSSocketHandler {
 					
 					int toWrite = r.bytesProduced();
 					while (toWrite > 0) {
-						int size = socket_channel.write(socket_sended_buffer).get(1, TimeUnit.MINUTES);
+						int size = socket_channel.write(socket_sended_buffer).get(TIME_TO_GET_SYNC_NETWORK_IO, TimeUnit.MILLISECONDS);
 						toWrite -= size;
 					}
 				}
@@ -271,13 +270,34 @@ public abstract class TLSSocketHandler {
 		}, executor);
 	}
 	
-	public void close() {
+	/*private void closeNotifySSL() { // XXX retry close_notify
+		if (socket_channel.isOpen() == false) {
+			return;
+		}
 		try {
 			ssl_engine.closeOutbound();
-			ssl_engine.closeInbound();
-		} catch (SSLException e) {
+			socket_sended_buffer.clear();
+			SSLEngineResult r = ssl_engine.wrap(HAND_SHAKE_DUMMY, socket_sended_buffer);
+			
+			if (r.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+				Runnable runnable = ssl_engine.getDelegatedTask();
+				while (runnable != null) {
+					runnable.run();
+					runnable = ssl_engine.getDelegatedTask();
+				}
+			}
+			socket_sended_buffer.flip();
+			socket_channel.write(socket_sended_buffer).get(1, TimeUnit.SECONDS);
+			ssl_engine.getSession().invalidate();
+			Thread.sleep(1000);
+			// ssl_engine.closeInbound();
+		} catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
 			log.warn("Can't close TLS Session", e);
 		}
+	}*/
+	
+	public void close() {
+		// closeNotifySSL();
 		
 		if (socket_channel.isOpen()) {
 			try {
@@ -327,13 +347,13 @@ public abstract class TLSSocketHandler {
 	public void handshake(KeystoreTool kt_tool) throws IOException {
 		ssl_engine.beginHandshake();
 		socket_received_buffer.position(socket_received_buffer.limit());
-		
 		HandshakeStatus handshake_status = ssl_engine.getHandshakeStatus();
 		Status result_status = Status.OK;
 		
 		boolean handshaking = true;
 		
 		while (handshaking) {
+			
 			switch (handshake_status) {
 			case NEED_WRAP: {
 				socket_sended_buffer.clear();
@@ -350,7 +370,7 @@ public abstract class TLSSocketHandler {
 				
 				socket_sended_buffer.flip();
 				try {
-					socket_channel.write(socket_sended_buffer).get(30, TimeUnit.SECONDS);
+					socket_channel.write(socket_sended_buffer).get(TIME_TO_GET_SYNC_NETWORK_IO, TimeUnit.MILLISECONDS);
 				} catch (InterruptedException | ExecutionException | TimeoutException e) {
 					if (e.getCause() instanceof IOException) {
 						throw (IOException) e.getCause();
@@ -364,7 +384,7 @@ public abstract class TLSSocketHandler {
 				socket_received_buffer.compact();
 				if (socket_received_buffer.position() == 0 || result_status == Status.BUFFER_UNDERFLOW) {
 					try {
-						socket_channel.read(socket_received_buffer).get(30, TimeUnit.SECONDS);
+						socket_channel.read(socket_received_buffer).get(TIME_TO_GET_SYNC_NETWORK_IO, TimeUnit.MILLISECONDS);
 					} catch (InterruptedException | ExecutionException | TimeoutException e) {
 						if (e.getCause() instanceof IOException) {
 							throw (IOException) e.getCause();

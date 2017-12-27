@@ -39,6 +39,7 @@ import org.apache.log4j.Logger;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.embddb.network.SocketProvider.SocketType;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
@@ -133,26 +134,34 @@ public class NodeIOTest extends TestCase {
 		AsynchronousServerSocketChannel server = createServerChannel(channel_group, new InetSocketAddress("localhost", 0));
 		InetSocketAddress server_addr = (InetSocketAddress) server.getLocalAddress();
 		
-		AsynchronousSocketChannel client_channel = AsynchronousSocketChannel.open(channel_group);
-		client_channel.connect(server_addr).get(100, TimeUnit.MILLISECONDS);
-		
 		Protocol protocol = new Protocol();
 		SSLContext context = protocol.getSSLContext();
-		SSLEngine ssl_engine = context.createSSLEngine();
-		
-		// TODO create async client...
-		NodeTest node_alice_client = new NodeTest("AliceClient", protocol, client_channel, SocketProvider.SocketType.CLIENT.initSSLEngine(ssl_engine), executor);
-		
-		NodeTest node_bob_server = new NodeTest("BobServer", protocol, server.accept().get(100, TimeUnit.MILLISECONDS), SocketProvider.SocketType.SERVER.initSSLEngine(ssl_engine), executor);
 		
 		byte[] message = "Hello World".getBytes(MyDMAM.UTF8);
-		node_alice_client.syncSend(ByteBuffer.wrap(message), "test", false);
 		
-		while (node_alice_client.isDone.get() == false | node_bob_server.isDone.get() == false) {
+		executor.execute(() -> {
+			try {
+				AsynchronousSocketChannel client_channel = AsynchronousSocketChannel.open(channel_group);
+				client_channel.connect(server_addr).get(100, TimeUnit.MILLISECONDS);
+				
+				NodeTest node_alice_client = new NodeTest("AliceClient", protocol, client_channel, SocketType.CLIENT.initSSLEngine(context.createSSLEngine()), executor);
+				node_alice_client.syncSend(ByteBuffer.wrap(message), "test", false);
+				while (node_alice_client.isDone.get() == false) {
+					Thread.sleep(1);
+				}
+				node_alice_client.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+				fail();
+			}
+		});
+		
+		AsynchronousSocketChannel server_channel = server.accept().get(100, TimeUnit.MILLISECONDS);
+		NodeTest node_bob_server = new NodeTest("BobServer", protocol, server_channel, SocketType.SERVER.initSSLEngine(context.createSSLEngine()), executor);
+		
+		while (node_bob_server.isDone.get() == false) {
 			Thread.sleep(1);
 		}
-		
-		node_alice_client.close();
 		node_bob_server.close();
 		
 		channel_group.shutdown();
@@ -177,6 +186,7 @@ public class NodeIOTest extends TestCase {
 		}
 		
 		protected boolean onGetDataBlock(DataBlock data_block, long create_date) {
+			log.info("On data in " + name);
 			isDone.set(true);
 			return false;
 		}

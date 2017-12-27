@@ -202,6 +202,8 @@ abstract class NodeIO extends TLSSocketHandler {
 				int frame_type = data_payload_received_buffer.get();
 				data_payload_received_buffer.position(initial_pos);
 				
+				// XXX manage stitched/splited frames
+				
 				if (frame_type == Protocol.FRAME_TYPE_PROLOGUE) {
 					FramePrologue prologue = new FramePrologue(data_payload_received_buffer);
 					recevied_frames.putIfAbsent(prologue.session_id, new FrameContainer(prologue));

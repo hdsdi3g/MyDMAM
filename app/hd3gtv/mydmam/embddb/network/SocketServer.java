@@ -125,7 +125,14 @@ public class SocketServer extends StoppableThread implements SocketProvider {
 		while (isWantToRun()) {
 			try {
 				AsynchronousSocketChannel channel = server.accept().get();
-				// TODO manage pending cxt list...
+				
+				InetSocketAddress addr = (InetSocketAddress) channel.getRemoteAddress();
+				if (pool_manager.beforeSocketActivity(addr) == false) {
+					log.debug("Another client try to connect to " + addr + ", cancel this connection");
+					channel.close();
+					continue;
+				}
+				
 				Node node = new Node(this, pool_manager, channel);
 				log.info("Client connect " + node + " to local " + listen);
 				pool_manager.add(node);

@@ -95,6 +95,8 @@ public class Node extends NodeIO {
 		handshake(pool_manager.getProtocol().getKeystoreTool());
 	}
 	
+	// TODO check same passwords challenge (with hash + random salt)...
+	
 	private static SSLEngine createSSLEngine(PoolManager pool_manager, SocketProvider provider) {
 		return provider.getType().initSSLEngine(pool_manager.getProtocol().getSSLContext().createSSLEngine());
 	}

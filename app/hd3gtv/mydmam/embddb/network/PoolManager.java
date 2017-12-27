@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -43,6 +44,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.ActivityScheduledAction;
 import hd3gtv.tools.ActivityScheduler;
@@ -98,6 +100,11 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 	 */
 	private List<Node> nodes;
 	
+	/**
+	 * Distant host -> try date
+	 */
+	private final ConcurrentHashMap<InetSocketAddress, Long> pending_connections;
+	
 	@GsonIgnore
 	private final List<PoolActivityObserver> observers;
 	
@@ -124,6 +131,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		pressure_measurement_netdiscover = new PressureMeasurement();
 		
 		nodes = Collections.synchronizedList(new ArrayList<>());
+		pending_connections = new ConcurrentHashMap<>();
 		observers = new ArrayList<>();
 		autodiscover_can_be_remake = new AtomicBoolean(true);
 		addr_master = new AddressMaster();
@@ -167,6 +175,29 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 				});
 			});
 		}
+	}
+	
+	private static final long PENDING_CONNECTION_GRACE_TTL = TimeUnit.SECONDS.toMillis(30);
+	
+	/**
+	 * @return true if no one has a pending connection
+	 */
+	boolean beforeSocketActivity(InetSocketAddress addr) throws IOException {
+		if (pending_connections.contains(addr) == false) {
+			log.trace("Ok for to start a SocketActivity with: " + addr);
+			pending_connections.put(addr, System.currentTimeMillis());
+		} else {
+			long create_date = pending_connections.get(addr);
+			if (create_date + PENDING_CONNECTION_GRACE_TTL < System.currentTimeMillis()) {
+				log.trace("Ok for to re-start a SocketActivity with: " + addr);
+				pending_connections.put(addr, System.currentTimeMillis());
+			} else {
+				log.trace("Nok for to start a SocketActivity with: " + addr + " (locked since the " + Loggers.dateLog(create_date) + ")");
+				return false;
+			}
+		}
+		
+		return true;
 	}
 	
 	PressureMeasurement getPressureMeasurementSended() {
@@ -355,7 +386,7 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		
 		if (node != null) {
 			callback_on_connection.alreadyConnectedNode(node);
-		} else {
+		} else if (beforeSocketActivity(server)) {
 			new SocketClient(this, server, n -> {
 				if (add(n)) {
 					callback_on_connection.onNewConnectedNode(n);
@@ -530,6 +561,8 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		log.info("Add node " + node);
 		autodiscover_can_be_remake.set(true);
 		nodes.add(node);
+		pending_connections.remove(node.getSocketAddr());
+		
 		all_request_handlers.getRequestByClass(RequestHello.class).sendRequest(null, node);
 		
 		if (log.isDebugEnabled()) {
