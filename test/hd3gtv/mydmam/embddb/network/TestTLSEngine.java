@@ -26,6 +26,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 
+import hd3gtv.mydmam.embddb.network.SocketProvider.SocketType;
 import hd3gtv.tools.TableList;
 import junit.framework.TestCase;
 
@@ -111,8 +112,8 @@ public class TestTLSEngine extends TestCase {
 			
 			boolean dataDone = false;
 			
-			sw_client = new SessionWrapper(ssl_context, TLSSessionSide.CLIENT);
-			sw_server = new SessionWrapper(ssl_context, TLSSessionSide.SERVER);
+			sw_client = new SessionWrapper(ssl_context, SocketType.CLIENT);
+			sw_server = new SessionWrapper(ssl_context, SocketType.SERVER);
 			
 			ByteBuffer payload_to_send_cli_srv = createPayload();
 			ByteBuffer payload_to_send_srv_cli = createPayload();
@@ -177,22 +178,15 @@ public class TestTLSEngine extends TestCase {
 			final SSLEngine engine;
 			final ByteBuffer recevied_payload;
 			final ByteBuffer transport;
-			final TLSSessionSide session_side;
+			final SocketProvider.SocketType session_side;
 			
-			SessionWrapper(SSLContext ssl_context, TLSSessionSide session_side) {
+			SessionWrapper(SSLContext ssl_context, SocketType session_side) {
 				this.session_side = session_side;
 				if (session_side == null) {
 					throw new NullPointerException("\"session_side\" can't to be null");
 				}
 				
-				engine = ssl_context.createSSLEngine();
-				if (session_side == TLSSessionSide.CLIENT) {
-					engine.setUseClientMode(true);
-				} else if (session_side == TLSSessionSide.SERVER) {
-					engine.setUseClientMode(false);
-					engine.setNeedClientAuth(true);
-				}
-				
+				engine = session_side.initSSLEngine(ssl_context.createSSLEngine());
 				recevied_payload = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize() + MAX_PAYLOAD_SIZE);
 				transport = ByteBuffer.allocateDirect(engine.getSession().getPacketBufferSize());
 			}
@@ -266,10 +260,6 @@ public class TestTLSEngine extends TestCase {
 			table.addSimpleCellRow("ready for application data");
 		}
 		System.out.print(table.toString());
-	}
-	
-	private enum TLSSessionSide {
-		CLIENT, SERVER;
 	}
 	
 }

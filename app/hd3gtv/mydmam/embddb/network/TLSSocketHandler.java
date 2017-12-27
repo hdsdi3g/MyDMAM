@@ -19,7 +19,7 @@ package hd3gtv.mydmam.embddb.network;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -39,6 +39,7 @@ import javax.net.ssl.SSLException;
 
 import org.apache.log4j.Logger;
 
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 // TODO check same passwords (with hash + random salt)...
@@ -46,6 +47,7 @@ import hd3gtv.tools.ThreadPoolExecutorFactory;
 /**
  * @see https://github.com/Oreste-Luci/apache-tomcat-8.0.26-src/blob/master/java/org/apache/tomcat/websocket/AsyncChannelWrapperSecure.java
  */
+@GsonIgnore
 public abstract class TLSSocketHandler {
 	
 	private static Logger log = Logger.getLogger(TLSSocketHandler.class);
@@ -78,12 +80,6 @@ public abstract class TLSSocketHandler {
 		socket_sended_buffer = ByteBuffer.allocateDirect(socket_buffer_size);
 		data_payload_received_buffer = ByteBuffer.allocateDirect(ssl_engine.getSession().getApplicationBufferSize() + MAX_PAYLOAD_SIZE);
 	}
-	
-	/**
-	 * Executed in socket (read) Thread, get datas from data_payload_received_buffer. It was flipped before.
-	 * @return true if restart pending read
-	 */
-	protected abstract boolean onGetDatas(boolean partial);
 	
 	/**
 	 * Non blocking, only callback the next data block.
@@ -125,10 +121,6 @@ public abstract class TLSSocketHandler {
 			}
 		});
 	}
-	
-	protected abstract void onIOButClosed(AsynchronousCloseException e);
-	
-	protected abstract void onIOExceptionCauseClosing(Throwable e);
 	
 	private void decrypt() throws IOException, InterruptedException, ExecutionException, TimeoutException {
 		socket_received_buffer.flip();
@@ -212,17 +204,17 @@ public abstract class TLSSocketHandler {
 		}
 	}
 	
-	public SocketAddress getChannelLocalAddress() {
+	public InetSocketAddress getLocalAddress() {
 		try {
-			return socket_channel.getLocalAddress();
+			return (InetSocketAddress) socket_channel.getLocalAddress();
 		} catch (IOException e) {
 			throw new RuntimeException("Can't get address", e);
 		}
 	}
 	
-	public SocketAddress getChannelRemoteAddress() {
+	public InetSocketAddress getRemoteAddress() {
 		try {
-			return socket_channel.getRemoteAddress();
+			return (InetSocketAddress) socket_channel.getRemoteAddress();
 		} catch (IOException e) {
 			throw new RuntimeException("Can't get address", e);
 		}
@@ -307,11 +299,8 @@ public abstract class TLSSocketHandler {
 				onCloseException(e);
 			}
 		}
+		onAfterClose();
 	}
-	
-	protected abstract void onCloseException(IOException e);
-	
-	protected abstract void onCloseButChannelWasClosed(ClosedChannelException e);
 	
 	public int hashCode() {
 		return socket_channel.hashCode();
@@ -422,5 +411,30 @@ public abstract class TLSSocketHandler {
 		
 		readNext();
 	}
+	
+	protected void onAfterClose() {
+	}
+	
+	protected void onCloseException(IOException e) {
+		log.warn(e);
+	}
+	
+	protected void onCloseButChannelWasClosed(ClosedChannelException e) {
+		log.warn(e);
+	}
+	
+	protected void onIOButClosed(AsynchronousCloseException e) {
+		log.error(e);
+	}
+	
+	protected void onIOExceptionCauseClosing(Throwable e) {
+		log.error(e);
+	}
+	
+	/**
+	 * Executed in socket (read) Thread, get datas from data_payload_received_buffer. It was flipped before.
+	 * @return true if restart the next pending read
+	 */
+	protected abstract boolean onGetDatas(boolean partial);
 	
 }

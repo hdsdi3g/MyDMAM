@@ -125,11 +125,10 @@ public class SocketServer extends StoppableThread implements SocketProvider {
 		while (isWantToRun()) {
 			try {
 				AsynchronousSocketChannel channel = server.accept().get();
+				// TODO manage pending cxt list...
 				Node node = new Node(this, pool_manager, channel);
 				log.info("Client connect " + node + " to local " + listen);
-				node.asyncRead();
 				pool_manager.add(node);
-				
 			} catch (Exception e) {
 				if (isWantToRun()) {
 					log.warn("Error during socket handling", e);
@@ -162,6 +161,10 @@ public class SocketServer extends StoppableThread implements SocketProvider {
 	
 	public String getTypeName() {
 		return "Dclient>Lserver";
+	}
+	
+	public SocketType getType() {
+		return SocketType.SERVER;
 	}
 	
 }

@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -26,18 +25,18 @@ import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ReadPendingException;
 import java.security.GeneralSecurityException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import org.apache.log4j.Logger;
+import org.bouncycastle.operator.OperatorCreationException;
 
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
@@ -49,13 +48,12 @@ public class NodeIOTest extends TestCase {
 	
 	private final Protocol protocol;
 	
-	public NodeIOTest() throws NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
-		protocol = new Protocol("InternalTest");
+	public NodeIOTest() throws SecurityException, OperatorCreationException, GeneralSecurityException, IOException {
+		protocol = new Protocol();
 	}
 	
-	private AsynchronousChannelGroup createAsynchronousChannelGroup() throws IOException {
-		ThreadPoolExecutorFactory executor = new ThreadPoolExecutorFactory("TestSockets", Thread.NORM_PRIORITY);
-		return executor.createAsynchronousChannelGroup();
+	private ThreadPoolExecutorFactory createThreadPoolExecutorFactory() throws IOException {
+		return new ThreadPoolExecutorFactory("TestSockets", Thread.NORM_PRIORITY);
 	}
 	
 	private AsynchronousServerSocketChannel createServerChannel(AsynchronousChannelGroup channel_group, InetSocketAddress bind_to) throws IOException {
@@ -67,17 +65,17 @@ public class NodeIOTest extends TestCase {
 	}
 	
 	public void testCreateChannel() throws IOException, InterruptedException {
-		AsynchronousChannelGroup channel_group = createAsynchronousChannelGroup();
+		AsynchronousChannelGroup channel_group = createThreadPoolExecutorFactory().createAsynchronousChannelGroup();
 		channel_group.shutdown();
 		channel_group.awaitTermination(1, TimeUnit.SECONDS);
 	}
 	
 	public void testcreateServerChannel() throws IOException, InterruptedException {
-		createServerChannel(createAsynchronousChannelGroup(), new InetSocketAddress("localhost", 0)).close();
+		createServerChannel(createThreadPoolExecutorFactory().createAsynchronousChannelGroup(), new InetSocketAddress("localhost", 0)).close();
 	}
 	
 	public void testOpenClose() throws IOException, InterruptedException, ExecutionException, TimeoutException {
-		AsynchronousChannelGroup channel_group = createAsynchronousChannelGroup();
+		AsynchronousChannelGroup channel_group = createThreadPoolExecutorFactory().createAsynchronousChannelGroup();
 		AsynchronousServerSocketChannel server = createServerChannel(channel_group, new InetSocketAddress("localhost", 0));
 		InetSocketAddress server_addr = (InetSocketAddress) server.getLocalAddress();
 		
@@ -95,7 +93,7 @@ public class NodeIOTest extends TestCase {
 	}
 	
 	public void testDummyTransfert() throws IOException, InterruptedException, ExecutionException, TimeoutException {
-		AsynchronousChannelGroup channel_group = createAsynchronousChannelGroup();
+		AsynchronousChannelGroup channel_group = createThreadPoolExecutorFactory().createAsynchronousChannelGroup();
 		AsynchronousServerSocketChannel server = createServerChannel(channel_group, new InetSocketAddress("localhost", 0));
 		InetSocketAddress server_addr = (InetSocketAddress) server.getLocalAddress();
 		
@@ -129,28 +127,28 @@ public class NodeIOTest extends TestCase {
 	 * NOW, test MyDMAM NodeIO
 	 * */
 	
-	public void testIO() throws IOException, InterruptedException, ExecutionException, TimeoutException, GeneralSecurityException {
-		AsynchronousChannelGroup channel_group = createAsynchronousChannelGroup();
+	public void testIO() throws IOException, InterruptedException, ExecutionException, TimeoutException, GeneralSecurityException, SecurityException, OperatorCreationException {
+		ThreadPoolExecutorFactory executor = createThreadPoolExecutorFactory();
+		AsynchronousChannelGroup channel_group = executor.createAsynchronousChannelGroup();
 		AsynchronousServerSocketChannel server = createServerChannel(channel_group, new InetSocketAddress("localhost", 0));
 		InetSocketAddress server_addr = (InetSocketAddress) server.getLocalAddress();
 		
-		AtomicBoolean isDone = new AtomicBoolean(false);
-		
-		BiFunction<DataBlock, Long, Boolean> onGetDataBlock = (block, date) -> {
-			isDone.set(true);
-			return false;
-		};
-		
 		AsynchronousSocketChannel client_channel = AsynchronousSocketChannel.open(channel_group);
 		client_channel.connect(server_addr).get(100, TimeUnit.MILLISECONDS);
-		NodeIO node_alice_client = new NodeIO(client_channel, onGetDataBlock, new Events("AliceClient"));
-		NodeIO node_bob_server = new NodeIO(server.accept().get(100, TimeUnit.MILLISECONDS), onGetDataBlock, new Events("BobServer"));
-		node_bob_server.asyncRead();
+		
+		Protocol protocol = new Protocol();
+		SSLContext context = protocol.getSSLContext();
+		SSLEngine ssl_engine = context.createSSLEngine();
+		
+		// TODO create async client...
+		NodeTest node_alice_client = new NodeTest("AliceClient", protocol, client_channel, SocketProvider.SocketType.CLIENT.initSSLEngine(ssl_engine), executor);
+		
+		NodeTest node_bob_server = new NodeTest("BobServer", protocol, server.accept().get(100, TimeUnit.MILLISECONDS), SocketProvider.SocketType.SERVER.initSSLEngine(ssl_engine), executor);
 		
 		byte[] message = "Hello World".getBytes(MyDMAM.UTF8);
 		node_alice_client.syncSend(ByteBuffer.wrap(message), "test", false);
 		
-		while (isDone.get() == false) {
+		while (node_alice_client.isDone.get() == false | node_bob_server.isDone.get() == false) {
 			Thread.sleep(1);
 		}
 		
@@ -161,15 +159,26 @@ public class NodeIOTest extends TestCase {
 		channel_group.awaitTermination(100, TimeUnit.MILLISECONDS);
 	}
 	
-	private class Events implements NodeIOEvent {
+	private class NodeTest extends NodeIO {
 		
 		private final String name;
+		private final AtomicBoolean isDone;
 		
-		Events(String name) {
+		NodeTest(String name, Protocol protocol, AsynchronousSocketChannel socket_channel, SSLEngine ssl_engine, ThreadPoolExecutorFactory executor) throws IOException {
+			super(socket_channel, ssl_engine, executor);
+			handshake(protocol.getKeystoreTool());
+			
+			isDone = new AtomicBoolean(false);
+			
 			this.name = name;
 			if (name == null) {
 				throw new NullPointerException("\"name\" can't to be null");
 			}
+		}
+		
+		protected boolean onGetDataBlock(DataBlock data_block, long create_date) {
+			isDone.set(true);
+			return false;
 		}
 		
 		public void onCloseButChannelWasClosed(ClosedChannelException e) {
@@ -182,10 +191,6 @@ public class NodeIOTest extends TestCase {
 		
 		public void onBeforeSendRawDatas(String request_name, int length, int total_size, CompressionFormat compress_format) {
 			log.info("Will send to " + name + " (" + request_name + ") " + length + "/" + total_size + " bytes in " + compress_format);
-		}
-		
-		public void onReadPendingException(ReadPendingException e) {
-			log.error(name, e);
 		}
 		
 		public void onRemoveOldStoredDataFrame(long session_id) {
@@ -214,6 +219,10 @@ public class NodeIOTest extends TestCase {
 		
 		public void onAfterReceviedDatas(Integer size) {
 			log.info("From " + name + ", " + size + " bytes");
+		}
+		
+		protected void onCantExtractFrame(IOException e) {
+			log.error(name, e);
 		}
 		
 	}

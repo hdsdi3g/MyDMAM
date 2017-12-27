@@ -321,6 +321,13 @@ public class PoolManager implements InteractiveConsoleOrderProducer {
 		executor.execute(r);
 	}
 	
+	/**
+	 * @return network I/O Executor
+	 */
+	ThreadPoolExecutorFactory getExecutor() {
+		return executor;
+	}
+	
 	public boolean isListenToThis(InetSocketAddress server) {
 		return getListenedServerAddress().anyMatch(addr -> {
 			return addr.equals(server);

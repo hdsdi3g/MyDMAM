@@ -16,8 +16,30 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
+import javax.net.ssl.SSLEngine;
+
 public interface SocketProvider {
 	
 	public String getTypeName();
+	
+	public SocketType getType();
+	
+	public enum SocketType {
+		CLIENT {
+			public SSLEngine initSSLEngine(SSLEngine ssl_engine) {
+				ssl_engine.setUseClientMode(true);
+				return ssl_engine;
+			}
+		},
+		SERVER {
+			public SSLEngine initSSLEngine(SSLEngine ssl_engine) {
+				ssl_engine.setUseClientMode(false);
+				ssl_engine.setNeedClientAuth(true);
+				return ssl_engine;
+			}
+		};
+		
+		public abstract SSLEngine initSSLEngine(SSLEngine ssl_engine);
+	}
 	
 }

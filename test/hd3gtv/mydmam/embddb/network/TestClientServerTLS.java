@@ -17,16 +17,12 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +36,7 @@ import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import hd3gtv.mydmam.embddb.network.SocketProvider.SocketType;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 import junit.framework.TestCase;
 
@@ -111,14 +108,14 @@ public class TestClientServerTLS extends TestCase {
 					int loop = ThreadLocalRandom.current().nextInt(10, 100);
 					for (int pos = 0; pos < loop; pos++) {
 						byte[] payload = getRandomPayload();
-						System.out.println("send " + payload.length + " to " + socket_channel.getRemoteAddress());
+						System.out.println("send " + payload.length + " to " + getRemoteAddress().getPort());
 						io_history.sended.add(payload);
 						int size = asyncWrite(ByteBuffer.wrap(payload)).get(200, TimeUnit.MILLISECONDS);
 						assertEquals(size, payload.length);
 					}
 				}
 				
-				System.out.println("send " + END_TOKEN.length + " to " + socket_channel.getRemoteAddress());
+				System.out.println("send " + END_TOKEN.length + " to " + getRemoteAddress().getPort());
 				io_history.sended.add(END_TOKEN);
 				int size = asyncWrite(ByteBuffer.wrap(END_TOKEN)).get(200, TimeUnit.MILLISECONDS);
 				assertEquals(size, END_TOKEN.length);
@@ -131,12 +128,12 @@ public class TestClientServerTLS extends TestCase {
 			byte[] datas = new byte[data_payload_received_buffer.remaining()];
 			data_payload_received_buffer.get(datas);
 			
-			SocketAddress local_addr = getChannelLocalAddress();
+			InetSocketAddress local_addr = getLocalAddress();
 			
 			if (partial) {
-				System.out.println("recevie " + datas.length + " (partial) from " + local_addr);
+				System.out.println("recevie " + datas.length + " (partial) from " + local_addr.getPort());
 			} else {
-				System.out.println("recevie " + datas.length + " from " + local_addr);
+				System.out.println("recevie " + datas.length + " from " + local_addr.getPort());
 			}
 			io_history.recevied.add(datas);
 			
@@ -163,23 +160,6 @@ public class TestClientServerTLS extends TestCase {
 			
 			return true;
 		}
-		
-		protected void onIOButClosed(AsynchronousCloseException e) {
-			e.printStackTrace();
-		}
-		
-		protected void onIOExceptionCauseClosing(Throwable e) {
-			e.printStackTrace();
-		}
-		
-		protected void onCloseException(IOException e) {
-			e.printStackTrace();
-		}
-		
-		protected void onCloseButChannelWasClosed(ClosedChannelException e) {
-			e.printStackTrace();
-		}
-		
 	}
 	
 	abstract class IOHistory {
@@ -224,11 +204,7 @@ public class TestClientServerTLS extends TestCase {
 		}
 		
 		public void completed(AsynchronousSocketChannel socket_channel, Void attachment) {
-			SSLEngine engine = ssl_context.createSSLEngine();
-			engine.setUseClientMode(false);
-			engine.setNeedClientAuth(true);
-			
-			bda = new BulkDataEngine(socket_channel, engine, this, false);
+			bda = new BulkDataEngine(socket_channel, SocketType.SERVER.initSSLEngine(ssl_context.createSSLEngine()), this, false);
 		}
 		
 		public void failed(Throwable exc, Void attachment) {
@@ -249,10 +225,7 @@ public class TestClientServerTLS extends TestCase {
 		}
 		
 		public void completed(Void result, AsynchronousSocketChannel client_channel) {
-			SSLEngine engine = ssl_context.createSSLEngine();
-			engine.setUseClientMode(true);
-			
-			bda = new BulkDataEngine(client_channel, engine, this, true);
+			bda = new BulkDataEngine(client_channel, SocketType.CLIENT.initSSLEngine(ssl_context.createSSLEngine()), this, true);
 		}
 		
 		public void failed(Throwable exc, AsynchronousSocketChannel attachment) {

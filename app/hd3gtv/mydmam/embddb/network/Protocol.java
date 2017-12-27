@@ -16,18 +16,18 @@
 */
 package hd3gtv.mydmam.embddb.network;
 
-import java.io.UnsupportedEncodingException;
+import java.io.File;
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
+import javax.net.ssl.SSLContext;
 
 import org.apache.log4j.Logger;
 import org.bouncycastle.crypto.BufferedBlockCipher;
@@ -41,7 +41,9 @@ import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
+import org.bouncycastle.operator.OperatorCreationException;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
@@ -75,22 +77,42 @@ public final class Protocol implements CipherEngine {
 	private final CipherParameters params;
 	private final String hashed_password_key;
 	
+	/*
+	 * TLS tools 
+	 */
+	private KeystoreTool kt_tool;
+	private SSLContext ssl_context;
+	
 	/**
 	 * @param master_password_key no security checks will be done here.
 	 */
-	public Protocol(String master_password_key) throws NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
-		if (master_password_key == null) {
-			throw new NullPointerException("\"master_password_key\" can't to be null");
-		}
-		if (master_password_key.isEmpty()) {
-			throw new NullPointerException("\"master_password_key\" can't to be empty");
-		}
+	public Protocol() throws GeneralSecurityException, IOException, SecurityException, OperatorCreationException {
+		this(getMasterPasswordKey());
 		
+		kt_tool = new KeystoreTool(new File("test.jks"), "test", "me");// XXX real values
+		ssl_context = kt_tool.createTLSContext();
+	}
+	
+	private static String getMasterPasswordKey() throws GeneralSecurityException {
+		String master_password_key = Configuration.global.getValue("embddb", "master_password_key", "");
+		if (master_password_key.equalsIgnoreCase("SetMePlease")) {
+			throw new GeneralSecurityException("You can't use \"SetMePlease\" as password for EmbDDB");
+		}
+		if (master_password_key.length() < 5) {
+			log.warn("You should not use a so small password for EmbDDB (" + master_password_key.length() + " chars)");
+		}
+		return master_password_key;
+	}
+	
+	/**
+	 * USED ONLY FOR INTERNAL TESTS !
+	 * It don't load kt_tool and ssl_context.
+	 */
+	Protocol(String master_password) throws GeneralSecurityException, IOException, SecurityException, OperatorCreationException {
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
-		byte[] key = md.digest(master_password_key.getBytes("UTF-8"));
+		byte[] key = md.digest(master_password.getBytes("UTF-8"));
 		keyParam = new KeyParameter(key);
 		params = new ParametersWithIV(keyParam, key, 0, 16);
-		
 		hashed_password_key = MyDMAM.byteToString(key);
 	}
 	
@@ -135,6 +157,7 @@ public final class Protocol implements CipherEngine {
 		return hashed_password_key;
 	}
 	
+	@Deprecated
 	public byte[] encrypt(byte[] cleared_datas) throws GeneralSecurityException {
 		try {
 			return encryptDecrypt(cleared_datas, 0, cleared_datas.length, Cipher.ENCRYPT_MODE);
@@ -143,6 +166,7 @@ public final class Protocol implements CipherEngine {
 		}
 	}
 	
+	@Deprecated
 	public byte[] decrypt(byte[] crypted_datas) throws GeneralSecurityException {
 		try {
 			return encryptDecrypt(crypted_datas, 0, crypted_datas.length, Cipher.DECRYPT_MODE);
@@ -151,6 +175,7 @@ public final class Protocol implements CipherEngine {
 		}
 	}
 	
+	@Deprecated
 	private byte[] encryptDecrypt(byte[] datas, int pos, int len, int mode) throws GeneralSecurityException, DataLengthException, IllegalStateException, InvalidCipherTextException {
 		if (log.isTraceEnabled()) {
 			if (mode == Cipher.ENCRYPT_MODE) {
@@ -182,4 +207,11 @@ public final class Protocol implements CipherEngine {
 		return result;
 	}
 	
+	public KeystoreTool getKeystoreTool() {
+		return kt_tool;
+	}
+	
+	public SSLContext getSSLContext() {
+		return ssl_context;
+	}
 }

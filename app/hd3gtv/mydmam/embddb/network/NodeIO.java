@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -31,10 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLEngine;
+
+import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -42,7 +42,9 @@ import hd3gtv.tools.Hexview;
 import hd3gtv.tools.ThreadPoolExecutorFactory;
 
 @GsonIgnore
-class NodeIO extends TLSSocketHandler {
+abstract class NodeIO extends TLSSocketHandler {
+	
+	private static Logger log = Logger.getLogger(NodeIO.class);
 	
 	private static final int SOCKET_BUFFER_SIZE = 0xFFFF;
 	private static final int MAX_SIZE_CHUNK = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
@@ -51,36 +53,22 @@ class NodeIO extends TLSSocketHandler {
 	
 	@Deprecated
 	private final ConcurrentHashMap<Long, FrameContainer> recevied_frames;
-	// private final SocketHandlerReader handler_reader;
-	private final BiFunction<DataBlock, Long, Boolean> onGetDataBlock;
-	private final NodeIOEvent event_handler;
-	
 	private final Object send_lock;
 	
 	/**
-	 * @param onGetDataBlock (recevied block, create date), return boolean: should close channel after this
+	 * Don't forget to call handshake
 	 */
-	NodeIO(AsynchronousSocketChannel socket_channel, SSLEngine ssl_engine, BiFunction<DataBlock, Long, Boolean> onGetDataBlock, NodeIOEvent event_handler, ThreadPoolExecutorFactory executor) {
+	NodeIO(AsynchronousSocketChannel socket_channel, SSLEngine ssl_engine, ThreadPoolExecutorFactory executor) {
 		super(socket_channel, ssl_engine, executor);
-		
-		this.onGetDataBlock = onGetDataBlock;
-		if (onGetDataBlock == null) {
-			throw new NullPointerException("\"onGetDataBlock\" can't to be null");
-		}
-		this.event_handler = event_handler;
-		if (event_handler == null) {
-			throw new NullPointerException("\"event_handler\" can't to be null");
-		}
 		send_lock = new Object();
 		
 		// handler_reader = new SocketHandlerReader();
 		recevied_frames = new ConcurrentHashMap<>();
 	}
 	
-	InetSocketAddress getRemoteAddress() {
-		return (InetSocketAddress) getChannelRemoteAddress();
-	}
-	
+	/**
+	 * Pack source_to_send to Frames, compress it, and send it.
+	 */
 	int syncSend(ByteBuffer source_to_send, String request_name, boolean close_channel_after_send) throws IOException, GeneralSecurityException {
 		CompressionFormat compress_format = CompressionFormat.NONE;
 		if (source_to_send.remaining() > 0xFFF) {
@@ -124,7 +112,7 @@ class NodeIO extends TLSSocketHandler {
 		
 		int total_size = prologue_to_send.remaining() + frame_payloads_to_send.stream().mapToInt(payload_to_send -> payload_to_send.remaining()).sum() + epilogue_to_send.remaining();
 		
-		event_handler.onBeforeSendRawDatas(request_name, b_source_to_send.length, total_size, compress_format);
+		onBeforeSendRawDatas(request_name, b_source_to_send.length, total_size, compress_format);
 		
 		ByteBuffer all_frames_to_send = ByteBuffer.allocate(total_size);
 		all_frames_to_send.put(prologue_to_send);
@@ -140,12 +128,12 @@ class NodeIO extends TLSSocketHandler {
 		
 		try {
 			synchronized (send_lock) {
-				event_handler.onAfterSend(asyncWrite(all_frames_to_send).get());
+				onAfterSend(asyncWrite(all_frames_to_send).get());
 				all_frames_to_send.clear();
 			}
 			
 			if (close_channel_after_send) {
-				event_handler.onManualCloseAfterSend();
+				onManualCloseAfterSend();
 				close();
 			}
 		} catch (InterruptedException | ExecutionException e) {
@@ -183,123 +171,104 @@ class NodeIO extends TLSSocketHandler {
 		
 		delete_list_too_old.forEach(session_id -> {
 			recevied_frames.remove(session_id);
-			event_handler.onRemoveOldStoredDataFrame(session_id);
+			onRemoveOldStoredDataFrame(session_id);
 		});
 	}
 	
-	private void readNextFrame(ByteBuffer sended_content) throws IOException, GeneralSecurityException {
-		int initial_pos = sended_content.position();
-		if (sended_content.remaining() < Protocol.FRAME_HEADER_SIZE) {
-			throw new IOException("Invalid header remaining size: " + sended_content.remaining());
-		}
-		Item.readAndEquals(sended_content, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
-			return new IOException("Protocol error with app_socket_header_tag: " + Hexview.tracelog(b));
-		});
-		Item.readByteAndEquals(sended_content, Protocol.VERSION, version -> {
-			return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
-		});
-		int frame_type = sended_content.get();
-		sended_content.position(initial_pos);
+	protected boolean onGetDatas(boolean partial) {
+		/*if (data_payload_received_buffer.hasRemaining() == false) {
+			close();
+		} else if (isOpen() == false) {
+			return false;
+		}*/
 		
-		if (frame_type == Protocol.FRAME_TYPE_PROLOGUE) {
-			FramePrologue prologue = new FramePrologue(sended_content);
-			recevied_frames.putIfAbsent(prologue.session_id, new FrameContainer(prologue));
-			
-			receviedFramesGC();
-		} else if (frame_type == Protocol.FRAME_TYPE_PAYLOAD) {
-			FramePayload frame_payload = new FramePayload(sended_content);
-			FrameContainer f_container = recevied_frames.get(frame_payload.session_id);
-			if (f_container == null) {
-				throw new IOException("Can't found frame with session id: " + frame_payload.session_id);
-			}
-			f_container.appendPayload(frame_payload);
-			
-		} else if (frame_type == Protocol.FRAME_TYPE_EPILOGUE) {
-			FrameEpilogue epilogue = new FrameEpilogue(sended_content);
-			FrameContainer old_f_container = recevied_frames.remove(epilogue.session_id);
-			if (old_f_container == null) {
-				throw new IOException("Can't found frame with session id: " + epilogue.session_id);
-			}
-			
-			ByteBuffer raw_datas = old_f_container.close();
-			if (raw_datas != null) {
-				if (onGetDataBlock.apply(new DataBlock(raw_datas), old_f_container.prologue.create_date)) {
-					event_handler.onManualCloseAfterRecevied();
-					close();
+		onAfterReceviedDatas(data_payload_received_buffer.remaining());
+		
+		try {
+			while (data_payload_received_buffer.hasRemaining()) {
+				/**
+				 * Extract data frames headers
+				 */
+				int initial_pos = data_payload_received_buffer.position();
+				if (data_payload_received_buffer.remaining() < Protocol.FRAME_HEADER_SIZE) {
+					throw new IOException("Invalid header remaining size: " + data_payload_received_buffer.remaining());
 				}
-			}
-		} else {
-			throw new IOException("Invalid header, unknown frame_type: " + frame_type);
-		}
-		
-	}
-	
-	// XXX re-implement reader logic
-	/*private class SocketHandlerReader implements CompletionHandler<Integer, ByteBuffer> {
-		
-		public void completed(Integer size, ByteBuffer read_buffer) {
-			read_buffer.flip();
-			
-			if (size < 1) {
-				close();
-			} else if (read_buffer.remaining() != size) {
-				failed(new IOException("Invalid remaining datas: " + size + " buffer: " + read_buffer.remaining()), read_buffer);
-				if (isOpen()) {
-					asyncRead();
-				}
-			} else if (isOpen()) {
-				event_handler.onAfterReceviedDatas(size);
+				Item.readAndEquals(data_payload_received_buffer, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
+					return new IOException("Protocol error with app_socket_header_tag: " + Hexview.tracelog(b));
+				});
+				Item.readByteAndEquals(data_payload_received_buffer, Protocol.VERSION, version -> {
+					return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
+				});
+				int frame_type = data_payload_received_buffer.get();
+				data_payload_received_buffer.position(initial_pos);
 				
-				try {
-					ByteBuffer sended_content = read_buffer;// cipher_engine.decrypt();
-					while (sended_content.hasRemaining()) {
-						readNextFrame(sended_content);
+				if (frame_type == Protocol.FRAME_TYPE_PROLOGUE) {
+					FramePrologue prologue = new FramePrologue(data_payload_received_buffer);
+					recevied_frames.putIfAbsent(prologue.session_id, new FrameContainer(prologue));
+					
+					receviedFramesGC();
+				} else if (frame_type == Protocol.FRAME_TYPE_PAYLOAD) {
+					FramePayload frame_payload = new FramePayload(data_payload_received_buffer);
+					FrameContainer f_container = recevied_frames.get(frame_payload.session_id);
+					if (f_container == null) {
+						throw new IOException("Can't found frame with session id: " + frame_payload.session_id);
 					}
-				} catch (Exception e) {
-					failed(e, read_buffer);
-				}
-				
-				read_buffer.clear();
-				if (isOpen()) {
-					asyncRead();
+					f_container.appendPayload(frame_payload);
+					
+				} else if (frame_type == Protocol.FRAME_TYPE_EPILOGUE) {
+					FrameEpilogue epilogue = new FrameEpilogue(data_payload_received_buffer);
+					FrameContainer old_f_container = recevied_frames.remove(epilogue.session_id);
+					if (old_f_container == null) {
+						throw new IOException("Can't found frame with session id: " + epilogue.session_id);
+					}
+					
+					ByteBuffer raw_datas = old_f_container.close();
+					if (raw_datas != null) {
+						if (onGetDataBlock(new DataBlock(raw_datas), old_f_container.prologue.create_date)) {
+							onManualCloseAfterRecevied();
+							return false;
+						}
+					}
+				} else {
+					throw new IOException("Invalid header, unknown frame_type: " + frame_type);
 				}
 			}
+		} catch (IOException e) {
+			onCantExtractFrame(e);
 		}
-	}*/
+		
+		return true;
+	}
 	
-	public void close() {
-		super.close();
+	protected void onAfterClose() {
 		recevied_frames.clear();
 	}
 	
-	@Override
-	protected boolean onGetDatas(boolean partial) {
-		// TODO Auto-generated method stub
-		return false;
-	}
+	/**
+	 * @return false for close socket
+	 */
+	protected abstract boolean onGetDataBlock(DataBlock data_block, long create_date);
 	
-	@Override
-	protected void onIOButClosed(AsynchronousCloseException e) {
-		// TODO Auto-generated method stub
-		
-	}
+	protected abstract void onIOButClosed(AsynchronousCloseException e);
 	
-	@Override
-	protected void onIOExceptionCauseClosing(Throwable e) {
-		// TODO Auto-generated method stub
-		
-	}
+	protected abstract void onIOExceptionCauseClosing(Throwable e);
 	
-	@Override
-	protected void onCloseException(IOException e) {
-		// TODO Auto-generated method stub
-		
-	}
+	protected abstract void onCloseException(IOException e);
 	
-	@Override
-	protected void onCloseButChannelWasClosed(ClosedChannelException e) {
-		// TODO Auto-generated method stub
-		
-	}
+	protected abstract void onCloseButChannelWasClosed(ClosedChannelException e);
+	
+	protected abstract void onCantExtractFrame(IOException e);
+	
+	protected abstract void onBeforeSendRawDatas(String request_name, int length, int total_size, CompressionFormat compress_format);
+	
+	protected abstract void onRemoveOldStoredDataFrame(long session_id);
+	
+	protected abstract void onManualCloseAfterSend();
+	
+	protected abstract void onManualCloseAfterRecevied();
+	
+	protected abstract void onAfterSend(Integer size);
+	
+	protected abstract void onAfterReceviedDatas(Integer size);
 	
 }

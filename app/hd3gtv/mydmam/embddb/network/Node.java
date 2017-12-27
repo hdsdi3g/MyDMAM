@@ -29,6 +29,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.net.ssl.SSLEngine;
+
 import org.apache.log4j.Logger;
 
 import com.google.gson.JsonObject;
@@ -41,15 +43,12 @@ import hd3gtv.tools.ActivityScheduledAction;
 import hd3gtv.tools.PressureMeasurement;
 import hd3gtv.tools.TableList;
 
-public class Node {
+public class Node extends NodeIO {
 	
 	private static final Logger log = Logger.getLogger(Node.class);
 	
 	@GsonIgnore
 	private final PoolManager pool_manager;
-	
-	@GsonIgnore
-	private final NodeIO node_io;
 	
 	/**
 	 * Can be empty
@@ -61,7 +60,6 @@ public class Node {
 	private long server_delta_time;
 	private final long create_date;
 	private InetSocketAddress socket_addr;
-	private final String provider_type;
 	
 	@GsonIgnore
 	private final SocketProvider provider;
@@ -71,15 +69,14 @@ public class Node {
 	private final PressureMeasurement pressure_measurement_recevied;
 	private final AtomicLong last_activity;
 	
-	Node(SocketProvider provider, PoolManager pool_manager, AsynchronousSocketChannel channel) {
+	Node(SocketProvider provider, PoolManager pool_manager, AsynchronousSocketChannel channel) throws IOException {
+		super(channel, createSSLEngine(pool_manager, provider), pool_manager.getExecutor());
+		
 		this.provider = provider;
 		if (provider == null) {
 			throw new NullPointerException("\"provider\" can't to be null");
 		}
 		this.pool_manager = pool_manager;
-		if (pool_manager == null) {
-			throw new NullPointerException("\"pool_manager\" can't to be null");
-		}
 		
 		this.pressure_measurement_recevied = pool_manager.getPressureMeasurementRecevied();
 		if (pressure_measurement_recevied == null) {
@@ -91,89 +88,15 @@ public class Node {
 		}
 		last_activity = new AtomicLong(System.currentTimeMillis());
 		
-		node_io = new NodeIO(channel, (block, create_date) -> {
-			try {
-				pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
-				pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);
-			} catch (IOException e) {
-				if (e instanceof WantToCloseLinkException) {
-					log.debug("Handler want to close link");
-					pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);
-					return true;
-				} else {
-					log.error("Can't extract sended blocks " + toString(), e);
-					return true;
-				}
-			}
-			return false;
-		}, new NodeIOEvent() {
-			
-			public void onCloseButChannelWasClosed(ClosedChannelException e) {
-				log.debug("Node " + toString() + " was closed: " + e.getMessage());
-			}
-			
-			public void onCloseException(IOException e) {
-				log.warn("Can't close properly channel " + toString(), e);
-			}
-			
-			public void onBeforeSendRawDatas(String request_name, int length, int total_size, CompressionFormat compress_format) {
-				if (log.isTraceEnabled()) {
-					log.trace("Send to " + toString() + " \"" + request_name + "\" " + length + " bytes raw, " + total_size + " bytes for real size (compress: " + compress_format + ")");
-				}
-			}
-			
-			public void onReadPendingException(ReadPendingException e) {
-				log.warn("No two reads at the same time for " + toString(), e);
-			}
-			
-			public void onRemoveOldStoredDataFrame(long session_id) {
-				if (log.isTraceEnabled()) {
-					log.trace("Remove old frame: session id: " + session_id);
-				}
-			}
-			
-			public void onManualCloseAfterSend() {
-				log.debug("Manual close socket channel \"" + toString() + "\" after send datas to other node");
-			}
-			
-			public void onManualCloseAfterRecevied() {
-				log.debug("Manual close socket channel \"" + toString() + "\" after recevied datas from the other node");
-			}
-			
-			public void onIOButClosed(AsynchronousCloseException e) {
-				log.debug("Channel \"" + toString() + "\" was closed, so can't do IO.");
-			}
-			
-			public void onIOExceptionCauseClosing(Throwable e) {
-				log.error("Channel \"" + toString() + "\" failed, close socket because " + e.getMessage());
-			}
-			
-			public void onAfterSend(Integer size) {
-				if (log.isTraceEnabled()) {
-					log.trace("Sended to \"" + toString() + "\" " + size + " bytes");
-				}
-			}
-			
-			public void onAfterReceviedDatas(Integer size) {
-				last_activity.set(System.currentTimeMillis());
-				
-				if (size < 1) {
-					log.warn("Recevied from " + toString() + " an invalid buffer: " + size + " bytes");
-				} else if (log.isTraceEnabled()) {
-					log.trace("Recevied from " + toString() + " " + size + " bytes");
-				}
-			}
-		});
-		
-		try {
-			socket_addr = (InetSocketAddress) channel.getRemoteAddress();
-		} catch (
-		
-		IOException e) {
-		}
+		socket_addr = getRemoteAddress();
 		server_delta_time = 0;
 		create_date = System.currentTimeMillis();
-		provider_type = provider.getTypeName();
+		
+		handshake(pool_manager.getProtocol().getKeystoreTool());
+	}
+	
+	private static SSLEngine createSSLEngine(PoolManager pool_manager, SocketProvider provider) {
+		return provider.getType().initSSLEngine(pool_manager.getProtocol().getSSLContext().createSSLEngine());
 	}
 	
 	public InetSocketAddress getSocketAddr() {
@@ -181,17 +104,13 @@ public class Node {
 			if (provider instanceof SocketClient) {
 				socket_addr = ((SocketClient) provider).getDistantServerAddr();
 			} else
-				try {
-					socket_addr = node_io.getRemoteAddress();
-				} catch (IOException e) {
-					log.debug("Can't get addr", e);
-				}
+				socket_addr = getRemoteAddress();
 		}
 		return socket_addr;
 	}
 	
 	public boolean isOpenSocket() {
-		return node_io.isOpen();
+		return isOpen();
 	}
 	
 	/**
@@ -211,9 +130,9 @@ public class Node {
 	
 	public String toString() {
 		if (uuid_ref == null) {
-			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " [" + provider_type + "]";
+			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " [" + provider.getTypeName() + "]";
 		} else {
-			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " #" + uuid_ref.toString().substring(0, 6) + " [" + provider_type + "]";
+			return getSocketAddr().getHostString() + "/" + getSocketAddr().getPort() + " #" + uuid_ref.toString().substring(0, 6) + " [" + provider.getTypeName() + "]";
 		}
 	}
 	
@@ -252,7 +171,8 @@ public class Node {
 	}
 	
 	/**
-	 * It will add to queue
+	 * Sync send
+	 * @see sendBlock()
 	 */
 	public <O, T extends RequestHandler<O>> void sendRequest(Class<T> request_class, O options) {
 		T request = pool_manager.getAllRequestHandlers().getRequestByClass(request_class);
@@ -263,7 +183,7 @@ public class Node {
 	}
 	
 	/**
-	 * It will add to queue
+	 * Sync send
 	 */
 	void sendBlock(DataBlock data, boolean close_channel_after_send) {
 		final long start_time = System.currentTimeMillis();
@@ -275,7 +195,7 @@ public class Node {
 		}
 		
 		try {
-			int total_size = node_io.syncSend(data.getFramePayloadContent(), data.getRequestName().name, close_channel_after_send);// TODO async wrapper !
+			int total_size = syncSend(data.getFramePayloadContent(), data.getRequestName().name, close_channel_after_send);
 			pressure_measurement_sended.onDatas(total_size, System.currentTimeMillis() - start_time);
 		} catch (Exception e) {
 			log.error("Can't send datas to " + toString() + " > " + data.getRequestName() + ". Closing connection");
@@ -469,13 +389,9 @@ public class Node {
 	}
 	
 	private void checkIfOpen() throws IOException {
-		if (node_io.isOpen() == false) {
+		if (isOpen() == false) {
 			throw new IOException("Channel for " + toString() + " is closed");
 		}
-	}
-	
-	void asyncRead() {
-		node_io.asyncRead();
 	}
 	
 	public void close(Class<?> by) {
@@ -483,15 +399,85 @@ public class Node {
 			log.debug("Want to close node " + toString() + ", asked by " + by.getSimpleName());
 		}
 		
-		node_io.close();
+		close();
 		pool_manager.remove(this);
 	}
 	
-	/**
-	 * @return node_io.channel.hashCode
-	 */
-	public int hashCode() {
-		return node_io.hashCode();
+	protected void onCloseButChannelWasClosed(ClosedChannelException e) {
+		log.debug("Node " + toString() + " was closed: " + e.getMessage());
+	}
+	
+	protected void onCloseException(IOException e) {
+		log.warn("Can't close properly channel " + toString(), e);
+	}
+	
+	protected void onBeforeSendRawDatas(String request_name, int length, int total_size, CompressionFormat compress_format) {
+		if (log.isTraceEnabled()) {
+			log.trace("Send to " + toString() + " \"" + request_name + "\" " + length + " bytes raw, " + total_size + " bytes for real size (compress: " + compress_format + ")");
+		}
+	}
+	
+	protected void onReadPendingException(ReadPendingException e) {
+		log.warn("No two reads at the same time for " + toString(), e);
+	}
+	
+	protected void onRemoveOldStoredDataFrame(long session_id) {
+		if (log.isTraceEnabled()) {
+			log.trace("Remove old frame: session id: " + session_id);
+		}
+	}
+	
+	protected void onManualCloseAfterSend() {
+		log.debug("Manual close socket channel \"" + toString() + "\" after send datas to other node");
+	}
+	
+	protected void onManualCloseAfterRecevied() {
+		log.debug("Manual close socket channel \"" + toString() + "\" after recevied datas from the other node");
+	}
+	
+	protected void onIOButClosed(AsynchronousCloseException e) {
+		log.debug("Channel \"" + toString() + "\" was closed, so can't do IO.");
+	}
+	
+	protected void onIOExceptionCauseClosing(Throwable e) {
+		log.error("Channel \"" + toString() + "\" failed, close socket because " + e.getMessage());
+	}
+	
+	protected void onAfterSend(Integer size) {
+		if (log.isTraceEnabled()) {
+			log.trace("Sended to \"" + toString() + "\" " + size + " bytes");
+		}
+	}
+	
+	protected void onAfterReceviedDatas(Integer size) {
+		last_activity.set(System.currentTimeMillis());
+		
+		if (size < 1) {
+			log.warn("Recevied from " + toString() + " an invalid buffer: " + size + " bytes");
+		} else if (log.isTraceEnabled()) {
+			log.trace("Recevied from " + toString() + " " + size + " bytes");
+		}
+	}
+	
+	protected boolean onGetDataBlock(DataBlock block, long create_date) {
+		try {
+			pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
+			pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);
+		} catch (IOException e) {
+			if (e instanceof WantToCloseLinkException) {
+				log.debug("Handler want to close link");
+				pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);
+				return true;
+			} else {
+				log.error("Can't extract sended blocks " + toString(), e);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	protected void onCantExtractFrame(IOException e) {
+		log.error("Channel \"" + toString() + "\" failed, can't extract data frames " + e.getMessage());
 	}
 	
 }

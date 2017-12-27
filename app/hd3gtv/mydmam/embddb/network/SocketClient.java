@@ -28,12 +28,14 @@ public class SocketClient implements SocketProvider {
 	
 	private static final Logger log = Logger.getLogger(SocketClient.class);
 	
-	private AsynchronousSocketChannel channel;
-	private SocketConnect handler_connect;
-	private Consumer<Node> callback_on_connection;
-	private InetSocketAddress distant_server_addr;
+	private final AsynchronousSocketChannel channel;
+	private final SocketConnect handler_connect;
+	private final Consumer<Node> callback_on_connection;
+	private final InetSocketAddress distant_server_addr;
+	private final PoolManager pool_manager;
 	
 	public SocketClient(PoolManager pool_manager, InetSocketAddress server, Consumer<Node> callback_on_connection) throws IOException {
+		this.pool_manager = pool_manager;
 		if (pool_manager == null) {
 			throw new NullPointerException("\"pool_manager\" can't to be null");
 		}
@@ -49,29 +51,28 @@ public class SocketClient implements SocketProvider {
 		handler_connect = new SocketConnect();
 		
 		channel = AsynchronousSocketChannel.open(pool_manager.getChannelGroup());
-		
-		channel.connect(server, new Node(this, pool_manager, channel), handler_connect);
+		// TODO manage pending cxt list...
+		channel.connect(server, null, handler_connect);
 	}
 	
-	private class SocketConnect implements CompletionHandler<Void, Node> {
+	private SocketClient getThis() {
+		return this;
+	}
+	
+	private class SocketConnect implements CompletionHandler<Void, Void> {
 		
-		public void completed(Void result, Node new_node) {
-			if (new_node == null) {
-				log.warn("\"new_node\" is null");
-				try {
-					channel.close();
-				} catch (IOException e) {
-					log.debug("Can't close channel after exception", e);
-				}
-				return;
+		public void completed(Void result, Void nothing) {
+			try {
+				Node new_node = new Node(getThis(), pool_manager, channel);
+				log.info("Connected to " + new_node);
+				callback_on_connection.accept(new_node);
+			} catch (IOException e) {
+				log.warn("Can't load node connection to " + distant_server_addr, e);
 			}
-			log.info("Connected to " + new_node);
-			new_node.asyncRead();
-			callback_on_connection.accept(new_node);
 		}
 		
-		public void failed(Throwable e, Node new_node) {
-			log.warn("Can't create TCP Client to " + new_node + " " + e.getMessage().trim());
+		public void failed(Throwable e, Void nothing) {
+			log.warn("Can't create TCP Client to " + distant_server_addr + " " + e.getMessage().trim());
 		}
 		
 	}
@@ -82,5 +83,9 @@ public class SocketClient implements SocketProvider {
 	
 	public String getTypeName() {
 		return "Lclient>Dserver";
+	}
+	
+	public SocketType getType() {
+		return SocketType.CLIENT;
 	}
 }

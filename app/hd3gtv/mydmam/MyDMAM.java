@@ -35,6 +35,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.bouncycastle.operator.OperatorCreationException;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.CheckJVM.Level;
 import hd3gtv.mydmam.embddb.EmbDDB;
@@ -238,7 +240,7 @@ public class MyDMAM {
 			embddb_loaded = true;
 			try {
 				embddb = EmbDDB.createFromConfiguration();
-			} catch (GeneralSecurityException | IOException | InterruptedException e) {
+			} catch (GeneralSecurityException | IOException | InterruptedException | SecurityException | OperatorCreationException e) {
 				throw new RuntimeException("Can't load EmbDDB", e);
 			}
 		}

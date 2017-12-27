@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.bouncycastle.operator.OperatorCreationException;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationClusterItem;
@@ -54,26 +55,15 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	
 	private static Logger log = Logger.getLogger(EmbDDB.class);
 	
-	private static String getMasterPasswordKey() throws GeneralSecurityException {
-		String master_password_key = Configuration.global.getValue("embddb", "master_password_key", "");
-		if (master_password_key.equalsIgnoreCase("SetMePlease")) {
-			throw new GeneralSecurityException("You can't use \"SetMePlease\" as password for EmbDDB");
-		}
-		if (master_password_key.length() < 5) {
-			log.warn("You should not use a so small password for EmbDDB (" + master_password_key.length() + " chars)");
-		}
-		return master_password_key;
-	}
-	
 	/**
 	 * @return can be null
 	 */
-	public static EmbDDB createFromConfiguration() throws GeneralSecurityException, IOException, InterruptedException {
+	public static EmbDDB createFromConfiguration() throws GeneralSecurityException, IOException, InterruptedException, SecurityException, OperatorCreationException {
 		if (Configuration.global.isElementKeyExists("embddb", "master_password_key") == false) {
 			return null;
 		}
 		
-		EmbDDB result = new EmbDDB(getMasterPasswordKey());
+		EmbDDB result = new EmbDDB();
 		List<InetSocketAddress> bootstrap_addrs = Configuration.global.getClusterConfiguration("embddb", "bootstrap_nodes", null, result.protocol.getDefaultTCPPort()).stream().map(item -> {
 			return item.getSocketAddress();
 		}).collect(Collectors.toList());
@@ -107,10 +97,10 @@ public class EmbDDB implements InteractiveConsoleOrder {
 	private long time_to_wait_to_have_nodes_for_data_sync;
 	private boolean is_functionnal;
 	
-	private EmbDDB(String master_password_key) throws GeneralSecurityException, IOException {
+	private EmbDDB() throws GeneralSecurityException, IOException, SecurityException, OperatorCreationException {
 		uuid_ref = UUID.randomUUID();
 		console = new InteractiveConsole();
-		protocol = new Protocol(master_password_key);
+		protocol = new Protocol();
 		poolmanager = new PoolManager(protocol, uuid_ref);
 		lock_engine = new LockEngine(poolmanager);
 		telemetry = new Telemetry(this);
@@ -221,7 +211,7 @@ public class EmbDDB implements InteractiveConsoleOrder {
 		}
 		
 		public void execCliModule(ApplicationArgs args) throws Exception {
-			EmbDDB embddb = new EmbDDB(getMasterPasswordKey());
+			EmbDDB embddb = new EmbDDB();
 			embddb.setVolatileStoreDirectory();
 			embddb.time_to_wait_to_have_nodes_for_data_sync = Configuration.global.getValue("embddb", "time_to_wait_to_have_nodes_for_data_sync_in_console_mode", 500l);
 			
