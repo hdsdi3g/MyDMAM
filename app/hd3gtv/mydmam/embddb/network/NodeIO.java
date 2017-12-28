@@ -24,12 +24,9 @@ import java.nio.channels.ClosedChannelException;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLEngine;
-
-import org.apache.log4j.Logger;
 
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
@@ -39,19 +36,14 @@ import hd3gtv.tools.ThreadPoolExecutorFactory;
 @GsonIgnore
 abstract class NodeIO extends TLSSocketHandler {
 	
-	private static Logger log = Logger.getLogger(NodeIO.class);
-	
-	// private static final int SOCKET_BUFFER_SIZE = 0xFFFF;
-	// private static final int MAX_SIZE_CHUNK = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
-	private static final long GRACE_PERIOD_TO_KEEP_OLD_RECEVIED_FRAMES = TimeUnit.HOURS.toMillis(8);
-	private static final long MAX_RECEVIED_FRAMES_TO_KEEP_BEFORE_DO_GC = 100l;
-	
+	// private static Logger log = Logger.getLogger(NodeIO.class);
 	private final Object send_lock;
 	
 	private static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length /** Generic Headers */
 			+ 1 /** VERSION */
 			+ 8 /** Session id */
 			+ 1 /** compress_format */
+			+ HandleName.SIZE /** Handle name ref */
 			+ 4 /** payload_size */
 	;
 	private static final int FRAME_FOOTER_SIZE = Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG.length /** Generic Footer */
@@ -65,6 +57,7 @@ abstract class NodeIO extends TLSSocketHandler {
 	private volatile boolean current_check_version;
 	private volatile boolean current_check_footer_tag;
 	private volatile boolean current_check_session_id;
+	private volatile HandleName current_handle_name;
 	
 	private volatile ByteBuffer previous_data_payload_received_buffer;
 	
@@ -84,30 +77,29 @@ abstract class NodeIO extends TLSSocketHandler {
 		current_check_version = false;
 		current_check_footer_tag = false;
 		current_check_session_id = false;
+		current_handle_name = null;
 	}
 	
-	/**
-	 * Pack source_to_send to Frames, compress it, and send it.
-	 */
-	int syncSend(ByteBuffer source_to_send, String request_name, boolean close_channel_after_send) throws IOException, GeneralSecurityException {
+	int syncSend(ByteBuffer payload, HandleName request_handle_name, boolean close_channel_after_send) throws IOException, GeneralSecurityException {
 		CompressionFormat compress_format = CompressionFormat.NONE;
-		if (source_to_send.remaining() > 0xFFF) {
+		if (payload.remaining() > 0xFFF) {
 			compress_format = CompressionFormat.GZIP;
 		}
 		
 		long session_id = ThreadLocalRandom.current().nextLong();
 		
-		byte[] b_source_to_send = new byte[source_to_send.remaining()];
-		source_to_send.get(b_source_to_send);
+		byte[] b_source_to_send = new byte[payload.remaining()];
+		payload.get(b_source_to_send);
 		byte[] prepared_source_to_send = compress_format.shrink(b_source_to_send);
 		
 		int payload_size = prepared_source_to_send.length;
-		ByteBuffer result = ByteBuffer.allocate(FRAME_HEADER_SIZE + payload_size + FRAME_FOOTER_SIZE);
+		ByteBuffer result = ByteBuffer.allocateDirect(FRAME_HEADER_SIZE + payload_size + FRAME_FOOTER_SIZE);
 		
 		result.put(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);/** Generic Headers */
 		result.put(Protocol.VERSION);/** Generic Headers */
 		result.putLong(session_id);
 		result.put(compress_format.getReference());
+		request_handle_name.toByteBuffer(result);
 		result.putInt(payload_size);
 		
 		result.put(prepared_source_to_send); /** Payload */
@@ -120,7 +112,7 @@ abstract class NodeIO extends TLSSocketHandler {
 		}
 		
 		result.flip();
-		onBeforeSendRawDatas(request_name, b_source_to_send.length, result.remaining(), compress_format);
+		onBeforeSendRawDatas(request_handle_name.name, b_source_to_send.length, result.remaining(), compress_format);
 		
 		synchronized (send_lock) {
 			try {
@@ -180,6 +172,11 @@ abstract class NodeIO extends TLSSocketHandler {
 					if (current_compress_format == null) {
 						throw new IOException("\"current_compress_format\" can't to be null");
 					}
+				} else if (current_handle_name == null) {
+					if (current_data_buffer.get().remaining() < HandleName.SIZE) {
+						break;
+					}
+					current_handle_name = new HandleName(current_data_buffer.get());
 				} else if (current_recevied_payload == null) {
 					if (current_data_buffer.get().remaining() < 4) {
 						break;
@@ -194,7 +191,7 @@ abstract class NodeIO extends TLSSocketHandler {
 					int max_to_transfert = Math.min(current_recevied_payload.remaining(), current_data_buffer.get().remaining());
 					
 					for (int pos = 0; pos < max_to_transfert; pos++) {
-						current_recevied_payload.put(current_data_buffer.get().get()); // XXX why not deflate from here ?
+						current_recevied_payload.put(current_data_buffer.get().get());
 					}
 				} else if (current_check_footer_tag == false) {
 					if (current_data_buffer.get().remaining() < Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG.length) {
@@ -221,7 +218,10 @@ abstract class NodeIO extends TLSSocketHandler {
 					current_recevied_payload.get(compressed_content);
 					byte[] uncompressed_content = current_compress_format.expand(compressed_content);
 					
-					if (onGetDataBlock(new DataBlock(ByteBuffer.wrap(uncompressed_content)), System.currentTimeMillis())) {// TODO move DataBlock creation to Node
+					// System.out.println("R:");
+					// System.out.println(Hexview.tracelog(compressed_content));
+					
+					if (onGetPayload(ByteBuffer.wrap(uncompressed_content), current_handle_name) == false) {
 						onManualCloseAfterRecevied();
 						return false;
 					}
@@ -263,7 +263,8 @@ abstract class NodeIO extends TLSSocketHandler {
 	/**
 	 * @return false for close socket
 	 */
-	protected abstract boolean onGetDataBlock(DataBlock data_block, long create_date);// TODO move DataBlock creation to Node
+	
+	protected abstract boolean onGetPayload(ByteBuffer payload, HandleName handle_name);
 	
 	protected abstract void onIOButClosed(AsynchronousCloseException e);
 	

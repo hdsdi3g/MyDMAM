@@ -34,12 +34,6 @@ public final class DataBlock {
 	
 	private static final Logger log = Logger.getLogger(DataBlock.class);
 	
-	private static final int HEADER_SIZE = HandleName.SIZE /** handle name size */
-			+ 8 /** create_date */
-			+ 1 /** spacer */
-			+ 4 /** data size */
-	;
-	
 	private final HandleName handle_name;
 	private final long create_date;
 	private final ByteBuffer datas_buffer;
@@ -88,28 +82,30 @@ public final class DataBlock {
 		}
 	}
 	
-	ByteBuffer getFramePayloadContent() throws IOException {
-		ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE + datas_buffer.remaining());
+	@Deprecated
+	ByteBuffer getFramePayloadContent() throws IOException {// XXX remove
+		/*ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE + datas_buffer.remaining());
 		
 		handle_name.toByteBuffer(result);
 		result.putLong(create_date);
 		
-		/**
+		**
 		 * Spacer
-		 */
+		 *
 		result.put((byte) 0);
 		result.putInt(datas_buffer.remaining());
 		result.put(datas_buffer);
 		datas_buffer.flip();
 		result.flip();
-		
-		return result;
+		*/
+		return null;
 	}
 	
 	/**
 	 * Import mode (receving)
 	 */
-	DataBlock(ByteBuffer full_datas) throws IOException {
+	@Deprecated
+	DataBlock(ByteBuffer full_datas) throws IOException {// XXX remove
 		handle_name = new HandleName(full_datas);
 		create_date = full_datas.getLong();
 		

@@ -19,6 +19,7 @@ package hd3gtv.mydmam.embddb.network;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
@@ -197,7 +198,7 @@ public class Node extends NodeIO {
 		}
 		
 		try {
-			int total_size = syncSend(data.getFramePayloadContent(), data.getRequestName().name, close_channel_after_send);
+			int total_size = syncSend(data.getFramePayloadContent(), data.getRequestName(), close_channel_after_send);
 			pressure_measurement_sended.onDatas(total_size, System.currentTimeMillis() - start_time);
 		} catch (Exception e) {
 			log.error("Can't send datas to " + toString() + " > " + data.getRequestName() + ". Closing connection");
@@ -461,21 +462,23 @@ public class Node extends NodeIO {
 		}
 	}
 	
-	protected boolean onGetDataBlock(DataBlock block, long create_date) {// TODO move DataBlock creation here
+	protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name) {
 		try {
-			pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
-			pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);
-		} catch (IOException e) {
-			if (e instanceof WantToCloseLinkException) {
+			// XXX set handle_name
+			DataBlock block = new DataBlock(payload);
+			pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - block.getCreateDate());
+			try {
+				pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
+			} catch (WantToCloseLinkException e) {
 				log.debug("Handler want to close link");
-				pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);
-				return true;
-			} else {
-				log.error("Can't extract sended blocks " + toString(), e);
-				return true;
+				pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - block.getCreateDate());
+				return false;
 			}
+			return true;
+		} catch (IOException e) {
+			log.error("Can't extract sended blocks " + toString(), e);
+			return false;
 		}
-		return false;
 	}
 	
 	protected void onCantExtractFrame(IOException e) {

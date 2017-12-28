@@ -53,7 +53,7 @@ public abstract class TLSSocketHandler {
 	private static final int MAX_PAYLOAD_SIZE = 0xFFFF;
 	private static final long TIME_TO_GET_SYNC_NETWORK_IO = TimeUnit.SECONDS.toMillis(10);
 	
-	private static final ByteBuffer HAND_SHAKE_DUMMY = ByteBuffer.allocate(8192);
+	private static final ByteBuffer HAND_SHAKE_DUMMY = ByteBuffer.allocateDirect(8192);
 	private final AsynchronousSocketChannel socket_channel;
 	private final SSLEngine ssl_engine;
 	private final ByteBuffer socket_received_buffer;
@@ -135,7 +135,9 @@ public abstract class TLSSocketHandler {
 				switch (s) {
 				case OK:
 					/** Bytes available for reading and there may be sufficient data in the socketReadBuffer to support further reads without reading from the socket */
-					log.trace("ok: " + r.bytesProduced() + " > " + data_payload_received_buffer.position());
+					if (log.isTraceEnabled()) {
+						log.trace("ok: " + r.bytesProduced() + " > " + data_payload_received_buffer.position());
+					}
 					break;
 				case BUFFER_UNDERFLOW:
 					/**
@@ -145,7 +147,9 @@ public abstract class TLSSocketHandler {
 						/** Need more data before the partial data can be processed and some output generated */
 						force_read = true;
 					} else {
-						log.trace("under: " + r.bytesProduced() + " > " + data_payload_received_buffer.position());
+						if (log.isTraceEnabled()) {
+							log.trace("under: " + r.bytesProduced() + " > " + data_payload_received_buffer.position());
+						}
 					}
 					
 					/**
@@ -157,7 +161,9 @@ public abstract class TLSSocketHandler {
 					 * Not enough space in the destination buffer to store all of the data. We could use a bytes read value of -bufferSizeRequired to signal the new buffer size required but an explicit exception is clearer.
 					 */
 					if (r.bytesProduced() == 0) {
-						log.trace("over: " + data_payload_received_buffer.position() + " > " + data_payload_received_buffer.remaining());
+						if (log.isTraceEnabled()) {
+							log.trace("over: " + data_payload_received_buffer.position() + " > " + data_payload_received_buffer.remaining());
+						}
 						
 						data_payload_received_buffer.flip();
 						onGetDatas(true);
@@ -190,7 +196,9 @@ public abstract class TLSSocketHandler {
 			}
 			
 			if (force_read) {
-				log.trace("Force read");
+				if (log.isTraceEnabled()) {
+					log.trace("Force read");
+				}
 				socket_received_buffer.compact();
 				if (socket_channel.read(socket_received_buffer).get(TIME_TO_GET_SYNC_NETWORK_IO, TimeUnit.MILLISECONDS) == -1) {
 					throw new EOFException("Unexpected end of stream");

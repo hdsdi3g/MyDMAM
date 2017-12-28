@@ -524,7 +524,7 @@ class NetDiscover {
 			void start() throws IOException {
 				channel = DatagramChannel.open(pf).setOption(StandardSocketOptions.SO_REUSEADDR, true).bind(bind_to);
 				key = channel.join(group_socket.getAddress(), network_interface);
-				ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+				ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 				
 				receiver = new Thread(() -> {
 					InetSocketAddress sender;

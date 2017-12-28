@@ -41,6 +41,7 @@ public enum CompressionFormat {
 		public String toString() {
 			return "uncompressed";
 		}
+		
 	},
 	GZIP {
 		public byte[] shrink(byte[] source) throws IOException {
