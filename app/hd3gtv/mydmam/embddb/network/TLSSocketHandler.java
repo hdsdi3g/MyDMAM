@@ -319,7 +319,6 @@ public abstract class TLSSocketHandler {
 				onCloseException(e);
 			}
 		}
-		onAfterClose();
 	}
 	
 	public int hashCode() {
@@ -430,9 +429,6 @@ public abstract class TLSSocketHandler {
 		kt_tool.checkSecurity(ssl_engine);
 		
 		readNext();
-	}
-	
-	protected void onAfterClose() {
 	}
 	
 	protected void onCloseException(IOException e) {

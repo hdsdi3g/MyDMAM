@@ -461,7 +461,7 @@ public class Node extends NodeIO {
 		}
 	}
 	
-	protected boolean onGetDataBlock(DataBlock block, long create_date) {
+	protected boolean onGetDataBlock(DataBlock block, long create_date) {// TODO move DataBlock creation here
 		try {
 			pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);
 			pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - create_date);

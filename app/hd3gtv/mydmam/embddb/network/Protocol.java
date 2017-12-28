@@ -53,9 +53,9 @@ public final class Protocol implements CipherEngine {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	
 	public static final byte VERSION = 2;
-	public static final byte FRAME_TYPE_PROLOGUE = 0;
-	public static final byte FRAME_TYPE_PAYLOAD = 1;
-	public static final byte FRAME_TYPE_EPILOGUE = 2;
+	// public static final byte FRAME_TYPE_PROLOGUE = 0;
+	// public static final byte FRAME_TYPE_PAYLOAD = 1;
+	// public static final byte FRAME_TYPE_EPILOGUE = 2;
 	
 	/**
 	 * EmbMYD
@@ -63,13 +63,18 @@ public final class Protocol implements CipherEngine {
 	public static final byte[] APP_EMBDDB_SOCKET_HEADER_TAG = "EmbMYD".getBytes(MyDMAM.US_ASCII);
 	
 	/**
+	 * EmbMYD
+	 */
+	public static final byte[] APP_EMBDDB_SOCKET_FOOTER_TAG = "EndPayload".getBytes(MyDMAM.US_ASCII);
+	
+	/**
 	 * MYDNETDSCVR
 	 */
 	public static final byte[] APP_NETDISCOVER_SOCKET_HEADER_TAG = "MYDNETDSCVR".getBytes(MyDMAM.UTF8);
 	
-	public static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length + 1 /** version */
-			+ 1 /** Frame Type */
-	;
+	// public static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length + 1 /** version */
+	// + 1 /** Frame Type */
+	// ;
 	
 	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
 	

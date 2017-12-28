@@ -22,15 +22,10 @@ import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLEngine;
 
@@ -46,14 +41,32 @@ abstract class NodeIO extends TLSSocketHandler {
 	
 	private static Logger log = Logger.getLogger(NodeIO.class);
 	
-	private static final int SOCKET_BUFFER_SIZE = 0xFFFF;
-	private static final int MAX_SIZE_CHUNK = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
+	// private static final int SOCKET_BUFFER_SIZE = 0xFFFF;
+	// private static final int MAX_SIZE_CHUNK = SOCKET_BUFFER_SIZE - FramePayload.HEADER_SIZE;
 	private static final long GRACE_PERIOD_TO_KEEP_OLD_RECEVIED_FRAMES = TimeUnit.HOURS.toMillis(8);
 	private static final long MAX_RECEVIED_FRAMES_TO_KEEP_BEFORE_DO_GC = 100l;
 	
-	@Deprecated
-	private final ConcurrentHashMap<Long, FrameContainer> recevied_frames;
 	private final Object send_lock;
+	
+	private static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length /** Generic Headers */
+			+ 1 /** VERSION */
+			+ 8 /** Session id */
+			+ 1 /** compress_format */
+			+ 4 /** payload_size */
+	;
+	private static final int FRAME_FOOTER_SIZE = Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG.length /** Generic Footer */
+			+ 8 /** Session id */
+	;
+	
+	private volatile ByteBuffer current_recevied_payload;
+	private volatile long current_session_id;
+	private volatile CompressionFormat current_compress_format;
+	private volatile boolean current_check_header_tag;
+	private volatile boolean current_check_version;
+	private volatile boolean current_check_footer_tag;
+	private volatile boolean current_check_session_id;
+	
+	private volatile ByteBuffer previous_data_payload_received_buffer;
 	
 	/**
 	 * Don't forget to call handshake
@@ -61,9 +74,16 @@ abstract class NodeIO extends TLSSocketHandler {
 	NodeIO(AsynchronousSocketChannel socket_channel, SSLEngine ssl_engine, ThreadPoolExecutorFactory executor) {
 		super(socket_channel, ssl_engine, executor);
 		send_lock = new Object();
-		
-		// handler_reader = new SocketHandlerReader();
-		recevied_frames = new ConcurrentHashMap<>();
+	}
+	
+	private void resetCurrentReceviedDatas() {
+		current_recevied_payload = null;
+		current_session_id = 0;
+		current_compress_format = null;
+		current_check_header_tag = false;
+		current_check_version = false;
+		current_check_footer_tag = false;
+		current_check_session_id = false;
 	}
 	
 	/**
@@ -75,181 +95,175 @@ abstract class NodeIO extends TLSSocketHandler {
 			compress_format = CompressionFormat.GZIP;
 		}
 		
+		long session_id = ThreadLocalRandom.current().nextLong();
+		
 		byte[] b_source_to_send = new byte[source_to_send.remaining()];
 		source_to_send.get(b_source_to_send);
 		byte[] prepared_source_to_send = compress_format.shrink(b_source_to_send);
 		
-		long session_id = ThreadLocalRandom.current().nextLong();
+		int payload_size = prepared_source_to_send.length;
+		ByteBuffer result = ByteBuffer.allocate(FRAME_HEADER_SIZE + payload_size + FRAME_FOOTER_SIZE);
 		
-		/** == ceilDiv */
-		int chunk_count = -Math.floorDiv(-prepared_source_to_send.length, MAX_SIZE_CHUNK);
+		result.put(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);/** Generic Headers */
+		result.put(Protocol.VERSION);/** Generic Headers */
+		result.putLong(session_id);
+		result.put(compress_format.getReference());
+		result.putInt(payload_size);
 		
-		ArrayList<FramePayload> frame_payloads = new ArrayList<>(chunk_count);
-		for (int i = 0; i < chunk_count; i++) {
-			int pos = i * MAX_SIZE_CHUNK;
-			int size = Math.min(prepared_source_to_send.length - pos, MAX_SIZE_CHUNK);
-			frame_payloads.add(new FramePayload(session_id, i, prepared_source_to_send, pos, size));
+		result.put(prepared_source_to_send); /** Payload */
+		
+		result.put(Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG);/** Generic Footer */
+		result.putLong(session_id);
+		
+		if (result.hasRemaining()) {
+			throw new IOException("Invalid payload size: remaining = " + result.remaining());
 		}
 		
-		FramePrologue frame_prologue = new FramePrologue(session_id, prepared_source_to_send.length, chunk_count, compress_format);
-		FrameEpilogue frame_epilogue = new FrameEpilogue(session_id);
+		result.flip();
+		onBeforeSendRawDatas(request_name, b_source_to_send.length, result.remaining(), compress_format);
 		
-		ByteBuffer prologue_to_send = /*cipher_engine.encrypt*/frame_prologue.output();// encrypt
-		ByteBuffer epilogue_to_send = /*cipher_engine.encrypt*/frame_epilogue.output();
-		
-		/**
-		 * XXX HOW ABOUT NO ?
-		 */
-		List<ByteBuffer> frame_payloads_to_send = frame_payloads.stream().map(frame_payload -> {
-			return frame_payload.output();
-		}).map(buffer -> {
+		synchronized (send_lock) {
 			try {
-				return buffer /*cipher_engine.encrypt(buffer)*/;
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+				onAfterSend(asyncWrite(result).get());
+			} catch (InterruptedException | ExecutionException e) {
+				throw new IOException(e);
 			}
-		}).collect(Collectors.toList());
-		
-		int total_size = prologue_to_send.remaining() + frame_payloads_to_send.stream().mapToInt(payload_to_send -> payload_to_send.remaining()).sum() + epilogue_to_send.remaining();
-		
-		onBeforeSendRawDatas(request_name, b_source_to_send.length, total_size, compress_format);
-		
-		ByteBuffer all_frames_to_send = ByteBuffer.allocate(total_size);
-		all_frames_to_send.put(prologue_to_send);
-		frame_payloads_to_send.forEach(payload_to_send -> {
-			all_frames_to_send.put(payload_to_send);
-		});
-		all_frames_to_send.put(epilogue_to_send);
-		
-		if (all_frames_to_send.hasRemaining() == true) {
-			throw new IOException("Invalid remaining: " + all_frames_to_send.remaining());
-		}
-		all_frames_to_send.flip();
-		
-		try {
-			synchronized (send_lock) {
-				onAfterSend(asyncWrite(all_frames_to_send).get());
-				all_frames_to_send.clear();
-			}
-			
-			if (close_channel_after_send) {
-				onManualCloseAfterSend();
-				close();
-			}
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException(e);
 		}
 		
-		return total_size;
-	}
-	
-	private void receviedFramesGC() {
-		if (recevied_frames.mappingCount() < MAX_RECEVIED_FRAMES_TO_KEEP_BEFORE_DO_GC) {
-			return;
+		if (close_channel_after_send) {
+			onManualCloseAfterSend();
+			close();
 		}
 		
-		List<Long> delete_list_too_old = recevied_frames.reduceEntries(1, entry -> {
-			Long key = entry.getKey();
-			FramePrologue p = entry.getValue().prologue;
-			
-			if (p.create_date + GRACE_PERIOD_TO_KEEP_OLD_RECEVIED_FRAMES < System.currentTimeMillis()) {
-				return Arrays.asList(key);
-			}
-			return new ArrayList<Long>(0);
-		}, (l, r) -> {
-			int l_size = l.size();
-			int r_size = r.size();
-			
-			if (l_size + r_size == 0) {
-				return Collections.emptyList();
-			}
-			List<Long> result = new ArrayList<Long>();
-			result.addAll(l);
-			result.addAll(r);
-			return result;
-		});
-		
-		delete_list_too_old.forEach(session_id -> {
-			recevied_frames.remove(session_id);
-			onRemoveOldStoredDataFrame(session_id);
-		});
+		return result.capacity();
 	}
 	
 	protected boolean onGetDatas(boolean partial) {
-		/*if (data_payload_received_buffer.hasRemaining() == false) {
-			close();
-		} else if (isOpen() == false) {
-			return false;
-		}*/
-		
 		onAfterReceviedDatas(data_payload_received_buffer.remaining());
 		
-		try {
-			while (data_payload_received_buffer.hasRemaining()) {
-				/**
-				 * Extract data frames headers
-				 */
-				int initial_pos = data_payload_received_buffer.position();
-				if (data_payload_received_buffer.remaining() < Protocol.FRAME_HEADER_SIZE) {
-					throw new IOException("Invalid header remaining size: " + data_payload_received_buffer.remaining());
-				}
-				Item.readAndEquals(data_payload_received_buffer, Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
-					return new IOException("Protocol error with app_socket_header_tag: " + Hexview.tracelog(b));
-				});
-				Item.readByteAndEquals(data_payload_received_buffer, Protocol.VERSION, version -> {
-					return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
-				});
-				int frame_type = data_payload_received_buffer.get();
-				data_payload_received_buffer.position(initial_pos);
-				
-				// XXX manage stitched/splited frames
-				
-				if (frame_type == Protocol.FRAME_TYPE_PROLOGUE) {
-					FramePrologue prologue = new FramePrologue(data_payload_received_buffer);
-					recevied_frames.putIfAbsent(prologue.session_id, new FrameContainer(prologue));
-					
-					receviedFramesGC();
-				} else if (frame_type == Protocol.FRAME_TYPE_PAYLOAD) {
-					FramePayload frame_payload = new FramePayload(data_payload_received_buffer);
-					FrameContainer f_container = recevied_frames.get(frame_payload.session_id);
-					if (f_container == null) {
-						throw new IOException("Can't found frame with session id: " + frame_payload.session_id);
-					}
-					f_container.appendPayload(frame_payload);
-					
-				} else if (frame_type == Protocol.FRAME_TYPE_EPILOGUE) {
-					FrameEpilogue epilogue = new FrameEpilogue(data_payload_received_buffer);
-					FrameContainer old_f_container = recevied_frames.remove(epilogue.session_id);
-					if (old_f_container == null) {
-						throw new IOException("Can't found frame with session id: " + epilogue.session_id);
-					}
-					
-					ByteBuffer raw_datas = old_f_container.close();
-					if (raw_datas != null) {
-						if (onGetDataBlock(new DataBlock(raw_datas), old_f_container.prologue.create_date)) {
-							onManualCloseAfterRecevied();
-							return false;
-						}
-					}
+		Supplier<ByteBuffer> current_data_buffer = () -> {
+			if (previous_data_payload_received_buffer != null) {
+				if (previous_data_payload_received_buffer.hasRemaining()) {
+					return previous_data_payload_received_buffer;
 				} else {
-					throw new IOException("Invalid header, unknown frame_type: " + frame_type);
+					previous_data_payload_received_buffer = null;
 				}
 			}
+			return data_payload_received_buffer;
+		};
+		
+		try {
+			while (current_data_buffer.get().hasRemaining()) {
+				if (current_check_header_tag == false) {
+					if (current_data_buffer.get().remaining() < Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length) {
+						break;
+					}
+					
+					Item.readAndEquals(current_data_buffer.get(), Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
+						return new IOException("Protocol error with app_socket_header_tag: " + Hexview.tracelog(b));
+					});
+					current_check_header_tag = true;
+				} else if (current_check_version == false) {
+					Item.readByteAndEquals(current_data_buffer.get(), Protocol.VERSION, version -> {
+						return new IOException("Protocol error with version, this = " + Protocol.VERSION + " and dest = " + version);
+					});
+					current_check_version = true;
+				} else if (current_check_session_id == false) {
+					if (current_data_buffer.get().remaining() < 8) {
+						break;
+					}
+					
+					current_session_id = current_data_buffer.get().getLong();
+					current_check_session_id = true;
+				} else if (current_compress_format == null) {
+					current_compress_format = CompressionFormat.fromReference(current_data_buffer.get().get());
+					if (current_compress_format == null) {
+						throw new IOException("\"current_compress_format\" can't to be null");
+					}
+				} else if (current_recevied_payload == null) {
+					if (current_data_buffer.get().remaining() < 4) {
+						break;
+					}
+					
+					int playload_size = current_data_buffer.get().getInt();
+					if (playload_size < 0) {
+						throw new IOException("\"playload_size\" is invalid: " + playload_size);
+					}
+					current_recevied_payload = ByteBuffer.allocate(playload_size);
+				} else if (current_recevied_payload.hasRemaining()) {
+					int max_to_transfert = Math.min(current_recevied_payload.remaining(), current_data_buffer.get().remaining());
+					
+					for (int pos = 0; pos < max_to_transfert; pos++) {
+						current_recevied_payload.put(current_data_buffer.get().get()); // XXX why not deflate from here ?
+					}
+				} else if (current_check_footer_tag == false) {
+					if (current_data_buffer.get().remaining() < Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG.length) {
+						break;
+					}
+					
+					Item.readAndEquals(current_data_buffer.get(), Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG, b -> {
+						return new IOException("Protocol error with app_socket_footer_tag: " + Hexview.tracelog(b));
+					});
+					current_check_footer_tag = true;
+				} else {
+					if (current_data_buffer.get().remaining() < 8) {
+						break;
+					}
+					
+					long actual_session_id = current_data_buffer.get().getLong();
+					if (current_session_id != actual_session_id) {
+						throw new IOException("Invalid session_id: " + actual_session_id + " instead of " + current_session_id);
+					}
+					
+					current_recevied_payload.position(0);
+					current_recevied_payload.limit(current_recevied_payload.capacity());
+					byte[] compressed_content = new byte[current_recevied_payload.remaining()];
+					current_recevied_payload.get(compressed_content);
+					byte[] uncompressed_content = current_compress_format.expand(compressed_content);
+					
+					if (onGetDataBlock(new DataBlock(ByteBuffer.wrap(uncompressed_content)), System.currentTimeMillis())) {// TODO move DataBlock creation to Node
+						onManualCloseAfterRecevied();
+						return false;
+					}
+					
+					resetCurrentReceviedDatas();
+				}
+			}
+			
+			if (data_payload_received_buffer.hasRemaining()) {
+				/**
+				 * Not all recevied data was consumed. The leftovers will be kept.
+				 */
+				if (previous_data_payload_received_buffer != null) {
+					byte[] actual_previous = new byte[previous_data_payload_received_buffer.capacity()];
+					previous_data_payload_received_buffer.position(0);
+					previous_data_payload_received_buffer.limit(actual_previous.length);
+					previous_data_payload_received_buffer.get(actual_previous);
+					previous_data_payload_received_buffer.clear();
+					
+					previous_data_payload_received_buffer = ByteBuffer.allocate(actual_previous.length + data_payload_received_buffer.remaining());
+					previous_data_payload_received_buffer.put(actual_previous);
+					previous_data_payload_received_buffer.put(data_payload_received_buffer);
+				} else {
+					previous_data_payload_received_buffer = ByteBuffer.allocate(data_payload_received_buffer.remaining());
+					previous_data_payload_received_buffer.put(data_payload_received_buffer);
+				}
+			} else {
+				previous_data_payload_received_buffer = null;
+			}
 		} catch (IOException e) {
+			resetCurrentReceviedDatas();
 			onCantExtractFrame(e);
+			return false;
 		}
 		
 		return true;
 	}
 	
-	protected void onAfterClose() {
-		recevied_frames.clear();
-	}
-	
 	/**
 	 * @return false for close socket
 	 */
-	protected abstract boolean onGetDataBlock(DataBlock data_block, long create_date);
+	protected abstract boolean onGetDataBlock(DataBlock data_block, long create_date);// TODO move DataBlock creation to Node
 	
 	protected abstract void onIOButClosed(AsynchronousCloseException e);
 	
