@@ -255,7 +255,7 @@ public class NodeIOTest extends TestCase {
 			log.debug("On data in " + name + " (" + payload.remaining() + ")");
 			all_recevied_payloads.add(payload);
 			assertTrue(create_date + TimeUnit.MINUTES.toMillis(2) > System.currentTimeMillis());
-			assertTrue(create_date < System.currentTimeMillis());
+			assertTrue(create_date <= System.currentTimeMillis());
 			return isDone() == false;
 		}
 		

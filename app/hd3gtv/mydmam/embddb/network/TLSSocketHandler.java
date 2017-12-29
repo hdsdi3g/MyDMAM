@@ -465,7 +465,7 @@ public abstract class TLSSocketHandler {
 			}
 		}
 		
-		log.debug("Correct handshake for " + socket_channel.getRemoteAddress());
+		log.debug("Correct handshake for " + socket_channel.getRemoteAddress() + " with principal " + ssl_engine.getSession().getPeerPrincipal());
 		kt_tool.checkSecurity(ssl_engine);
 		
 		readNext();

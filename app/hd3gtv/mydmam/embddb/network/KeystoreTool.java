@@ -53,6 +53,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
@@ -277,8 +278,9 @@ public class KeystoreTool {
 	}
 	
 	public void checkSecurity(SSLEngine engine) throws SSLException {
-		String engine_protocol = engine.getSession().getProtocol();
-		String engine_cipher_suite = engine.getSession().getCipherSuite();
+		SSLSession session = engine.getSession();
+		String engine_protocol = session.getProtocol();
+		String engine_cipher_suite = session.getCipherSuite();
 		
 		if (protocol.equalsIgnoreCase(engine_protocol) == false) {
 			throw new SSLException("Invalid protocol: " + engine_protocol + ", only " + protocol + " is avaliable");

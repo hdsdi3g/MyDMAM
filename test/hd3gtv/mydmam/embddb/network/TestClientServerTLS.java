@@ -27,6 +27,7 @@ import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -71,9 +72,16 @@ public class TestClientServerTLS extends TestCase {
 		client_channel.connect(server_addr, client_channel, client_handler);
 		
 		Thread.sleep(100);
-		while (client_handler.allRecevied() == false | server_hander.allRecevied() == false) {
-			Thread.sleep(10);
-		}
+		
+		CompletableFuture.runAsync(() -> {
+			while (client_handler.allRecevied() == false | server_hander.allRecevied() == false) {
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}).get(2, TimeUnit.SECONDS);
 		
 		client_handler.checksRecevied(server_hander);
 		server_hander.checksRecevied(client_handler);
