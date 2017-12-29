@@ -28,7 +28,6 @@ import com.google.gson.JsonSyntaxException;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.embddb.store.Item;
 
 public final class DataBlock {
 	
@@ -82,49 +81,18 @@ public final class DataBlock {
 		}
 	}
 	
-	@Deprecated
-	ByteBuffer getFramePayloadContent() throws IOException {// XXX remove
-		/*ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE + datas_buffer.remaining());
-		
-		handle_name.toByteBuffer(result);
-		result.putLong(create_date);
-		
-		**
-		 * Spacer
-		 *
-		result.put((byte) 0);
-		result.putInt(datas_buffer.remaining());
-		result.put(datas_buffer);
-		datas_buffer.flip();
-		result.flip();
-		*/
-		return null;
-	}
-	
 	/**
 	 * Import mode (receving)
 	 */
-	@Deprecated
-	DataBlock(ByteBuffer full_datas) throws IOException {// XXX remove
-		handle_name = new HandleName(full_datas);
-		create_date = full_datas.getLong();
+	DataBlock(ByteBuffer datas_buffer, HandleName handle_name, long create_date) throws IOException {
+		this.datas_buffer = datas_buffer;
+		this.handle_name = handle_name;
+		this.create_date = create_date;
 		
 		long now = System.currentTimeMillis();
 		if (Math.abs(now - create_date) > Protocol.MAX_DELTA_AGE_BLOCK) {
 			throw new IOException("Protocol error, invalid date for block, now: " + Loggers.dateLog(now) + ", distant block: " + Loggers.dateLog(create_date));
 		}
-		
-		Item.readByteAndEquals(full_datas, (byte) 0, sep -> {
-			return new IOException("Protocol error with 0 separator, this = " + 0 + " and dest = " + sep);
-		});
-		
-		int size = full_datas.getInt();
-		if (size != full_datas.remaining()) {
-			throw new IOException("Invalid internal data size: " + size + " bytes (remaining = " + full_datas.remaining() + ")");
-		}
-		
-		datas_buffer = ByteBuffer.allocate(size);
-		datas_buffer.put(full_datas);
 	}
 	
 	public HandleName getRequestName() {

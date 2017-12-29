@@ -198,7 +198,7 @@ public class Node extends NodeIO {
 		}
 		
 		try {
-			int total_size = syncSend(data.getFramePayloadContent(), data.getRequestName(), close_channel_after_send);
+			int total_size = syncSend(data.getDatas(), data.getRequestName(), data.getCreateDate(), close_channel_after_send);
 			pressure_measurement_sended.onDatas(total_size, System.currentTimeMillis() - start_time);
 		} catch (Exception e) {
 			log.error("Can't send datas to " + toString() + " > " + data.getRequestName() + ". Closing connection");
@@ -462,10 +462,9 @@ public class Node extends NodeIO {
 		}
 	}
 	
-	protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name) {
+	protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name, long create_date) {
 		try {
-			// XXX set handle_name
-			DataBlock block = new DataBlock(payload);
+			DataBlock block = new DataBlock(payload, handle_name, create_date);
 			pressure_measurement_recevied.onDatas(block.getDataSize(), System.currentTimeMillis() - block.getCreateDate());
 			try {
 				pool_manager.getAllRequestHandlers().onReceviedNewBlock(block, this);

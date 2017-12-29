@@ -125,7 +125,6 @@ public abstract class TLSSocketHandler {
 		socket_received_buffer.flip();
 		data_payload_received_buffer.clear();
 		while (true) {
-			
 			boolean force_read = false;
 			
 			if (socket_received_buffer.hasRemaining()) {
@@ -173,6 +172,27 @@ public abstract class TLSSocketHandler {
 					}
 					
 					break;
+				case CLOSED:
+					ssl_engine.closeOutbound();
+					socket_sended_buffer.clear();
+					r = ssl_engine.wrap(HAND_SHAKE_DUMMY, socket_sended_buffer);
+					
+					if (r.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+						Runnable runnable = ssl_engine.getDelegatedTask();
+						while (runnable != null) {
+							runnable.run();
+							runnable = ssl_engine.getDelegatedTask();
+						}
+					}
+					socket_sended_buffer.flip();
+					socket_channel.write(socket_sended_buffer).get(1, TimeUnit.SECONDS);
+					ssl_engine.getSession().invalidate();
+					ssl_engine.closeInbound();
+					
+					if (socket_received_buffer.hasRemaining() == false) {
+						data_payload_received_buffer.flip();
+					}
+					return;
 				default:
 					throw new IOException("Unexpected Status: " + s + " of SSLEngineResult after an unwrap() operation");
 				}
@@ -278,7 +298,7 @@ public abstract class TLSSocketHandler {
 		}, executor);
 	}
 	
-	/*private void closeNotifySSL() { // XXX retry close_notify
+	private void closeNotifySSL() {
 		if (socket_channel.isOpen() == false) {
 			return;
 		}
@@ -296,16 +316,28 @@ public abstract class TLSSocketHandler {
 			}
 			socket_sended_buffer.flip();
 			socket_channel.write(socket_sended_buffer).get(1, TimeUnit.SECONDS);
+			socket_sended_buffer.clear();
+			
+			socket_channel.read(socket_sended_buffer).get(1, TimeUnit.SECONDS);
+			socket_sended_buffer.flip();
+			r = ssl_engine.unwrap(socket_sended_buffer, HAND_SHAKE_DUMMY);
+			if (r.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+				Runnable runnable = ssl_engine.getDelegatedTask();
+				while (runnable != null) {
+					runnable.run();
+					runnable = ssl_engine.getDelegatedTask();
+				}
+			}
+			
 			ssl_engine.getSession().invalidate();
-			Thread.sleep(1000);
-			// ssl_engine.closeInbound();
+			ssl_engine.closeInbound();
 		} catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
 			log.warn("Can't close TLS Session", e);
 		}
-	}*/
+	}
 	
 	public void close() {
-		// closeNotifySSL();
+		closeNotifySSL();
 		
 		if (socket_channel.isOpen()) {
 			try {

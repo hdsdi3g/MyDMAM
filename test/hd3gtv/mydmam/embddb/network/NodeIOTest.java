@@ -145,7 +145,7 @@ public class NodeIOTest extends TestCase {
 				client_channel.connect(server_addr).get(100, TimeUnit.MILLISECONDS);
 				
 				NodeTest node_alice_client = new NodeTest("AliceClient", protocol, client_channel, SocketType.CLIENT.initSSLEngine(context.createSSLEngine()), executor);
-				node_alice_client.syncSend(ByteBuffer.wrap(message), new HandleName("test"), false);
+				node_alice_client.syncSend(ByteBuffer.wrap(message), new HandleName("test"), System.currentTimeMillis(), false);
 				while (node_alice_client.payload.capacity() == 0) {
 					Thread.sleep(1);
 				}
@@ -158,7 +158,7 @@ public class NodeIOTest extends TestCase {
 		
 		AsynchronousSocketChannel server_channel = server.accept().get(100, TimeUnit.MILLISECONDS);
 		NodeTest node_bob_server = new NodeTest("BobServer", protocol, server_channel, SocketType.SERVER.initSSLEngine(context.createSSLEngine()), executor);
-		node_bob_server.syncSend(ByteBuffer.wrap(message), new HandleName("test"), false);
+		node_bob_server.syncSend(ByteBuffer.wrap(message), new HandleName("test"), System.currentTimeMillis(), false);
 		while (node_bob_server.payload.capacity() == 0) {
 			Thread.sleep(1);
 		}
@@ -185,10 +185,12 @@ public class NodeIOTest extends TestCase {
 			}
 		}
 		
-		protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name) {
+		protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name, long create_date) {
 			log.info("On data in " + name + " (" + payload.remaining() + ")");
 			assertEquals("test".toLowerCase(), handle_name.name.toLowerCase());
 			this.payload = payload;
+			assertTrue(create_date + TimeUnit.MINUTES.toMillis(2) > System.currentTimeMillis());
+			assertTrue(create_date < System.currentTimeMillis());
 			return false;
 		}
 		
@@ -249,9 +251,11 @@ public class NodeIOTest extends TestCase {
 			all_recevied_payloads = Collections.synchronizedList(new ArrayList<>(payload_count));
 		}
 		
-		protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name) {
+		protected boolean onGetPayload(ByteBuffer payload, HandleName handle_name, long create_date) {
 			log.debug("On data in " + name + " (" + payload.remaining() + ")");
 			all_recevied_payloads.add(payload);
+			assertTrue(create_date + TimeUnit.MINUTES.toMillis(2) > System.currentTimeMillis());
+			assertTrue(create_date < System.currentTimeMillis());
 			return isDone() == false;
 		}
 		
@@ -297,7 +301,7 @@ public class NodeIOTest extends TestCase {
 				
 				alice_send_to_bob.forEach(payload -> {
 					try {
-						node_alice_client.syncSend(payload, new HandleName("test"), false);
+						node_alice_client.syncSend(payload, new HandleName("test"), System.currentTimeMillis(), false);
 					} catch (IOException | GeneralSecurityException e) {
 						throw new RuntimeException(e);
 					}
@@ -320,7 +324,7 @@ public class NodeIOTest extends TestCase {
 		
 		bob_send_to_alice.forEach(payload -> {
 			try {
-				node_bob_server.syncSend(payload, new HandleName("test"), false);
+				node_bob_server.syncSend(payload, new HandleName("test"), System.currentTimeMillis(), false);
 			} catch (IOException | GeneralSecurityException e) {
 				throw new RuntimeException(e);
 			}
