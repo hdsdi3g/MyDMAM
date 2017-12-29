@@ -18,6 +18,7 @@ package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -32,6 +33,8 @@ import hd3gtv.mydmam.MyDMAM;
 public final class DataBlock {
 	
 	private static final Logger log = Logger.getLogger(DataBlock.class);
+	
+	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
 	
 	private final HandleName handle_name;
 	private final long create_date;
@@ -90,7 +93,7 @@ public final class DataBlock {
 		this.create_date = create_date;
 		
 		long now = System.currentTimeMillis();
-		if (Math.abs(now - create_date) > Protocol.MAX_DELTA_AGE_BLOCK) {
+		if (Math.abs(now - create_date) > MAX_DELTA_AGE_BLOCK) {
 			throw new IOException("Protocol error, invalid date for block, now: " + Loggers.dateLog(now) + ", distant block: " + Loggers.dateLog(create_date));
 		}
 	}

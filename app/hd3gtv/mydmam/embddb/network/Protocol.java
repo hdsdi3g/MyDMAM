@@ -24,23 +24,14 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLContext;
 
 import org.apache.log4j.Logger;
-import org.bouncycastle.crypto.BufferedBlockCipher;
-import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.DataLengthException;
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.crypto.engines.AESEngine;
-import org.bouncycastle.crypto.modes.CBCBlockCipher;
-import org.bouncycastle.crypto.paddings.BlockCipherPadding;
-import org.bouncycastle.crypto.paddings.PKCS7Padding;
-import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import hd3gtv.configuration.Configuration;
@@ -49,38 +40,17 @@ import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
 
 @GsonIgnore
-public final class Protocol implements CipherEngine {
+public final class Protocol {
 	private static final Logger log = Logger.getLogger(Protocol.class);
 	
 	public static final byte VERSION = 2;
-	// public static final byte FRAME_TYPE_PROLOGUE = 0;
-	// public static final byte FRAME_TYPE_PAYLOAD = 1;
-	// public static final byte FRAME_TYPE_EPILOGUE = 2;
 	
-	/**
-	 * EmbMYD
-	 */
-	public static final byte[] APP_EMBDDB_SOCKET_HEADER_TAG = "EmbMYD".getBytes(MyDMAM.US_ASCII);
-	
-	/**
-	 * EmbMYD
-	 */
-	public static final byte[] APP_EMBDDB_SOCKET_FOOTER_TAG = "EndPayload".getBytes(MyDMAM.US_ASCII);
-	
-	/**
-	 * MYDNETDSCVR
-	 */
-	public static final byte[] APP_NETDISCOVER_SOCKET_HEADER_TAG = "MYDNETDSCVR".getBytes(MyDMAM.UTF8);
-	
-	// public static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length + 1 /** version */
-	// + 1 /** Frame Type */
-	// ;
-	
-	public static final long MAX_DELTA_AGE_BLOCK = TimeUnit.SECONDS.toMillis(10);
-	
-	private final KeyParameter keyParam;
-	private final CipherParameters params;
 	private final String hashed_password_key;
+	private final String cipher_algorithm;
+	private final String key_algorithm;
+	private final String password_hash_algorithm;
+	private final SecretKey cipher_key;
+	private final IvParameterSpec iv;
 	
 	/*
 	 * TLS tools 
@@ -117,12 +87,17 @@ public final class Protocol implements CipherEngine {
 	 * USED ONLY FOR INTERNAL TESTS !
 	 * It don't load kt_tool and ssl_context.
 	 */
-	Protocol(String master_password) throws GeneralSecurityException, IOException, SecurityException, OperatorCreationException {
-		MessageDigest md = MessageDigest.getInstance("SHA-256");
+	Protocol(String master_password) throws GeneralSecurityException, IOException, SecurityException {
+		cipher_algorithm = Configuration.global.getValue("embddb", "cipher_algorithm", "AES/CBC/PKCS5Padding");
+		key_algorithm = Configuration.global.getValue("embddb", "key_algorithm", "AES");
+		password_hash_algorithm = Configuration.global.getValue("embddb", "password_hash_algorithm", "SHA-256");
+		int key_size = Configuration.global.getValue("embddb", "key_size", 16);
+		
+		MessageDigest md = MessageDigest.getInstance(password_hash_algorithm);
 		byte[] key = md.digest(master_password.getBytes("UTF-8"));
-		keyParam = new KeyParameter(key);
-		params = new ParametersWithIV(keyParam, key, 0, 16);
+		iv = new IvParameterSpec(key, 0, key_size);
 		hashed_password_key = MyDMAM.byteToString(key);
+		cipher_key = new SecretKeySpec(key, 0, key_size, key_algorithm);
 	}
 	
 	public int getDefaultTCPPort() {
@@ -159,33 +134,19 @@ public final class Protocol implements CipherEngine {
 		}
 	}
 	
-	/**
-	 * @return SHA-256(master_password_key)
-	 */
 	public String getHashedPasswordKey() {
 		return hashed_password_key;
 	}
 	
-	@Deprecated
 	public byte[] encrypt(byte[] cleared_datas) throws GeneralSecurityException {
-		try {
-			return encryptDecrypt(cleared_datas, 0, cleared_datas.length, Cipher.ENCRYPT_MODE);
-		} catch (DataLengthException | IllegalStateException | InvalidCipherTextException e) {
-			throw new GeneralSecurityException(e);
-		}
+		return encryptDecrypt(cleared_datas, 0, cleared_datas.length, Cipher.ENCRYPT_MODE);
 	}
 	
-	@Deprecated
 	public byte[] decrypt(byte[] crypted_datas) throws GeneralSecurityException {
-		try {
-			return encryptDecrypt(crypted_datas, 0, crypted_datas.length, Cipher.DECRYPT_MODE);
-		} catch (DataLengthException | IllegalStateException | InvalidCipherTextException e) {
-			throw new GeneralSecurityException(e);
-		}
+		return encryptDecrypt(crypted_datas, 0, crypted_datas.length, Cipher.DECRYPT_MODE);
 	}
 	
-	@Deprecated
-	private byte[] encryptDecrypt(byte[] datas, int pos, int len, int mode) throws GeneralSecurityException, DataLengthException, IllegalStateException, InvalidCipherTextException {
+	private byte[] encryptDecrypt(byte[] datas, int pos, int len, int mode) throws GeneralSecurityException {
 		if (log.isTraceEnabled()) {
 			if (mode == Cipher.ENCRYPT_MODE) {
 				log.trace("Raw data input (no crypted)" + Hexview.LINESEPARATOR + Hexview.tracelog(datas, pos, len));
@@ -194,6 +155,11 @@ public final class Protocol implements CipherEngine {
 			}
 		}
 		
+		Cipher c = Cipher.getInstance(cipher_algorithm);
+		c.init(mode, cipher_key, iv);
+		byte[] result = c.doFinal(datas, pos, len);
+		
+		/*
 		BlockCipherPadding padding = new PKCS7Padding();
 		BufferedBlockCipher cipher2 = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), padding);
 		cipher2.reset();
@@ -204,7 +170,7 @@ public final class Protocol implements CipherEngine {
 		len2 += cipher2.doFinal(buf, len2);
 		
 		byte[] result = new byte[len2];
-		System.arraycopy(buf, 0, result, 0, len2);
+		System.arraycopy(buf, 0, result, 0, len2);*/
 		
 		if (log.isTraceEnabled()) {
 			if (mode == Cipher.ENCRYPT_MODE) {

@@ -87,7 +87,7 @@ public class ProtocolCypherTest extends TestCase {
 		
 		assertNull(result2);
 		assertNotNull(gse);
-		assertEquals("org.bouncycastle.crypto.InvalidCipherTextException: pad block corrupted", gse.getMessage());
+		assertEquals("Given final block not properly padded", gse.getMessage());
 	}
 	
 	public void testAltered() throws IOException, SecurityException, OperatorCreationException, GeneralSecurityException {
@@ -111,7 +111,7 @@ public class ProtocolCypherTest extends TestCase {
 		
 		assertNull(result2);
 		assertNotNull(gse);
-		assertEquals("org.bouncycastle.crypto.InvalidCipherTextException: pad block corrupted", gse.getMessage());
+		assertEquals("Given final block not properly padded", gse.getMessage());
 	}
 	
 }

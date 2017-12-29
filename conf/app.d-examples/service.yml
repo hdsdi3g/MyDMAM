@@ -30,11 +30,19 @@ javamail:
 #    # database_name: default
 #    # bootstrap_nodes: 192.168.0.1, 192.168.0.2:35000 # You can add some "permanent" nodes for speedup start and node detection (IPv4 only).
 #    # listen_only_from: 127.0.0.1:35000, 192.168.0.3 # You can choose to listen only from specific addresses (IPv4 only)
-#    # disable_multicast_discover: true
+#    # disable_multicast_discover: false
 #    # multicast_groups: 239.0.0.1:9160,[FF02::110]:9160
 #    # keystore: ./conf/keystore.jks # Keystore (certificates for TLS networking)
 #    # keystore_password: # Will lock/unlock keystore file is the master_password_key by default
 #    # x590_principal_hostname: # Used by selfsigned CA creation, service.workername value by default, or set specific hostname.mydomain
+
+# Options symmetric-key cipher tool, don't touch this, unless you know what you're doing.
+# Default parameters should be the best setup and the more secure.
+# This options must match with all the others embddb nodes.
+#    # cipher_algorithm: AES/CBC/PKCS5Padding
+#    # key_algorithm: AES
+#    # password_hash_algorithm: SHA-256
+#    # key_size: 16
 
 # Options for certificate/private keys generation and TLS configuration
 # Don't touch this, unless you know what you're doing.

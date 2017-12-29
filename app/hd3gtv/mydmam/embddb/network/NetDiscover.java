@@ -73,6 +73,11 @@ class NetDiscover {
 	
 	private static final int BUFFER_SIZE = 0xFFFF;
 	
+	/**
+	 * MYDNETDSCVR
+	 */
+	public static final byte[] APP_NETDISCOVER_SOCKET_HEADER_TAG = "MYDNETDSCVR".getBytes(MyDMAM.UTF8);
+	
 	NetDiscover(PoolManager pool_manager, List<InetSocketAddress> multicast_groups, PressureMeasurement pressure_measurement) {
 		this.pool_manager = pool_manager;
 		if (pool_manager == null) {
@@ -224,14 +229,14 @@ class NetDiscover {
 	}
 	
 	private void readPayload(InetAddress source, byte[] content) {
-		int protocol_head_tag_len = Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG.length;
+		int protocol_head_tag_len = APP_NETDISCOVER_SOCKET_HEADER_TAG.length;
 		if (content.length < protocol_head_tag_len + 1) {
 			logBadPayload(content, source, "Invalid datagram (too small)");
 			return;
 		}
 		
 		for (int pos = 0; pos < protocol_head_tag_len; pos++) {
-			if (Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG[pos] != content[pos]) {
+			if (APP_NETDISCOVER_SOCKET_HEADER_TAG[pos] != content[pos]) {
 				logBadPayload(content, source, "Invalid datagram (bad header)");
 				return;
 			}
@@ -462,7 +467,7 @@ class NetDiscover {
 				ByteArrayOutputStream byte_array_out_stream = new ByteArrayOutputStream(BUFFER_SIZE);
 				DataOutputStream dos = new DataOutputStream(byte_array_out_stream);
 				
-				dos.write(Protocol.APP_NETDISCOVER_SOCKET_HEADER_TAG);
+				dos.write(APP_NETDISCOVER_SOCKET_HEADER_TAG);
 				dos.writeInt(Protocol.VERSION);
 				dos.writeByte(0);
 				dos.writeInt(json_byted_payload.length);

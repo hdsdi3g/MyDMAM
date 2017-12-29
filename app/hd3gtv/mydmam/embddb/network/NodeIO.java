@@ -18,9 +18,7 @@ package hd3gtv.mydmam.embddb.network;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.ClosedChannelException;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
@@ -28,6 +26,7 @@ import java.util.function.Supplier;
 
 import javax.net.ssl.SSLEngine;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.embddb.store.Item;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
@@ -39,7 +38,16 @@ abstract class NodeIO extends TLSSocketHandler {
 	// private static Logger log = Logger.getLogger(NodeIO.class);
 	private final Object send_lock;
 	
-	private static final int FRAME_HEADER_SIZE = Protocol.APP_EMBDDB_SOCKET_HEADER_TAG.length /** Generic Headers */
+	/**
+	 * EmbMYD
+	 */
+	public static final byte[] APP_EMBDDB_SOCKET_HEADER_TAG = "EmbMYD".getBytes(MyDMAM.US_ASCII);
+	/**
+	 * EndPayload
+	 */
+	public static final byte[] APP_EMBDDB_SOCKET_FOOTER_TAG = "EndPayload".getBytes(MyDMAM.US_ASCII);
+	
+	private static final int FRAME_HEADER_SIZE = APP_EMBDDB_SOCKET_HEADER_TAG.length /** Generic Headers */
 			+ 1 /** VERSION */
 			+ 8 /** Session id */
 			+ 1 /** compress_format */
@@ -47,7 +55,7 @@ abstract class NodeIO extends TLSSocketHandler {
 			+ 8 /** Create date */
 			+ 4 /** payload_size */
 	;
-	private static final int FRAME_FOOTER_SIZE = Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG.length /** Generic Footer */
+	private static final int FRAME_FOOTER_SIZE = APP_EMBDDB_SOCKET_FOOTER_TAG.length /** Generic Footer */
 			+ 8 /** Session id */
 	;
 	
@@ -89,7 +97,7 @@ abstract class NodeIO extends TLSSocketHandler {
 		int payload_size = prepared_source_to_send.length;
 		ByteBuffer result = ByteBuffer.allocateDirect(FRAME_HEADER_SIZE + payload_size + FRAME_FOOTER_SIZE);
 		
-		result.put(Protocol.APP_EMBDDB_SOCKET_HEADER_TAG);/** Generic Headers */
+		result.put(APP_EMBDDB_SOCKET_HEADER_TAG);/** Generic Headers */
 		result.put(Protocol.VERSION);/** Generic Headers */
 		result.putLong(session_id);
 		result.put(compress_format.getReference());
@@ -99,7 +107,7 @@ abstract class NodeIO extends TLSSocketHandler {
 		
 		result.put(prepared_source_to_send); /** Payload */
 		
-		result.put(Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG);/** Generic Footer */
+		result.put(APP_EMBDDB_SOCKET_FOOTER_TAG);/** Generic Footer */
 		result.putLong(session_id);
 		
 		if (result.hasRemaining()) {
@@ -152,7 +160,7 @@ abstract class NodeIO extends TLSSocketHandler {
 						break;
 					}
 					
-					Item.readAndEquals(current_data_buffer.get(), Protocol.APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
+					Item.readAndEquals(current_data_buffer.get(), APP_EMBDDB_SOCKET_HEADER_TAG, b -> {
 						return new IOException("Protocol error with app_socket_header_tag: " + Hexview.tracelog(b));
 					});
 					Item.readByteAndEquals(current_data_buffer.get(), Protocol.VERSION, version -> {
@@ -197,7 +205,7 @@ abstract class NodeIO extends TLSSocketHandler {
 					/**
 					 * Now, read the footer.
 					 */
-					Item.readAndEquals(current_data_buffer.get(), Protocol.APP_EMBDDB_SOCKET_FOOTER_TAG, b -> {
+					Item.readAndEquals(current_data_buffer.get(), APP_EMBDDB_SOCKET_FOOTER_TAG, b -> {
 						return new IOException("Protocol error with app_socket_footer_tag: " + Hexview.tracelog(b));
 					});
 					
@@ -261,14 +269,6 @@ abstract class NodeIO extends TLSSocketHandler {
 	 * @return false for close socket
 	 */
 	protected abstract boolean onGetPayload(ByteBuffer payload, HandleName handle_name, long create_date);
-	
-	protected abstract void onIOButClosed(AsynchronousCloseException e);
-	
-	protected abstract void onIOExceptionCauseClosing(Throwable e);
-	
-	protected abstract void onCloseException(IOException e);
-	
-	protected abstract void onCloseButChannelWasClosed(ClosedChannelException e);
 	
 	protected abstract void onCantExtractFrame(IOException e);
 	

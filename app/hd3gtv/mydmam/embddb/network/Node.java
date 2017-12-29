@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ReadPendingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
@@ -95,8 +94,6 @@ public class Node extends NodeIO {
 		
 		handshake(pool_manager.getProtocol().getKeystoreTool());
 	}
-	
-	// TODO check same passwords challenge (with hash + random salt)...
 	
 	private static SSLEngine createSSLEngine(PoolManager pool_manager, SocketProvider provider) {
 		return provider.getType().initSSLEngine(pool_manager.getProtocol().getSSLContext().createSSLEngine());
@@ -418,10 +415,6 @@ public class Node extends NodeIO {
 		if (log.isTraceEnabled()) {
 			log.trace("Send to " + toString() + " \"" + request_name + "\" " + length + " bytes raw, " + total_size + " bytes for real size (compress: " + compress_format + ")");
 		}
-	}
-	
-	protected void onReadPendingException(ReadPendingException e) {
-		log.warn("No two reads at the same time for " + toString(), e);
 	}
 	
 	protected void onRemoveOldStoredDataFrame(long session_id) {
