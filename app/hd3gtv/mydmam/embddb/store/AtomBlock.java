@@ -308,4 +308,5 @@ public class AtomBlock {
 		return Stream.empty();
 	}
 	
+	// XXX create from source Bytebuffer + supplementary_space_to_add
 }
