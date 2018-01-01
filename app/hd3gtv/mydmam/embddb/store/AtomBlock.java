@@ -19,16 +19,26 @@ package hd3gtv.mydmam.embddb.store;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
+import java.nio.channels.FileLock;
 import java.text.Normalizer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.Hexview;
+import hd3gtv.tools.StreamMaker;
 
 public class AtomBlock {
 	
@@ -44,14 +54,10 @@ public class AtomBlock {
 	;
 	
 	private static final int FOOTER_SIZE = FOOTER_TAG.length;
-	/*
-		ByteBuffer footer = ByteBuffer.allocateDirect(FOOTER_SIZE);
-		footer.put(FOOTER_TAG);
-		footer.flip();
 	
-	*/
-	
+	@GsonIgnore
 	private final FileChannel channel;
+	
 	private final long block_start_pos_in_file;
 	private final long block_end_pos_in_file;
 	private final String four_cc;
@@ -78,7 +84,7 @@ public class AtomBlock {
 		if (channel == null) {
 			throw new NullPointerException("\"channel\" can't to be null");
 		} else if (channel.isOpen() == false) {
-			throw new IOException("Channel is closed");
+			throw new ClosedChannelException();
 		} else if (start_pos > channel.size()) {
 			throw new IOException("Invalid start_pos " + start_pos + ", file is too small");
 		} else if (start_pos < 0) {
@@ -129,6 +135,13 @@ public class AtomBlock {
 	}
 	
 	/**
+	 * Don't check if overload some datas in channel.
+	 */
+	public AtomBlock createNextInChannel(long payload_size, String four_cc, short version) throws IOException {
+		return new AtomBlock(channel, block_end_pos_in_file, payload_size, four_cc, version);
+	}
+	
+	/**
 	 * Load mode
 	 */
 	public AtomBlock(FileChannel channel, long start_pos) throws IOException {
@@ -136,7 +149,7 @@ public class AtomBlock {
 		if (channel == null) {
 			throw new NullPointerException("\"channel\" can't to be null");
 		} else if (channel.isOpen() == false) {
-			throw new IOException("Channel is closed");
+			throw new ClosedChannelException();
 		} else if (start_pos > channel.size()) {
 			throw new IOException("Invalid start_pos " + start_pos + ", file is too small");
 		} else if (start_pos < 0) {
@@ -205,7 +218,7 @@ public class AtomBlock {
 		return four_cc;
 	}
 	
-	public long getPositionInPayload() {
+	public long getPosition() {
 		return position.get();
 	}
 	
@@ -213,22 +226,22 @@ public class AtomBlock {
 		return version;
 	}
 	
-	public void write(ByteBuffer buffer, long block_start_pos, boolean update_internal_pointer) throws IOException {
+	public void write(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
 		long size = buffer.remaining();
 		
-		if (block_start_pos + size > getPayloadSize()) {
-			throw new EOFException("pos (" + block_start_pos + ") + size (" + size + ") > payload (" + getPayloadSize() + ")");
-		} else if (block_start_pos < 0) {
-			throw new EOFException("pos (" + block_start_pos + ") can't to be < 0");
+		if (payload_pos + size > getPayloadSize()) {
+			throw new EOFException("pos (" + payload_pos + ") + size (" + size + ") > payload (" + getPayloadSize() + ")");
+		} else if (payload_pos < 0) {
+			throw new EOFException("pos (" + payload_pos + ") can't to be < 0");
 		} else if (size == 0) {
 			log.warn("Wan't to write a 0 byte data buffer");
 			return;
 		}
 		
-		long file_start_pos = getPayloadStart() + block_start_pos;
+		long file_start_pos = getPayloadStart() + payload_pos;
 		
 		if (update_internal_pointer) {
-			position.set(block_start_pos + size);
+			position.set(payload_pos + size);
 		}
 		int writed = channel.write(buffer, file_start_pos);
 		if (writed != size) {
@@ -240,22 +253,22 @@ public class AtomBlock {
 		write(buffer, position.getAndAdd(buffer.remaining()), false);
 	}
 	
-	public void read(ByteBuffer buffer, long block_start_pos, boolean update_internal_pointer) throws IOException {
+	public void read(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
 		long size = buffer.remaining();
 		
-		if (block_start_pos + size > getPayloadSize()) {
-			throw new EOFException("pos (" + block_start_pos + ") + size (" + size + ") > payload (" + getPayloadSize() + ")");
-		} else if (block_start_pos < 0) {
-			throw new EOFException("pos (" + block_start_pos + ") can't to be < 0");
+		if (payload_pos + size > getPayloadSize()) {
+			throw new EOFException("pos (" + payload_pos + ") + size (" + size + ") > payload (" + getPayloadSize() + ")");
+		} else if (payload_pos < 0) {
+			throw new EOFException("pos (" + payload_pos + ") can't to be < 0");
 		} else if (size == 0) {
 			log.warn("Wan't to read a 0 byte data buffer");
 			return;
 		}
 		
-		long file_start_pos = getPayloadStart() + block_start_pos;
+		long file_start_pos = getPayloadStart() + payload_pos;
 		
 		if (update_internal_pointer) {
-			position.set(block_start_pos + size);
+			position.set(payload_pos + size);
 		}
 		int readed = channel.read(buffer, file_start_pos);
 		if (readed != size) {
@@ -268,6 +281,7 @@ public class AtomBlock {
 	}
 	
 	/**
+	 * Don't touch to internal position marker.
 	 * @return buffer will be flipped
 	 */
 	public ByteBuffer readAll() throws IOException {
@@ -285,28 +299,139 @@ public class AtomBlock {
 	/**
 	 * @param external bulk importation
 	 */
-	public AtomBlock(FileChannel channel, long start_pos, String four_cc, short version, List<AtomBlock> from_import_list, long supplementary_space_to_add) throws IOException {
-		this(channel, start_pos, from_import_list.stream().mapToLong(block -> {
+	public AtomBlock(FileChannel channel, long payload_pos, String four_cc, short version, List<AtomBlock> from_import_list, long supplementary_space_to_add) throws IOException {
+		this(channel, payload_pos, from_import_list.stream().mapToLong(block -> {
 			return block.block_end_pos_in_file - block.block_start_pos_in_file;
 		}).sum() + supplementary_space_to_add, four_cc, version);
+		bulkImport(from_import_list);
+	}
+	
+	public void bulkImport(List<AtomBlock> from_import_list) throws IOException {
+		long expected_size = from_import_list.stream().mapToLong(block -> block.block_end_pos_in_file - block.block_start_pos_in_file).sum();
+		
+		if (block_start_pos_in_file + position.get() + expected_size > block_end_pos_in_file) {
+			throw new IOException("Too large datas to copy " + expected_size + " from position " + position.get());
+		}
 		
 		from_import_list.forEach(block -> {
 			try {
-				// XXX use tryLock
-				channel.transferFrom(block.channel, block.block_start_pos_in_file, block.block_end_pos_in_file - block.block_start_pos_in_file);
-			} catch (IOException e) {
-				throw new RuntimeException("Can't transfert block " + block.four_cc + " (payload: " + block.getPayloadSize() + ")", e);
+				FileLock lock = block.lock(false);
+				try {
+					block.channel.position(block.block_start_pos_in_file);
+					long size = block.block_end_pos_in_file - block.block_start_pos_in_file;
+					channel.transferFrom(block.channel, block_start_pos_in_file + position.getAndAdd(size), size);
+				} catch (IOException e) {
+					throw new RuntimeException("Can't transfert block " + block.four_cc + " (payload: " + block.getPayloadSize() + ")", e);
+				} finally {
+					lock.release();
+				}
+			} catch (IOException e_lock) {
+				throw new RuntimeException("Can't lock block " + block.four_cc + " (payload: " + block.getPayloadSize() + ")", e_lock);
 			}
 		});
 	}
 	
-	// XXX channel.tryLock()
-	// XXX channel.map(mode, position, size)
-	
-	public Stream<AtomBlock> parseSubBlocks() {
-		// XXX use map
-		return Stream.empty();
+	public MappedByteBuffer mapByteBuffer(MapMode mode) throws IOException {
+		if (channel.isOpen() == false) {
+			throw new ClosedChannelException();
+		}
+		return channel.map(mode, getPayloadStart(), getPayloadSize());
 	}
 	
-	// XXX create from source Bytebuffer + supplementary_space_to_add
+	public MappedByteBuffer mapByteBuffer(MapMode mode, long payload_pos, long payload_size) throws IOException {
+		if (channel.isOpen() == false) {
+			throw new ClosedChannelException();
+		}
+		long pos = block_start_pos_in_file + HEADER_SIZE + payload_pos;
+		long end = block_start_pos_in_file + HEADER_SIZE + payload_pos + payload_size;
+		if (pos < 0) {
+			throw new IOException("Invalid payload_pos " + payload_pos);
+		} else if (pos > block_end_pos_in_file) {
+			throw new IOException("Invalid payload_pos " + payload_pos);
+		} else if (end > block_end_pos_in_file) {
+			throw new IOException("Invalid payload_size " + payload_size);
+		} else if (end < pos) {
+			throw new IOException("Invalid payload_size " + payload_size);
+		}
+		return channel.map(mode, pos, end - pos);
+	}
+	
+	public Stream<AtomBlock> parseSubBlocks() throws IOException {
+		if (channel.isOpen() == false) {
+			throw new ClosedChannelException();
+		}
+		final ByteBuffer header_tag = ByteBuffer.allocateDirect(HEADER_TAG.length);
+		final byte[] header_tag_real = new byte[HEADER_TAG.length];
+		
+		return StreamMaker.create(() -> {
+			try {
+				if (position.get() + header_tag.capacity() > getPayloadEnd()) {
+					return null;
+				}
+				
+				header_tag.clear();
+				read(header_tag, position.get(), false);
+				header_tag.flip();
+				header_tag.get(header_tag_real);
+				if (Arrays.equals(HEADER_TAG, header_tag_real) == false) {
+					return null;
+				}
+				
+				AtomBlock founded = new AtomBlock(channel, position.get());
+				position.set(founded.block_end_pos_in_file);
+				return founded;
+			} catch (IOException e) {
+				throw new RuntimeException("Can't read file", e);
+			}
+		}).stream();
+	}
+	
+	public void setPositionInPayload(long position) throws IOException {
+		if (channel.isOpen() == false) {
+			throw new ClosedChannelException();
+		}
+		if (position < 0) {
+			throw new IOException("Invalid payload_pos " + position);
+		} else if (position > getPayloadSize()) {
+			throw new IOException("Invalid payload_pos " + position);
+		}
+		this.position.set(position);
+	}
+	
+	public String toString() {
+		if (channel.isOpen() == false) {
+			return "Closed channel: " + four_cc;
+		}
+		return four_cc + " v" + version + " p" + position.get() + "/" + getPayloadSize() + " [" + block_start_pos_in_file + "-" + block_end_pos_in_file + "]";
+	}
+	
+	public FileLock lock(boolean shared) throws IOException {
+		return channel.tryLock(block_start_pos_in_file, block_end_pos_in_file - block_start_pos_in_file, shared);
+	}
+	
+	public JsonObject toDataMap() throws IOException {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("four_cc", four_cc);
+		jo.addProperty("version", version);
+		jo.addProperty("payload_size", getPayloadSize());
+		jo.addProperty("from", block_start_pos_in_file);
+		jo.addProperty("to", block_end_pos_in_file);
+		
+		JsonArray content = new JsonArray();
+		position.set(0);
+		parseSubBlocks().forEach(block -> {
+			try {
+				content.add(block.toDataMap());
+			} catch (IOException e) {
+				throw new RuntimeException("Can't read block", e);
+			}
+		});
+		
+		if (content.size() > 0) {
+			jo.add("content", content);
+		}
+		
+		return jo;
+	}
+	
 }
