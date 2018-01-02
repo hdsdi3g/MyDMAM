@@ -65,18 +65,6 @@ public class AtomBlock {
 	private final AtomicLong position;
 	
 	/**
-	 * Create mode, in a parent block
-	 */
-	public AtomBlock(AtomBlock parent, long payload_size, String four_cc, short version) throws IOException {
-		this(parent.channel, parent.getPayloadStart(), payload_size, four_cc, version);
-		
-		if (block_end_pos_in_file > parent.getPayloadEnd()) {
-			long max_size = (parent.getPayloadEnd() - parent.getPayloadStart()) - (HEADER_SIZE + FOOTER_SIZE);
-			throw new IOException("Too big payload_size " + payload_size + ", parent block can't contain this block (max " + max_size + ")");
-		}
-	}
-	
-	/**
 	 * Create mode
 	 */
 	public AtomBlock(FileChannel channel, long start_pos, long payload_size, String four_cc, short version) throws IOException {
@@ -91,8 +79,6 @@ public class AtomBlock {
 			throw new IOException("Invalid start_pos " + start_pos);
 		} else if (payload_size < 1) {
 			throw new IOException("Invalid payload_size " + payload_size);
-		} else if (payload_size <= HEADER_SIZE + FOOTER_SIZE) {
-			throw new IOException("Too low payload_size " + payload_size);
 		} else if (four_cc == null) {
 			throw new NullPointerException("\"four_cc\" can't to be null");
 		}
@@ -111,7 +97,7 @@ public class AtomBlock {
 		
 		ByteBuffer header = ByteBuffer.allocateDirect(HEADER_SIZE);
 		header.put(HEADER_TAG);
-		header.put(four_cc.getBytes(MyDMAM.US_ASCII));
+		header.put(four_cc.getBytes(MyDMAM.US_ASCII));// XXX change order
 		header.putShort(version);
 		header.putLong(payload_size);
 		header.flip();
@@ -139,6 +125,35 @@ public class AtomBlock {
 	 */
 	public AtomBlock createNextInChannel(long payload_size, String four_cc, short version) throws IOException {
 		return new AtomBlock(channel, block_end_pos_in_file, payload_size, four_cc, version);
+	}
+	
+	/**
+	 * Don't check if overload some datas in channel.
+	 * @return null if not founded/EOF.
+	 */
+	public AtomBlock getNextInChannel() throws IOException {
+		if (channel.isOpen() == false) {
+			throw new ClosedChannelException();
+		} else if (channel.size() < block_end_pos_in_file + (long) (HEADER_SIZE + FOOTER_SIZE)) {
+			/**
+			 * EOF
+			 */
+			return null;
+		}
+		
+		ByteBuffer header = ByteBuffer.allocateDirect(HEADER_TAG.length);
+		int size = channel.read(header, block_end_pos_in_file);
+		if (size != HEADER_TAG.length) {
+			return null;
+		}
+		header.flip();
+		byte[] real_value = new byte[HEADER_TAG.length];
+		header.get(real_value);
+		if (Arrays.equals(HEADER_TAG, real_value) == false) {
+			return null;
+		}
+		
+		return new AtomBlock(channel, block_end_pos_in_file);
 	}
 	
 	/**
@@ -192,6 +207,7 @@ public class AtomBlock {
 		if (header.hasRemaining()) {
 			throw new IOException("Not enough of data: EOF before the end of the block (remain " + header.remaining() + ")");
 		}
+		footer.flip();
 		Item.readAndEquals(footer, FOOTER_TAG, b -> {
 			return new IOException("Invalid header for block: " + Hexview.tracelog(b));
 		});
@@ -270,6 +286,7 @@ public class AtomBlock {
 		if (update_internal_pointer) {
 			position.set(payload_pos + size);
 		}
+		
 		int readed = channel.read(buffer, file_start_pos);
 		if (readed != size) {
 			throw new IOException("Can't read " + size + ", only " + readed + " was readed");
@@ -297,7 +314,7 @@ public class AtomBlock {
 	}
 	
 	/**
-	 * @param external bulk importation
+	 * @param external bulk importation, setPositionInPayload at the end
 	 */
 	public AtomBlock(FileChannel channel, long payload_pos, String four_cc, short version, List<AtomBlock> from_import_list, long supplementary_space_to_add) throws IOException {
 		this(channel, payload_pos, from_import_list.stream().mapToLong(block -> {
@@ -306,7 +323,10 @@ public class AtomBlock {
 		bulkImport(from_import_list);
 	}
 	
-	public void bulkImport(List<AtomBlock> from_import_list) throws IOException {
+	/*
+	 * Need set to public ?
+	 */
+	private void bulkImport(List<AtomBlock> from_import_list) throws IOException {
 		long expected_size = from_import_list.stream().mapToLong(block -> block.block_end_pos_in_file - block.block_start_pos_in_file).sum();
 		
 		if (block_start_pos_in_file + position.get() + expected_size > block_end_pos_in_file) {
@@ -319,7 +339,10 @@ public class AtomBlock {
 				try {
 					block.channel.position(block.block_start_pos_in_file);
 					long size = block.block_end_pos_in_file - block.block_start_pos_in_file;
-					channel.transferFrom(block.channel, block_start_pos_in_file + position.getAndAdd(size), size);
+					long w_size = channel.transferFrom(block.channel, getPayloadStart() + position.getAndAdd(size), size);
+					if (w_size != size) {
+						throw new IOException("Can't write all datas " + size + "/" + w_size);
+					}
 				} catch (IOException e) {
 					throw new RuntimeException("Can't transfert block " + block.four_cc + " (payload: " + block.getPayloadSize() + ")", e);
 				} finally {
@@ -365,21 +388,23 @@ public class AtomBlock {
 		
 		return StreamMaker.create(() -> {
 			try {
-				if (position.get() + header_tag.capacity() > getPayloadEnd()) {
+				if (position.get() == getPayloadSize()) {
 					return null;
+				} else if (position.get() > getPayloadSize()) {
+					throw new EOFException("Invalid position: " + position.get() + "/" + getPayloadSize());
 				}
-				
 				header_tag.clear();
 				read(header_tag, position.get(), false);
 				header_tag.flip();
 				header_tag.get(header_tag_real);
+				
 				if (Arrays.equals(HEADER_TAG, header_tag_real) == false) {
 					return null;
 				}
 				
-				AtomBlock founded = new AtomBlock(channel, position.get());
-				position.set(founded.block_end_pos_in_file);
-				return founded;
+				AtomBlock found = new AtomBlock(channel, HEADER_SIZE + position.get());
+				position.addAndGet(found.block_end_pos_in_file - found.block_start_pos_in_file);
+				return found;
 			} catch (IOException e) {
 				throw new RuntimeException("Can't read file", e);
 			}
