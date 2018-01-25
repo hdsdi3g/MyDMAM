@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.embddb.store;
 
+import static org.junit.Assert.assertNotEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -61,13 +63,13 @@ public class AtomBlockTest extends TestCase {
 		int payload_size = 100;
 		AtomBlock block = new AtomBlock(channel, 0l, payload_size, "Tst1", (short) 1);
 		assertEquals("Tst1", block.getFourCC());
-		assertEquals(0, block.getPosition());
+		assertEquals(0, block.getPositionInPayload());
 		assertEquals((short) 1, block.getVersion());
 		assertEquals(payload_size, block.getPayloadSize());
 		
 		byte[] payload = getPayload(payload_size);
 		block.write(ByteBuffer.wrap(payload));
-		assertEquals(payload_size, block.getPosition());
+		assertEquals(payload_size, block.getPositionInPayload());
 		
 		ByteBuffer result = block.readAll();
 		assertEquals(payload_size, result.remaining());
@@ -89,7 +91,7 @@ public class AtomBlockTest extends TestCase {
 		
 		AtomBlock block2 = new AtomBlock(channel, 0l);
 		assertEquals("Tst1", block2.getFourCC());
-		assertEquals(0, block2.getPosition());
+		assertEquals(0, block2.getPositionInPayload());
 		assertEquals((short) 1, block2.getVersion());
 		assertEquals(payload_size, block2.getPayloadSize());
 		
@@ -168,7 +170,7 @@ public class AtomBlockTest extends TestCase {
 		AtomBlock big_block2 = new AtomBlock(channel2, 0, "Tst2", (short) 0, added_blocks, 0);
 		
 		big_block2.setPositionInPayload(0);
-		assertEquals(0, big_block2.getPosition());
+		assertEquals(0, big_block2.getPositionInPayload());
 		
 		List<AtomBlock> writed_blocks = big_block2.parseSubBlocks().collect(Collectors.toList());
 		assertEquals(count, writed_blocks.size());
@@ -187,34 +189,77 @@ public class AtomBlockTest extends TestCase {
 	public void testSequentialIO() throws IOException {
 		FileChannel channel = createTempChannel();
 		
-		// TODO align many writes and reads with small buffers
-		/*	public void write(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
-			public void read(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
-			public void read(ByteBuffer buffer) throws IOException {
-		*/
-		/*int payload_size = 100;
+		int payload_size = 1024 * 1024 * 8;
 		AtomBlock block = new AtomBlock(channel, 0l, payload_size, "Tst1", (short) 1);
-		assertEquals("Tst1", block.getFourCC());
-		assertEquals(0, block.getPosition());
-		assertEquals((short) 1, block.getVersion());
-		assertEquals(payload_size, block.getPayloadSize());
 		
-		byte[] payload = getPayload(payload_size);
-		block.write(ByteBuffer.wrap(payload));
-		assertEquals(payload_size, block.getPosition());
+		ByteBuffer writer = ByteBuffer.wrap(getPayload(payload_size));
+		writer.limit(0);
+		int interval = payload_size / 8;
 		
-		ByteBuffer result = block.readAll();
-		assertEquals(payload_size, result.remaining());
+		// XXX this shit don't works...
 		
-		for (int pos = 0; pos < payload.length; pos++) {
-			assertEquals(payload[pos], result.get());
-		}*/
+		/**
+		 * Align many writes and reads with small buffers
+		 */
+		for (int pos = 0; pos < interval; pos++) {
+			writer.limit(writer.position() + (payload_size / 8));
+			assertNotEquals(0, writer.limit());
+			assertNotEquals(0, writer.remaining());
+			
+			block.write(writer, writer.position(), false);
+			assertEquals(0, block.getPositionInPayload());
+		}
+		
+		writer.position(0);
+		ByteBuffer readed = block.readAll();
+		while (readed.hasRemaining()) {
+			assertEquals(writer.get(), readed.get());
+		}
+		
+		for (int pos = 0; pos < interval; pos++) {
+			readed.clear();
+			readed.position(0);
+			readed.limit(interval * payload_size);
+			
+			if (interval % 2 == 0) {
+				block.read(readed);
+				assertEquals(readed.limit(), block.getPositionInPayload());
+				block.setPositionInPayload(0);
+			} else {
+				block.read(readed, 0, false);
+				assertEquals(0, block.getPositionInPayload());
+			}
+			
+			readed.flip();
+			writer.position(0);
+			writer.limit(readed.remaining());
+			
+			assertEquals(0, readed.position());
+			assertEquals(writer.remaining(), readed.remaining());
+			
+			while (readed.hasRemaining()) {
+				assertEquals(writer.get(), readed.get());
+			}
+		}
 		
 		channel.close();
 	}
 	
+	public void testToString() throws IOException {
+		FileChannel channel = createTempChannel();
+		
+		int payload_size = 100;
+		AtomBlock block1 = new AtomBlock(channel, 0l, payload_size, "Tst1", (short) 1);
+		byte[] payload = getPayload(payload_size);
+		block1.write(ByteBuffer.wrap(payload));
+		
+		assertNotNull(block1.toString());
+		assertFalse(block1.toString().equalsIgnoreCase(""));
+		
+		channel.close();
+		
+	}
 	/*
-	TODO test toString
 	TODO test public MappedByteBuffer mapByteBuffer(MapMode mode) throws IOException {
 	TODO test public MappedByteBuffer mapByteBuffer(MapMode mode, long payload_pos, long payload_size) throws IOException {
 	TODO test public FileLock lock(boolean shared) throws IOException {

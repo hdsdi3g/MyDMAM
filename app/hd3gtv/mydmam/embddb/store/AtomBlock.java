@@ -234,7 +234,7 @@ public class AtomBlock {
 		return four_cc;
 	}
 	
-	public long getPosition() {
+	public long getPositionInPayload() {
 		return position.get();
 	}
 	
