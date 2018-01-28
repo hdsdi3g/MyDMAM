@@ -87,6 +87,7 @@ public class MyDMAM {
 	
 	public static final Set<OpenOption> OPEN_OPTIONS_FILE_EXISTS;
 	public static final Set<OpenOption> OPEN_OPTIONS_FILE_NOT_EXISTS;
+	public static final Set<OpenOption> OPEN_OPTIONS_FILE_EXISTS_READ_ONLY;
 	
 	static {
 		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
@@ -96,6 +97,9 @@ public class MyDMAM {
 		Collections.addAll(OPEN_OPTIONS_FILE_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE);
 		OPEN_OPTIONS_FILE_NOT_EXISTS = new HashSet<OpenOption>(5);
 		Collections.addAll(OPEN_OPTIONS_FILE_NOT_EXISTS, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW, StandardOpenOption.SPARSE);
+		
+		OPEN_OPTIONS_FILE_EXISTS_READ_ONLY = new HashSet<OpenOption>(1);
+		Collections.addAll(OPEN_OPTIONS_FILE_EXISTS_READ_ONLY, StandardOpenOption.READ);
 	}
 	
 	public static final GsonKit gson_kit = new GsonKit();

@@ -44,3 +44,4 @@ telemetry.json
 ._sync_*.db*
 .owncloudsync.log
 .*.log.[0-99]
+/mydmam-test*.bin
