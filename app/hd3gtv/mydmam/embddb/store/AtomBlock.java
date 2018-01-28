@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.log4j.Logger;
 
@@ -127,6 +128,13 @@ public class AtomBlock {
 		return new AtomBlock(channel, block_end_pos_in_file, payload_size, four_cc, version);
 	}
 	
+	public AtomBlock createSubBlock(long payload_size, String four_cc, short version) throws IOException {
+		if (payload_size > getPayloadSize()) {
+			throw new IndexOutOfBoundsException("Payload is too big: " + payload_size + ", current: " + getPayloadSize());
+		}
+		return new AtomBlock(channel, getPayloadStart(), payload_size, four_cc, version);
+	}
+	
 	/**
 	 * Don't check if overload some datas in channel.
 	 * @return null if not founded/EOF.
@@ -218,12 +226,32 @@ public class AtomBlock {
 		position = new AtomicLong(0);
 	}
 	
-	private long getPayloadStart() {
+	/**
+	 * Only use for debug/analysis purpose.
+	 */
+	long getPayloadStart() {
 		return block_start_pos_in_file + HEADER_SIZE;
 	}
 	
-	private long getPayloadEnd() {
+	/**
+	 * Only use for debug/analysis purpose.
+	 */
+	long getPayloadEnd() {
 		return block_end_pos_in_file - FOOTER_SIZE;
+	}
+	
+	/**
+	 * Only use for debug/analysis purpose.
+	 */
+	long getBlock_end_pos_in_file() {
+		return block_end_pos_in_file;
+	}
+	
+	/**
+	 * Only use for debug/analysis purpose.
+	 */
+	long getBlock_start_pos_in_file() {
+		return block_start_pos_in_file;
 	}
 	
 	public long getPayloadSize() {
@@ -242,7 +270,7 @@ public class AtomBlock {
 		return version;
 	}
 	
-	public void write(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
+	public AtomBlock write(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
 		long size = buffer.remaining();
 		
 		if (payload_pos + size > getPayloadSize()) {
@@ -251,7 +279,7 @@ public class AtomBlock {
 			throw new EOFException("pos (" + payload_pos + ") can't to be < 0");
 		} else if (size == 0) {
 			log.warn("Wan't to write a 0 byte data buffer");
-			return;
+			return this;
 		}
 		
 		long file_start_pos = getPayloadStart() + payload_pos;
@@ -263,13 +291,18 @@ public class AtomBlock {
 		if (writed != size) {
 			throw new IOException("Can't write " + size + ", only " + writed + " was writed");
 		}
+		return this;
 	}
 	
-	public void write(ByteBuffer buffer) throws IOException {
+	public AtomBlock write(ByteBuffer buffer) throws IOException {
 		write(buffer, position.getAndAdd(buffer.remaining()), false);
+		return this;
 	}
 	
-	public void read(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
+	/**
+	 * @return this
+	 */
+	public AtomBlock read(ByteBuffer buffer, long payload_pos, boolean update_internal_pointer) throws IOException {
 		long size = buffer.remaining();
 		
 		if (payload_pos + size > getPayloadSize()) {
@@ -278,7 +311,7 @@ public class AtomBlock {
 			throw new EOFException("pos (" + payload_pos + ") can't to be < 0");
 		} else if (size == 0) {
 			log.warn("Wan't to read a 0 byte data buffer");
-			return;
+			return this;
 		}
 		
 		long file_start_pos = getPayloadStart() + payload_pos;
@@ -291,10 +324,15 @@ public class AtomBlock {
 		if (readed != size) {
 			throw new IOException("Can't read " + size + ", only " + readed + " was readed");
 		}
+		return this;
 	}
 	
-	public void read(ByteBuffer buffer) throws IOException {
+	/**
+	 * @return this
+	 */
+	public AtomBlock read(ByteBuffer buffer) throws IOException {
 		read(buffer, position.getAndAdd(buffer.remaining()), false);
+		return this;
 	}
 	
 	/**
@@ -321,6 +359,14 @@ public class AtomBlock {
 			return block.block_end_pos_in_file - block.block_start_pos_in_file;
 		}).sum() + supplementary_space_to_add, four_cc, version);
 		bulkImport(from_import_list);
+	}
+	
+	public static long computeSubBlocksSize(int total_sub_blocks_count, long total_payload_size) {
+		return (long) ((HEADER_SIZE + FOOTER_SIZE) * total_sub_blocks_count) + total_payload_size;
+	}
+	
+	public static long computeSubBlocksSize(long... payloads_sizes) {
+		return computeSubBlocksSize(payloads_sizes.length, StreamSupport.longStream(Arrays.spliterator(payloads_sizes), false).sum());
 	}
 	
 	/*
@@ -402,7 +448,7 @@ public class AtomBlock {
 					return null;
 				}
 				
-				AtomBlock found = new AtomBlock(channel, HEADER_SIZE + position.get());
+				AtomBlock found = new AtomBlock(channel, getPayloadStart() + position.get());
 				position.addAndGet(found.block_end_pos_in_file - found.block_start_pos_in_file);
 				return found;
 			} catch (IOException e) {
@@ -411,7 +457,7 @@ public class AtomBlock {
 		}).stream();
 	}
 	
-	public void setPositionInPayload(long position) throws IOException {
+	public AtomBlock setPositionInPayload(long position) throws IOException {
 		if (channel.isOpen() == false) {
 			throw new ClosedChannelException();
 		}
@@ -421,6 +467,8 @@ public class AtomBlock {
 			throw new IOException("Invalid payload_pos " + position);
 		}
 		this.position.set(position);
+		
+		return this;
 	}
 	
 	public String toString() {
