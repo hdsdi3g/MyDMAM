@@ -323,6 +323,7 @@ public class RestoreInterplayVantageAC {
 			return asset.isMasterclip() == false & asset.isSequence() == false;
 		});
 		if (asset_list.isEmpty()) {
+			Loggers.AssetsXCross.info("Can't found: " + mydmam_id + " in " + search_root_path);
 			return null;
 		}
 		
@@ -649,7 +650,7 @@ public class RestoreInterplayVantageAC {
 			 * Search if is linked in a (recent) sequence...
 			 */
 			if (asset.getRelatives(true).stream().anyMatch(relative -> {
-				return (relative.isSequence() | relative.isGroup()) && relative.getLastModificationDate() > min_date_relative;
+				return relative.isSequence() | relative.isGroup() && relative.getLastModificationDate() > min_date_relative;
 			})) {
 				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset_mydmam_id + ") still relative to a recent used sequence");
 				return;
@@ -854,7 +855,9 @@ public class RestoreInterplayVantageAC {
 		});
 	}
 	
-	public void tagForShred(String search_root_path, int since_update_month, int since_used_month) throws Exception {
+	public void tagForShred(String _search_root_path, int since_update_month, int since_used_month) throws Exception {
+		String search_root_path = _search_root_path.trim();
+		
 		Calendar calendar_update = Calendar.getInstance();
 		calendar_update.add(Calendar.MONTH, -Math.abs(since_update_month));
 		
@@ -889,6 +892,8 @@ public class RestoreInterplayVantageAC {
 		m_assets.stream().forEach(asset -> {
 			try {
 				asset.tagToShred(dest_dir, calendar_used.getTimeInMillis());
+			} catch (InvalidArchivedFile e) {
+				Loggers.AssetsXCross.warn("Invalid asset " + asset + " > " + e.getMessage());
 			} catch (FileNotFoundException e) {
 				Loggers.AssetsXCross.warn("Can't found asset " + asset + " > " + e.getMessage());
 			} catch (Exception e) {
@@ -1036,7 +1041,7 @@ public class RestoreInterplayVantageAC {
 			/**
 			 * Get only online video and audio atoms.
 			 */
-			return flt.getStatus().equalsIgnoreCase("Online") && (flt.getTrack().startsWith("A") | flt.getTrack().startsWith("V"));
+			return flt.getStatus().equalsIgnoreCase("Online") && flt.getTrack().startsWith("A") | flt.getTrack().startsWith("V");
 		}).map(flt -> {
 			return flt.getInterplayURI();
 		}).distinct().map(atom_uri -> {
@@ -1493,7 +1498,7 @@ public class RestoreInterplayVantageAC {
 				SearchResponseType response = interplay.search(search_type);
 				InterplayAPI.checkError(response.getErrors());
 				
-				return new HashSet<String>(interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
+				return new HashSet<>(interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
 					return asset.getFullPath();
 				}).collect(Collectors.toSet()));
 			} catch (Exception e) {
